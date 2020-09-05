@@ -8,28 +8,27 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net"
 	"os"
 	"os/exec"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
 )
 
-var (
-	ipv6re = "(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))"
-	ipv4re = "[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}"
-	ipall  = "(" + ipv6re + "|" + ipv4re + "):[0-9]+"
+const (
+	coordsre = "\\(-?[0-9]+:-?[0-9]+\\)"
+	ipv4re   = "[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}"
 )
 
 var (
 	reUsersOnline = regexp.MustCompile(
-		"^[0-9]{18} [0-9]+ (\\(-?[0-9]+:-?[0-9]+\\)) (.*) " + ipall + "$")
+		"^([0-9]{18}) ([0-9]+) (" + coordsre + ") (.*) (" + ipv4re + "):[0-9]+$")
 
 	reUsersOffline = regexp.MustCompile(
-		"^[0-9]{18} [0-9]+ (.*)$")
+		"^([0-9]{18}) ([0-9]+) (.*)$")
 )
 
 // Server - Avorion server definition
@@ -63,8 +62,8 @@ type Server struct {
 	messages [][2]string
 
 	// Config
-	worldfile  string
 	configfile string
+	config     *Configuration
 
 	// Game State
 	password string
@@ -76,6 +75,10 @@ type Server struct {
 	// Close goroutines
 	close chan struct{}
 }
+
+/******************/
+/* avorion.Server */
+/******************/
 
 // NewServer returns a new object of type Server
 func NewServer(out chan []byte, c *Configuration, args ...string) *Server {
@@ -101,11 +104,24 @@ func NewServer(out chan []byte, c *Configuration, args ...string) *Server {
 		rconpass:   c.rconpass,
 		rconaddr:   c.rconaddr,
 		rconport:   c.rconport,
-	}
+		config:     c}
 
 	s.SetLoglevel(3)
 	return s
 }
+
+// NotifyServer sends an ingame notification
+func (s *Server) NotifyServer(in string) error {
+	cmd := "say [NOTIFICATION] " + in
+	if _, err := s.RunCommand(cmd); err != nil {
+		return err
+	}
+	return nil
+}
+
+/*********************/
+/* gameserver.Server */
+/*********************/
 
 // Start starts the Avorion server process
 func (s *Server) Start() error {
@@ -121,6 +137,8 @@ func (s *Server) Start() error {
 	s.Cmd.Env = append(os.Environ(),
 		"LD_LIBRARY_PATH="+s.serverpath+"/linux64")
 
+	// This prevents the os.Interrupt signal from killing the game prematurely
+	// on *Nix systems (not an issue on Windows)
 	if runtime.GOOS != "windows" {
 		s.Cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	}
@@ -137,8 +155,6 @@ func (s *Server) Start() error {
 
 	s.close = make(chan struct{})
 	ready := make(chan struct{})
-
-	logger.LogInit(s, "Starting supervisor goroutines")
 	go superviseAvorionOut(s, ready, s.close)
 	go updateAvorionStatus(s, s.close)
 
@@ -160,6 +176,7 @@ func (s *Server) Stop() error {
 		return nil
 	}
 
+	defer close(s.close)
 	done := make(chan error)
 	s.players = nil
 
@@ -172,12 +189,10 @@ func (s *Server) Stop() error {
 	select {
 	case <-time.After(60 * time.Second):
 		s.Cmd.Process.Kill()
-		close(s.close)
 		return errors.New("Avorion took too long to exit, killed")
 
 	case err := <-done:
 		logger.LogInfo(s, "Avorion server has been stopped")
-		close(s.close)
 		if err != nil {
 			return err
 		}
@@ -262,7 +277,7 @@ func (s *Server) RunCommand(c string) (string, error) {
 	if s.IsUp() {
 		logger.LogDebug(s, "Running: "+c)
 
-		ret, err := exec.Command("/usr/bin/rcon", "-H", s.rconaddr,
+		ret, err := exec.Command(s.config.rconbin, "-H", s.rconaddr,
 			"-p", fmt.Sprint(s.rconport), "-P", s.rconpass, c).Output()
 		out := string(ret)
 
@@ -346,14 +361,14 @@ func (s *Server) WSOutput() chan []byte {
 	return s.output
 }
 
-/********/
-/* Main */
-/********/
+/***********************/
+/* gameserver.Playable */
+/***********************/
 
 // Player return a player object that matches the string given
-func (s *Server) Player(n string) gameserver.Player {
+func (s *Server) Player(index string) gameserver.Player {
 	for _, p := range s.players {
-		if p.Name() == n {
+		if p.Index() == index {
 			return p
 		}
 	}
@@ -371,29 +386,36 @@ func (s *Server) Players() []gameserver.Player {
 }
 
 // NewPlayer adds a new player to the list of players if it isn't already present
-func (s *Server) NewPlayer(n, ips string) gameserver.Player {
-	if p := s.Player(n); p != nil {
-		p.SetIP(ips)
+func (s *Server) NewPlayer(index, in string) gameserver.Player {
+	if _, err := strconv.Atoi(index); err != nil {
+		log.Fatal(errors.New("Invalid player index provided: " + index))
+	}
+
+	if p := s.Player(index); p != nil {
+		p.GetData()
 		return p
 	}
 
-	plr := &Player{name: n, server: s}
-	s.players = append(s.players, plr)
+	p := &Player{
+		index:     index,
+		online:    true,
+		server:    s,
+		steam64:   0,
+		oldcoords: make([][2]int, 0)}
 
-	plr.ip = net.ParseIP(ips)
-	logger.LogInfo(s, "New player logged: "+plr.Name())
-	return plr
+	if err := p.GetData(); err != nil {
+		logger.LogError(s, err.Error())
+	}
+
+	s.players = append(s.players, p)
+	logger.LogDebug(s, "Registering player index "+index)
+	return p
 }
 
 // RemovePlayer removes a player from the list of online players
+// TODO: This function is currently a stub and needs to be made functional once
+// more.
 func (s *Server) RemovePlayer(n string) bool {
-	for i, p := range s.players {
-		if p.Name() == n {
-			logger.LogInfo(s, "Removing "+p.Name())
-			s.players = append(s.players[:i], s.players[i+1:]...)
-			return true
-		}
-	}
 	return false
 }
 
@@ -415,25 +437,43 @@ func (s *Server) NewChatMessage(msg, name string) {
 // server is still accessible, and restarting it when needed. In addition, this
 // goroutine also updates various server related data values at set intervals
 func updateAvorionStatus(s *Server, closech chan struct{}) {
+	logger.LogInit(s, "Starting status supervisor")
 	for {
+		var (
+			out string
+			err error
+		)
+
 		// Close the routine gracefully
 		select {
 		case <-closech:
-			break
+			logger.LogInfo(s, "Stopping status supervisor")
+			return
 
-		// Check the server status every 10 minutes
+		// Check the server status every 5 minutes
 		case <-time.After(time.Minute * 5):
-			time.Sleep(time.Second * 1)
-			if out, err := s.RunCommand("status"); err != nil {
+			done := make(chan error)
+
+			go func() {
+				_, err = s.RunCommand("status")
+				done <- err
+			}()
+
+			// Wait for 60 seconds and restart the server if Avorion is taking too long
+			select {
+			case <-time.After(60 * time.Second):
+				logger.LogError(s, "Avorion is lagging, restarting")
 				s.Restart()
-			} else {
-				for _, o := range strings.Split(out, "\n") {
-					logger.LogInfo(s, o)
-				}
+			case <-done:
+				continue
 			}
 
 		// Update our playerdata db
-		case <-time.After(time.Hour * 3):
+		case <-time.After(1 * time.Hour):
+			// FIXME: This is temporary and only here until I add the player info
+			// parser to this goroutine.
+			out, _ = s.RunCommand("playerinfo -i -s -o")
+			logger.LogInfo(s, out)
 		}
 	}
 }
@@ -444,18 +484,17 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 // to be processed by our websocket handler.
 func superviseAvorionOut(s *Server, ready chan struct{},
 	closech chan struct{}) {
-	logger.LogDebug(s, "Started Avorion supervisor")
 	scanner := bufio.NewScanner(s.stdout)
-
 	pch := make(chan string, 0) // Player Login
 
+	logger.LogInit(s, "Starting STDOUT supervisor")
 	for scanner.Scan() {
 		out := scanner.Text()
 
 		select {
 		// Exit gracefully
 		case <-closech:
-			logger.LogInfo(s, "Closed output supervision routine")
+			logger.LogInfo(s, "Stopping STDOUT supervisor")
 			return
 
 		// Once we're ready, start processing logs.

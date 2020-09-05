@@ -11,8 +11,8 @@ type EventHandler func(Server, *Event, string, chan string)
 var events []*Event             // Iteration
 var eventsMap map[string]*Event // Reference
 
-// Init initalizes the local Event map and slice that are used for tracking
-func Init() {
+// InitEvents initalizes the local Event map and slice that are used for tracking
+func InitEvents() {
 	if events == nil {
 		events = make([]*Event, 0)
 	}
@@ -27,14 +27,34 @@ func Init() {
 //
 // TODO: Have Event implement Logger
 type Event struct {
-	name    string
-	Capture *regexp.Regexp
-	Handler EventHandler
+	name     string
+	loglevel int
+	Capture  *regexp.Regexp
+	Handler  EventHandler
 }
 
 // Name returns the name of the Event
 func (ge *Event) Name() string {
 	return ge.name
+}
+
+/************/
+/* Logger */
+/************/
+
+// UUID -
+func (ge *Event) UUID() string {
+	return ge.name
+}
+
+// Loglevel -
+func (ge *Event) Loglevel() int {
+	return ge.loglevel
+}
+
+// SetLoglevel -
+func (ge *Event) SetLoglevel(l int) {
+	ge.loglevel = l
 }
 
 // GetEventFromString returns a reference to a game event given a matching string
@@ -59,9 +79,10 @@ func RegisterEventHandler(n, re string, f EventHandler) int {
 	}
 
 	ge := &Event{
-		name:    n,
-		Capture: regexp.MustCompile(re),
-		Handler: f}
+		name:     n,
+		Capture:  regexp.MustCompile(re),
+		Handler:  f,
+		loglevel: 3}
 
 	events = append(events, ge)
 	eventsMap[n] = ge

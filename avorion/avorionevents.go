@@ -3,29 +3,23 @@ package avorion
 import (
 	"AvorionControl/gameserver"
 	"AvorionControl/logger"
-	"fmt"
-	"strings"
 )
 
-func initEventsDefs() {
-	gameserver.Init()
+func init() {
+	var reg = gameserver.RegisterEventHandler
 
-	ipReString := "[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}"
+	gameserver.InitEvents()
 
-	gameserver.RegisterEventHandler("EventConnection",
-		"^("+ipReString+"):[0-9]{1,5} is connecting...$", handleEventConnection)
+	reg("EventPlayerJoin", "^\\s*Player logged in: (.+?), index: ([0-9]+)\\s*$",
+		handleEventPlayerJoin)
 
-	gameserver.RegisterEventHandler("EventPlayerJoin",
-		"^Player logged in: (.+), index: ([0-9]+)$", handleEventPlayerJoin)
+	reg("EventPlayerLeft", "^\\s*Player logged off: (.+?), index: ([0-9]+):?\\s*$",
+		handleEventPlayerLeft)
 
-	gameserver.RegisterEventHandler("EventPlayerLeft",
-		"^<Server> (.+) left the galaxy$", handleEventPlayerLeft)
+	reg("EventServerLag", "^\\s*Server frame took over [0-9]+ seconds?\\.?\\s*$",
+		handleEventServerLag)
 
-	gameserver.RegisterEventHandler("EventServerLag",
-		"^Server frame took over [0-9]+ seconds?.$", handleEventServerLag)
-
-	gameserver.RegisterEventHandler("EventNone",
-		".*", defaultEventHandler)
+	reg("EventNone", ".*", defaultEventHandler)
 }
 
 func handleEventConnection(gs gameserver.Server, e *gameserver.Event, in string,
@@ -36,9 +30,34 @@ func handleEventConnection(gs gameserver.Server, e *gameserver.Event, in string,
 
 func handleEventPlayerJoin(gs gameserver.Server, e *gameserver.Event, in string,
 	oc chan string) {
-	logger.LogInfo(gs, in, gs.WSOutput())
+	var (
+		p     gameserver.Player
+		m     = e.Capture.FindStringSubmatch(in)
+		index = m[2]
+	)
+
+	logger.LogOutput(gs, "[AVORION] "+in, gs.WSOutput())
+	if p = gs.Player(index); p == nil {
+
+		gs.NewPlayer(index, in)
+		return
+	}
+
+	p.SetOnline()
+	p.GetData()
+}
+
+func handleEventPlayerLeft(gs gameserver.Server, e *gameserver.Event, in string,
+	oc chan string) {
 	m := e.Capture.FindStringSubmatch(in)
-	gs.RunCommand("playerinfo -p " + m[1] + " -a -c -t -s")
+	logger.LogOutput(gs, "[AVORION] "+in, gs.WSOutput())
+
+	if p := gs.Player(m[2]); p != nil {
+		p.SetOffline()
+		return
+	}
+
+	logger.LogError(gs, "Player logged off, but has no tracking: "+m[2])
 }
 
 func handleEventServerLag(gs gameserver.Server, e *gameserver.Event, in string,
@@ -46,32 +65,7 @@ func handleEventServerLag(gs gameserver.Server, e *gameserver.Event, in string,
 	logger.LogWarning(gs, in, gs.WSOutput())
 }
 
-func handleEventPlayerLeft(gs gameserver.Server, e *gameserver.Event, in string,
-	oc chan string) {
-	name := strings.TrimPrefix(in, "<Server> ")
-	name = strings.TrimSuffix(name, " left the galaxy")
-	gs.RemovePlayer(name)
-}
-
-func handleEventPlayerBoot(gs gameserver.Server, e *gameserver.Event, in string,
-	oc chan string) {
-	m := e.Capture.FindStringSubmatch(in)
-	logger.LogInfo(gs, fmt.Sprintf("Failed connection: %s [%s]", m[1], m[2]),
-		gs.WSOutput())
-}
-
-func handleEventPlayerBan(gs gameserver.Server, e *gameserver.Event, in string,
-	oc chan string) {
-	logger.LogInfo(gs, in, gs.WSOutput())
-}
-
-func handleEventServerPass(gs gameserver.Server, e *gameserver.Event, in string,
-	oc chan string) {
-	m := e.Capture.FindStringSubmatch(in)
-	gs.SetPassword(m[1])
-}
-
 func defaultEventHandler(gs gameserver.Server, e *gameserver.Event, in string,
 	oc chan string) {
-	logger.LogOutput(gs, in)
+	logger.LogOutput(gs, "[AVORION] "+in)
 }

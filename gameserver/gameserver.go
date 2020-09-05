@@ -52,12 +52,17 @@ type Playable interface {
 // regarding its connection tracked
 type Player interface {
 	Name() string
+	GetData() error
 
 	Kick(string)
 	Ban(string)
 
 	SetIP(string)
 	IP() net.IP
+
+	Online() bool
+	SetOnline()
+	SetOffline()
 }
 
 // PlayerData represents a player, and includes the name and their IP address.
