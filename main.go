@@ -1,24 +1,18 @@
 package main
 
 import (
-	"fmt"
+	"AvorionControl/avorion"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 )
 
-func init() {
-	initEvents()
-	initEventsDefs()
-}
-
-// Very temporary
 func main() {
 	var (
 		sc     = make(chan os.Signal, 1)
-		config = NewConfiguration()
-		server = NewAvorionServer(nil, config)
+		config = avorion.NewConfiguration()
+		server = avorion.NewServer(nil, config)
 	)
 
 	if err := server.Start(); err != nil {
@@ -33,7 +27,6 @@ func main() {
 	for sig := range sc {
 		switch sig {
 		case os.Interrupt, syscall.SIGTERM:
-			fmt.Print("\r")
 			log.Output(1, "Quitting")
 			if server.IsUp() {
 				if err := server.Stop(); err != nil {
