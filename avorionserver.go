@@ -1,6 +1,7 @@
 package main
 
 import (
+	"AvorionControl/logger"
 	"bufio"
 	"errors"
 	"fmt"
@@ -42,7 +43,7 @@ type AvorionServer struct {
 	stdout io.Reader
 	output chan []byte
 
-	// Loggable
+	// Logger
 	loglevel int
 	uuid     string
 
@@ -120,12 +121,12 @@ func (s *AvorionServer) Start() error {
 		s.Cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	}
 
-	LogDebug(s, "Getting Stdin Pipe")
+	logger.LogDebug(s, "Getting Stdin Pipe")
 	if s.stdin, err = s.Cmd.StdinPipe(); err != nil {
 		return err
 	}
 
-	LogDebug(s, "Getting Stdout Pipe")
+	logger.LogDebug(s, "Getting Stdout Pipe")
 	if s.stdout, err = s.Cmd.StdoutPipe(); err != nil {
 		return err
 	}
@@ -133,32 +134,32 @@ func (s *AvorionServer) Start() error {
 	s.close = make(chan struct{})
 	ready := make(chan struct{})
 
-	LogInit(s, "Starting supervisor goroutines")
+	logger.LogInit(s, "Starting supervisor goroutines")
 	go superviseAvorionOut(s, ready, s.close)
 	go updateAvorionStatus(s, s.close)
 
-	LogInit(s, "Starting AvorionServer and waiting till ready")
+	logger.LogInit(s, "Starting AvorionServer and waiting till ready")
 	if err = s.Cmd.Start(); err != nil {
 		return err
 	}
 
 	// Wait until the process is ready and then continue
 	<-ready
-	LogInit(s, "AvorionServer is online")
+	logger.LogInit(s, "AvorionServer is online")
 	return nil
 }
 
 // Stop gracefully stops the Avorion process
 func (s *AvorionServer) Stop() error {
 	if s.IsUp() != true {
-		LogOutput(s, "Server is already offline")
+		logger.LogOutput(s, "Server is already offline")
 		return nil
 	}
 
 	done := make(chan error)
 	s.players = nil
 
-	LogOutput(s, "Stopping Avorion server and waiting for it to exit")
+	logger.LogOutput(s, "Stopping Avorion server and waiting for it to exit")
 	s.RunCommand("save")
 	s.RunCommand("stop")
 
@@ -171,7 +172,7 @@ func (s *AvorionServer) Stop() error {
 		return errors.New("Avorion took too long to exit, killed")
 
 	case err := <-done:
-		LogInfo(s, "Avorion server has been stopped")
+		logger.LogInfo(s, "Avorion server has been stopped")
 		close(s.close)
 		if err != nil {
 			return err
@@ -190,7 +191,7 @@ func (s *AvorionServer) Restart() error {
 		return err
 	}
 
-	LogInfo(s, "Restarted Avorion")
+	logger.LogInfo(s, "Restarted Avorion")
 	return nil
 }
 
@@ -228,7 +229,7 @@ func (s *AvorionServer) UpdatePlayerDatabase() error {
 }
 
 /************/
-/* Loggable */
+/* Logger */
 /************/
 
 // UUID -
@@ -255,7 +256,7 @@ func (s *AvorionServer) SetLoglevel(l int) {
 //	TODO 2: Modify this function to make use of permitted command levels
 func (s *AvorionServer) RunCommand(c string) (string, error) {
 	if s.IsUp() {
-		LogDebug(s, "Running: "+c)
+		logger.LogDebug(s, "Running: "+c)
 
 		ret, err := exec.Command("/usr/bin/rcon", "-H", s.rconaddr,
 			"-p", fmt.Sprint(s.rconport), "-P", s.rconpass, c).Output()
@@ -376,7 +377,7 @@ func (s *AvorionServer) NewPlayer(n, ips string) Player {
 	s.players = append(s.players, plr)
 
 	plr.ip = net.ParseIP(ips)
-	LogInfo(s, "New player logged: "+plr.Name())
+	logger.LogInfo(s, "New player logged: "+plr.Name())
 	return plr
 }
 
@@ -384,7 +385,7 @@ func (s *AvorionServer) NewPlayer(n, ips string) Player {
 func (s *AvorionServer) RemovePlayer(n string) bool {
 	for i, p := range s.players {
 		if p.Name() == n {
-			LogInfo(s, "Removing "+p.Name())
+			logger.LogInfo(s, "Removing "+p.Name())
 			s.players = append(s.players[:i], s.players[i+1:]...)
 			return true
 		}
@@ -423,7 +424,7 @@ func updateAvorionStatus(s *AvorionServer, closech chan struct{}) {
 				s.Restart()
 			} else {
 				for _, o := range strings.Split(out, "\n") {
-					LogInfo(s, o)
+					logger.LogInfo(s, o)
 				}
 			}
 
@@ -439,7 +440,7 @@ func updateAvorionStatus(s *AvorionServer, closech chan struct{}) {
 // to be processed by our websocket handler.
 func superviseAvorionOut(s *AvorionServer, ready chan struct{},
 	closech chan struct{}) {
-	LogDebug(s, "Started Avorion supervisor")
+	logger.LogDebug(s, "Started Avorion supervisor")
 	scanner := bufio.NewScanner(s.stdout)
 
 	pch := make(chan string, 0) // Player Login
@@ -450,7 +451,7 @@ func superviseAvorionOut(s *AvorionServer, ready chan struct{},
 		select {
 		// Exit gracefully
 		case <-closech:
-			LogInfo(s, "Closed output supervision routine")
+			logger.LogInfo(s, "Closed output supervision routine")
 			return
 
 		// Once we're ready, start processing logs.
@@ -467,10 +468,10 @@ func superviseAvorionOut(s *AvorionServer, ready chan struct{},
 		default:
 			switch out {
 			case "Server startup complete.":
-				LogInit(s, "Avorion server initialization completed", s.WSOutput())
+				logger.LogInit(s, "Avorion server initialization completed", s.WSOutput())
 				close(ready) //Close the channel to close this path
 			default:
-				LogInit(s, out, s.WSOutput())
+				logger.LogInit(s, out, s.WSOutput())
 			}
 		}
 	}

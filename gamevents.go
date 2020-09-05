@@ -1,6 +1,13 @@
 package main
 
-import "regexp"
+import (
+	"AvorionControl/logger"
+	"regexp"
+)
+
+// gameEventHandler - A function that takes a GameServer, some output and output
+// channel (used as needed) and processes a given gameevent
+type gameEventHandler func(GameServer, *GameEvent, string, chan string)
 
 var gameEvents []*GameEvent             // Iteration
 var gameEventsMap map[string]*GameEvent // Reference
@@ -10,12 +17,8 @@ func initEvents() {
 	gameEventsMap = make(map[string]*GameEvent)
 }
 
-// gameEventHandler - A function that takes a GameServer, some output and output
-// channel (used as needed) and processes a given gameevent
-type gameEventHandler func(GameServer, *GameEvent, string, chan string)
-
 // GameEvent -
-// TODO: Have GameEvent implement Loggable
+// TODO: Have GameEvent implement Logger
 type GameEvent struct {
 	name    string
 	Capture *regexp.Regexp
@@ -66,5 +69,5 @@ func EventType(s string, gs GameServer) int {
 }
 
 func defaultEventHandler(gs GameServer, e *GameEvent, in string, oc chan string) {
-	LogOutput(gs, in)
+	logger.LogOutput(gs, in)
 }

@@ -16,20 +16,10 @@ func init() {
 // Very temporary
 func main() {
 	var (
-		sc = make(chan os.Signal, 1)
-		// out    = make(chan []byte)
+		sc     = make(chan os.Signal, 1)
 		config = NewConfiguration()
 		server = NewAvorionServer(nil, config)
-		// hub    = NewConnHub(out)
 	)
-
-	// go hub.Start()
-	// serveHTTP(hub, server, out)
-
-	// go func() {
-	// 	log.Output(1, "Starting webserver")
-	// 	log.Fatal(http.ListenAndServe(config.WebPort(), nil))
-	// }()
 
 	if err := server.Start(); err != nil {
 		log.Output(1, err.Error())

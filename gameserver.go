@@ -1,6 +1,7 @@
 package main
 
 import (
+	"AvorionControl/logger"
 	"net"
 	"regexp"
 )
@@ -12,7 +13,7 @@ var illegalNamesRe []*regexp.Regexp
 type GameServer interface {
 	Commandable
 	Versioned
-	Loggable
+	logger.Logger
 	Playable
 	Server
 	LoginMessager
