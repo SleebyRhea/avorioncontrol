@@ -3,15 +3,29 @@ package main
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net"
 	"os"
 	"os/exec"
+	"regexp"
 	"runtime"
 	"strings"
+	"syscall"
 	"time"
 )
+
+var (
+	reUsersOffline = regexp.MustCompile("^[0-9]{18} [0-9]+ (.*)$")
+
+	ipv6re = "(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))"
+	ipv4re = "[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}"
+	ipall  = "(" + ipv6re + "|" + ipv4re + "):[0-9]+"
+)
+
+var reUsersOnline = regexp.MustCompile(
+	"^[0-9]{18} [0-9]+ (\\(-?[0-9]+:-?[0-9]+\\)) (.*) " + ipall + "$")
 
 // AvorionServer - Avorion server definition
 type AvorionServer struct {
@@ -32,10 +46,10 @@ type AvorionServer struct {
 	loglevel int
 	uuid     string
 
-	// Commandable
-	commandqueue    chan string
-	commandcount    int
-	commandqueuemax int
+	//RCON support
+	rconpass string
+	rconaddr string
+	rconport int
 
 	// PlayerInfo
 	players  []*AvorionPlayer
@@ -57,13 +71,13 @@ type AvorionServer struct {
 }
 
 // NewAvorionServer returns a new object of type AvorionServer
-func NewAvorionServer(out chan []byte, serverpath string, args ...string) *AvorionServer {
+func NewAvorionServer(out chan []byte, c *Configuration, args ...string) *AvorionServer {
 	executable := "AvorionServer.exe"
 	if runtime.GOOS != "windows" {
 		executable = "AvorionServer"
 	}
 
-	version, err := exec.Command(serverpath+"/bin/"+executable,
+	version, err := exec.Command(c.installdir+"/bin/"+executable,
 		"--version").Output()
 
 	if err != nil {
@@ -75,8 +89,11 @@ func NewAvorionServer(out chan []byte, serverpath string, args ...string) *Avori
 		uuid:       "AvorionServer",
 		output:     out,
 		version:    string(version),
-		serverpath: serverpath,
+		serverpath: c.installdir,
 		executable: executable,
+		rconpass:   c.rconpass,
+		rconaddr:   c.rconaddr,
+		rconport:   c.rconport,
 	}
 
 	s.SetLoglevel(3)
@@ -95,6 +112,14 @@ func (s *AvorionServer) Start() error {
 		"--admin", s.admin,
 	)
 
+	s.Cmd.Dir = s.serverpath
+	s.Cmd.Env = append(os.Environ(),
+		"LD_LIBRARY_PATH="+s.serverpath+"/linux64")
+
+	if runtime.GOOS != "windows" {
+		s.Cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	}
+
 	LogDebug(s, "Getting Stdin Pipe")
 	if s.stdin, err = s.Cmd.StdinPipe(); err != nil {
 		return err
@@ -110,6 +135,7 @@ func (s *AvorionServer) Start() error {
 
 	LogInit(s, "Starting supervisor goroutines")
 	go superviseAvorionOut(s, ready, s.close)
+	go updateAvorionStatus(s, s.close)
 
 	LogInit(s, "Starting AvorionServer and waiting till ready")
 	if err = s.Cmd.Start(); err != nil {
@@ -181,6 +207,26 @@ func (s *AvorionServer) IsUp() bool {
 	return false
 }
 
+// UpdatePlayerDatabase updates the Avorion player database with all of the
+// players that are known to the game
+func (s *AvorionServer) UpdatePlayerDatabase() error {
+	out, err := s.RunCommand("playerinfo -o -i -s")
+	if err != nil {
+		return err
+	}
+
+	strings.TrimSuffix(out, "\n")
+
+	for _, playerinfo := range strings.Split(out, "\n") {
+		m := reUsersOffline.FindStringSubmatch(playerinfo)
+		plr := s.Player(m[2])
+		if plr == nil {
+		}
+	}
+
+	return nil
+}
+
 /************/
 /* Loggable */
 /************/
@@ -209,8 +255,10 @@ func (s *AvorionServer) SetLoglevel(l int) {
 //	TODO 2: Modify this function to make use of permitted command levels
 func (s *AvorionServer) RunCommand(c string) (string, error) {
 	if s.IsUp() {
-		ret, err := exec.Command("rcon", "-H", "127.0.0.1",
-			"-p", "27015", c).Output()
+		LogDebug(s, "Running: "+c)
+
+		ret, err := exec.Command("/usr/bin/rcon", "-H", s.rconaddr,
+			"-p", fmt.Sprint(s.rconport), "-P", s.rconpass, c).Output()
 		out := string(ret)
 
 		if err != nil {
@@ -357,6 +405,33 @@ func (s *AvorionServer) NewChatMessage(msg, name string) {
 /**************/
 /* Goroutines */
 /**************/
+
+// updateAvorionStatus is the goroutine responsible for making sure that the
+// server is still accessible, and restarting it when needed. In addition, this
+// goroutine also updates various server related data values at set intervals
+func updateAvorionStatus(s *AvorionServer, closech chan struct{}) {
+	for {
+		// Close the routine gracefully
+		select {
+		case <-closech:
+			break
+
+		// Check the server status every 10 minutes
+		case <-time.After(time.Minute * 5):
+			time.Sleep(time.Second * 1)
+			if out, err := s.RunCommand("status"); err != nil {
+				s.Restart()
+			} else {
+				for _, o := range strings.Split(out, "\n") {
+					LogInfo(s, o)
+				}
+			}
+
+		// Update our playerdata db
+		case <-time.After(time.Hour * 3):
+		}
+	}
+}
 
 // superviseAvorionOut watches the output provided by the Avorion process and
 // applies the applicable eventHandler for the output recieved. This routine is

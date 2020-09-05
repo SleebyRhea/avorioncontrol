@@ -5,7 +5,7 @@ import "regexp"
 var gameEvents []*GameEvent             // Iteration
 var gameEventsMap map[string]*GameEvent // Reference
 
-func init() {
+func initEvents() {
 	gameEvents = make([]*GameEvent, 0)
 	gameEventsMap = make(map[string]*GameEvent)
 }

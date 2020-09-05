@@ -2,24 +2,23 @@ package main
 
 import "strings"
 
-func init() {
+func initEventsDefs() {
 	ipReString := "[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}"
 
 	RegisterGameEventHandler("EventConnection",
-		"^("+ipReString+"):[0-9]{1,5} is connecting...$",
-		handleEventConnection)
+		"^("+ipReString+"):[0-9]{1,5} is connecting...$", handleEventConnection)
 
 	RegisterGameEventHandler("EventPlayerJoin",
-		"^Player logged in: (.+), index: ([0-9]+)$",
-		handleEventPlayerJoin)
+		"^Player logged in: (.+), index: ([0-9]+)$", handleEventPlayerJoin)
 
 	RegisterGameEventHandler("EventPlayerLeft",
-		"^<Server> (.+) left the galaxy$",
-		handleEventPlayerLeft)
+		"^<Server> (.+) left the galaxy$", handleEventPlayerLeft)
+
+	RegisterGameEventHandler("EventServerLag",
+		"^Server frame took over [0-9]+ seconds?.$", handleEventServerLag)
 
 	RegisterGameEventHandler("EventNone",
-		".*",
-		defaultEventHandler)
+		".*", defaultEventHandler)
 }
 
 func handleEventConnection(gs GameServer, e *GameEvent, in string,
@@ -35,11 +34,15 @@ func handleEventPlayerJoin(gs GameServer, e *GameEvent, in string,
 	gs.RunCommand("playerinfo -p " + m[1] + " -a -c -t -s")
 }
 
+func handleEventServerLag(gs GameServer, e *GameEvent, in string,
+	oc chan string) {
+	LogWarning(gs, in, gs.WSOutput())
+}
+
 func handleEventPlayerLeft(gs GameServer, e *GameEvent, in string,
 	oc chan string) {
 	name := strings.TrimPrefix(in, "<Server> ")
 	name = strings.TrimSuffix(name, " left the galaxy")
-
 	gs.RemovePlayer(name)
 }
 

@@ -40,7 +40,6 @@ func sendToChans(out string, chs []chan []byte) {
 		select {
 		case ch <- []byte(out):
 		default:
-			log.Output(1, "Unable to send to closed channel!")
 		}
 	}
 }

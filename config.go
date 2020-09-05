@@ -7,6 +7,9 @@ import (
 
 const (
 	defaultWebPort            = 8080
+	defaultRconPort           = 27015
+	defaultRconAddress        = "127.0.0.1"
+	defaultRconPassword       = "123123"
 	defaultServerInstallation = "/srv/avorion/server_files/"
 )
 
@@ -16,9 +19,11 @@ type Configuration struct {
 	// webport int
 
 	installdir string
-	hostname   string
 	uriprefix  string
-	binary     string
+	hostname   string
+	rconpass   string
+	rconaddr   string
+	rconport   int
 }
 
 // NewConfiguration returns a new object representing a server config
@@ -33,6 +38,9 @@ func NewConfiguration() *Configuration {
 	return &Configuration{
 		hostname:   hostname,
 		installdir: defaultServerInstallation,
+		rconpass:   defaultRconPassword,
+		rconaddr:   defaultRconAddress,
+		rconport:   defaultRconPort,
 		// webport:    defaultWebPort,
 	}
 }

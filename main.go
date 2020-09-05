@@ -8,13 +8,18 @@ import (
 	"syscall"
 )
 
+func init() {
+	initEvents()
+	initEventsDefs()
+}
+
 // Very temporary
 func main() {
 	var (
-		sc     = make(chan os.Signal, 1)
-		out    = make(chan []byte)
+		sc = make(chan os.Signal, 1)
+		// out    = make(chan []byte)
 		config = NewConfiguration()
-		server = NewAvorionServer(out, config.installdir)
+		server = NewAvorionServer(nil, config)
 		// hub    = NewConnHub(out)
 	)
 
