@@ -61,8 +61,7 @@ type Player interface {
 	IP() net.IP
 
 	Online() bool
-	SetOnline()
-	SetOffline()
+	SetOnline(bool)
 }
 
 // PlayerData represents a player, and includes the name and their IP address.

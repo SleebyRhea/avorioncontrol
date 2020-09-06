@@ -30,10 +30,10 @@ type Player struct {
 // GetData updates our tracked data for the player
 func (p Player) GetData() error {
 	logger.LogDebug(p.server, "Attempting to update player: "+p.index)
-	cmd := "playerinfo -i -s -t -p " + fmt.Sprint(p.index)
+	cmd := "playerinfo -i -s -t -c -p " + fmt.Sprint(p.index)
 
 	if p.online {
-		cmd += " -a -c"
+		cmd += " -a"
 	}
 
 	out, err := p.server.RunCommand(cmd)
@@ -191,12 +191,7 @@ func (p Player) Online() bool {
 	return p.online
 }
 
-// SetOnline updates the player status to be online
-func (p Player) SetOnline() {
-	p.online = true
-}
-
-// SetOffline updates the player status to be offline
-func (p Player) SetOffline() {
-	p.online = false
+// SetOnline updates the player status to the boolean passed
+func (p Player) SetOnline(o bool) {
+	p.online = o
 }

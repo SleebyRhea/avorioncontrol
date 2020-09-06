@@ -69,19 +69,19 @@ func formatResponseHeader(r int, m string) string {
 // LogOutput logs the given string with a timestamp and no prefix. Logging does
 // not depend on the current loglevel of an object
 func LogOutput(l Logger, m string, chs ...chan []byte) {
-	log.Output(1, m)
+	log.Output(1, sprintf("[%s] %s", l.UUID(), m))
 }
 
 // LogError logs an error.
 func LogError(l Logger, m string, chs ...chan []byte) {
-	m = sprintf("[%s] %s", errorPrefix, m)
+	m = sprintf("[%s] [%s] %s", errorPrefix, l.UUID(), m)
 	log.Output(1, m)
 	sendToChans(m, chs)
 }
 
 // LogWarning logs a warning
 func LogWarning(l Logger, m string, chs ...chan []byte) {
-	m = sprintf("[%s] %s", warnPrefix, m)
+	m = sprintf("[%s] %s", warnPrefix, l.UUID(), m)
 	log.Output(1, m)
 	sendToChans(m, chs)
 }
@@ -90,21 +90,21 @@ func LogWarning(l Logger, m string, chs ...chan []byte) {
 // or greater
 func LogDebug(l Logger, m string, chs ...chan []byte) {
 	if l.Loglevel() >= debugLevel {
-		log.Output(1, sprintf("[%s] %s", debugPrefix, m))
+		log.Output(1, sprintf("[%s] [%s] %s", debugPrefix, l.UUID(), m))
 	}
 }
 
 // LogInfo logs an informational notification if the loglevel is one or greater
 func LogInfo(l Logger, m string, chs ...chan []byte) {
 	if l.Loglevel() >= infoLevel {
-		log.Output(1, sprintf("[%s] %s", infoPrefix, m))
+		log.Output(1, sprintf("[%s] [%s] %s", infoPrefix, l.UUID(), m))
 	}
-	sendToChans(sprintf("[%s] %s", infoPrefix, m), chs)
+	sendToChans(sprintf("[%s] [%s] %s", infoPrefix, l.UUID(), m), chs)
 }
 
 // LogInit logs an initialization message
 func LogInit(l Logger, m string, chs ...chan []byte) {
-	m = sprintf("[%s] %s", initPrefix, m)
+	m = sprintf("[%s] [%s] %s", initPrefix, l.UUID(), m)
 	log.Output(1, m)
 	sendToChans(m, chs)
 }
@@ -112,16 +112,16 @@ func LogInit(l Logger, m string, chs ...chan []byte) {
 // LogVerbose logs a message only when the loglevel of an object is 2 or greater
 func LogVerbose(l Logger, m string, chs ...chan []byte) {
 	if l.Loglevel() >= verboseLevel {
-		log.Output(1, sprintf("[%s] %s", verbosePrefix, m))
+		log.Output(1, sprintf("[%s] [%s] %s", verbosePrefix, l.UUID(), m))
 	}
 }
 
 // LogChat logs server chat
 func LogChat(l Logger, m string, chs ...chan []byte) {
 	if l.Loglevel() >= infoLevel {
-		log.Output(1, sprintf("[%s] %s", chatPrefix, m))
+		log.Output(1, sprintf("[%s] [%s] %s", chatPrefix, l.UUID(), m))
 	}
-	sendToChans(sprintf("[%s] %s", chatPrefix, m), chs)
+	sendToChans(sprintf("[%s] [%s] %s", chatPrefix, l.UUID(), m), chs)
 }
 
 // LogHTTP logs an HTTP response code and string. Provides formatting for the
@@ -133,6 +133,6 @@ func LogHTTP(l Logger, rc int, r *http.Request, chs ...chan []byte) {
 			r.RemoteAddr,
 			r.Host,
 			r.RequestURI)
-		log.Output(1, sprintf("%s %s", rcs, rinfo))
+		log.Output(1, sprintf("[%s] %s %s", l.UUID(), rcs, rinfo))
 	}
 }

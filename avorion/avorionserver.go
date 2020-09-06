@@ -16,6 +16,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 const (
@@ -96,7 +98,7 @@ func NewServer(out chan []byte, c *Configuration, args ...string) *Server {
 	}
 
 	s := &Server{
-		uuid:       "Server",
+		uuid:       "AvorionServer",
 		output:     out,
 		version:    string(version),
 		serverpath: c.installdir,
@@ -137,10 +139,13 @@ func (s *Server) Start() error {
 	s.Cmd.Env = append(os.Environ(),
 		"LD_LIBRARY_PATH="+s.serverpath+"/linux64")
 
-	// This prevents the os.Interrupt signal from killing the game prematurely
-	// on *Nix systems (not an issue on Windows)
-	if runtime.GOOS != "windows" {
-		s.Cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	// This prevents ctrl+c from killing the child process as well as the parent
+	// on *Nix systems (not an issue on Windows). Unneeded when running as a unit.
+	// https://rosettacode.org/wiki/Check_output_device_is_a_terminal#Go
+	if terminal.IsTerminal(int(os.Stdout.Fd())) {
+		if runtime.GOOS != "windows" {
+			s.Cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true, Pgid: 0}
+		}
 	}
 
 	logger.LogDebug(s, "Getting Stdin Pipe")
@@ -166,6 +171,8 @@ func (s *Server) Start() error {
 	// Wait until the process is ready and then continue
 	<-ready
 	logger.LogInit(s, "Server is online")
+	s.UpdatePlayerDatabase(false)
+
 	return nil
 }
 
@@ -229,18 +236,37 @@ func (s *Server) IsUp() bool {
 
 // UpdatePlayerDatabase updates the Avorion player database with all of the
 // players that are known to the game
-func (s *Server) UpdatePlayerDatabase() error {
-	out, err := s.RunCommand("playerinfo -o -i -s")
+func (s *Server) UpdatePlayerDatabase(notify bool) error {
+	if notify {
+		s.NotifyServer("Updating playerinfo DB. Possible lag incoming.")
+	}
+
+	out, err := s.RunCommand("playerinfo -o -i -s -t")
 	if err != nil {
 		return err
 	}
 
-	strings.TrimSuffix(out, "\n")
+	for _, info := range strings.Split(out, "\n") {
+		var (
+			m []string
+			o bool
+		)
 
-	for _, playerinfo := range strings.Split(out, "\n") {
-		m := reUsersOffline.FindStringSubmatch(playerinfo)
-		plr := s.Player(m[2])
-		if plr == nil {
+		if m = rePlayerDataOfflineSteamIndex.FindStringSubmatch(info); m != nil {
+			o = false
+		} else if m = rePlayerDataOnlineSteamIndex.FindStringSubmatch(info); m != nil {
+			o = true
+		} else {
+			logger.LogError(s, fmt.Sprintf("Unable to parse line: (%s)", info))
+			continue
+		}
+
+		if p := s.Player(m[2]); p != nil {
+			p.SetOnline(o)
+			p.GetData()
+		} else {
+			p := s.NewPlayer(m[2], "")
+			p.SetOnline(o)
 		}
 	}
 
@@ -289,7 +315,7 @@ func (s *Server) RunCommand(c string) (string, error) {
 			return out, errors.New("Invalid command provided")
 		}
 
-		return out, nil
+		return strings.TrimSuffix(out, "\n"), nil
 	}
 
 	return "", errors.New("Server is not online")
@@ -439,11 +465,6 @@ func (s *Server) NewChatMessage(msg, name string) {
 func updateAvorionStatus(s *Server, closech chan struct{}) {
 	logger.LogInit(s, "Starting status supervisor")
 	for {
-		var (
-			out string
-			err error
-		)
-
 		// Close the routine gracefully
 		select {
 		case <-closech:
@@ -455,7 +476,7 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 			done := make(chan error)
 
 			go func() {
-				_, err = s.RunCommand("status")
+				_, err := s.RunCommand("status")
 				done <- err
 			}()
 
@@ -468,12 +489,9 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 				continue
 			}
 
-		// Update our playerdata db
+		// Update our playerinfo db
 		case <-time.After(1 * time.Hour):
-			// FIXME: This is temporary and only here until I add the player info
-			// parser to this goroutine.
-			out, _ = s.RunCommand("playerinfo -i -s -o")
-			logger.LogInfo(s, out)
+			s.UpdatePlayerDatabase(true)
 		}
 	}
 }

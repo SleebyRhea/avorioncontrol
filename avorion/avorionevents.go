@@ -36,24 +36,24 @@ func handleEventPlayerJoin(gs gameserver.Server, e *gameserver.Event, in string,
 		index = m[2]
 	)
 
-	logger.LogOutput(gs, "[AVORION] "+in, gs.WSOutput())
+	logger.LogOutput(gs, in, gs.WSOutput())
 	if p = gs.Player(index); p == nil {
 
 		gs.NewPlayer(index, in)
 		return
 	}
 
-	p.SetOnline()
+	p.SetOnline(true)
 	p.GetData()
 }
 
 func handleEventPlayerLeft(gs gameserver.Server, e *gameserver.Event, in string,
 	oc chan string) {
 	m := e.Capture.FindStringSubmatch(in)
-	logger.LogOutput(gs, "[AVORION] "+in, gs.WSOutput())
+	logger.LogOutput(gs, in, gs.WSOutput())
 
 	if p := gs.Player(m[2]); p != nil {
-		p.SetOffline()
+		p.SetOnline(false)
 		return
 	}
 
@@ -67,5 +67,5 @@ func handleEventServerLag(gs gameserver.Server, e *gameserver.Event, in string,
 
 func defaultEventHandler(gs gameserver.Server, e *gameserver.Event, in string,
 	oc chan string) {
-	logger.LogOutput(gs, "[AVORION] "+in)
+	logger.LogOutput(gs, in)
 }
