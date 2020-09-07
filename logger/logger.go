@@ -81,7 +81,7 @@ func LogError(l Logger, m string, chs ...chan []byte) {
 
 // LogWarning logs a warning
 func LogWarning(l Logger, m string, chs ...chan []byte) {
-	m = sprintf("[%s] %s", warnPrefix, l.UUID(), m)
+	m = sprintf("[%s] [%s] %s", warnPrefix, l.UUID(), m)
 	log.Output(1, m)
 	sendToChans(m, chs)
 }

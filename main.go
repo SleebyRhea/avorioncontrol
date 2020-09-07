@@ -4,6 +4,7 @@ import (
 	"AvorionControl/avorion"
 	"AvorionControl/discord"
 	"AvorionControl/discord/botconfig"
+	"AvorionControl/gameserver"
 	"AvorionControl/logger"
 	"flag"
 	"fmt"
@@ -18,6 +19,7 @@ var (
 	loglevel int
 
 	sc chan os.Signal
+	dc chan gameserver.ChatData
 
 	bot          *discord.Bot
 	botconf      *botconfig.Config
@@ -49,7 +51,10 @@ func main() {
 	}
 
 	sc = make(chan os.Signal, 1)
-	server = avorion.NewServer(nil, serverconfig)
+	dc = make(chan gameserver.ChatData)
+
+	server = avorion.NewServer(dc, serverconfig)
+	server.SetBot(bot)
 
 	if err := serverconfig.Validate(); err != nil {
 		log.Fatal(err)
@@ -62,12 +67,11 @@ func main() {
 	server.SetLoglevel(loglevel)
 	bot.SetLoglevel(loglevel)
 
+	discord.Init(bot, botconf, server)
 	if err := server.Start(); err != nil {
 		log.Output(1, err.Error())
 		os.Exit(1)
 	}
-
-	discord.Init(bot, botconf, server)
 
 	logger.LogInit(server, "Completed init, awaiting termination signal.")
 	for sig := range sc {

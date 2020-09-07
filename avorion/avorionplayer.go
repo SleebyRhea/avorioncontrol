@@ -19,6 +19,7 @@ type Player struct {
 	coords    [2]int
 	oldcoords [][2]int
 	resources map[string]int64
+	discordid string
 
 	// gameserver.Player
 	ip     net.IP
@@ -95,6 +96,7 @@ func (p Player) GetData() error {
 			logger.LogInfo(p.server, fmt.Sprintf(
 				"Updated player information for %s (%s:%s)", p.index, p.name, p.ip.String()))
 
+			p.discordid, _ = p.server.RunCommand("getlinkeddiscord " + m[2])
 			continue
 		}
 
@@ -120,6 +122,7 @@ func (p Player) GetData() error {
 			}
 
 			p.name = m[3]
+			p.discordid, _ = p.server.RunCommand("getlinkeddiscord " + m[2])
 			continue
 		}
 
@@ -194,4 +197,9 @@ func (p Player) Online() bool {
 // SetOnline updates the player status to the boolean passed
 func (p Player) SetOnline(o bool) {
 	p.online = o
+}
+
+// DiscordUID returns a players Discord ID
+func (p Player) DiscordUID() string {
+	return p.discordid
 }

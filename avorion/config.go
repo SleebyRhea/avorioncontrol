@@ -19,9 +19,9 @@ const (
 	defaultRconPassword = "123123"
 
 	defaultGalaxyName         = "Galaxy"
-	defaultGalaxyDirectory    = "/srv/avorion/galaxies"
-	defaultServerInstallation = "/srv/avorion/server_files/"
+	defaultDataDirectory      = "/srv/avorion/"
 	defaultServerLogDirectory = "/srv/avorion/logs"
+	defaultServerInstallation = "/srv/avorion/server_files/"
 
 	defaultTimeDatabaseUpdate = time.Minute * 60
 	defaultTimeHangCheck      = time.Minute * 5
@@ -29,7 +29,10 @@ const (
 
 // Configuration is a struct representing a server configuration
 type Configuration struct {
+	galaxyname string
+
 	installdir string
+	datadir    string
 	logdir     string
 
 	rconbin  string
@@ -44,14 +47,19 @@ type Configuration struct {
 // NewConfiguration returns a new object representing a server config
 func NewConfiguration() *Configuration {
 	return &Configuration{
+		galaxyname: defaultGalaxyName,
+
 		installdir: defaultServerInstallation,
+		datadir:    defaultDataDirectory,
 		logdir:     defaultServerLogDirectory,
-		rconbin:    defaultRconBin,
-		rconpass:   defaultRconPassword,
-		rconaddr:   defaultRconAddress,
-		rconport:   defaultRconPort,
-		gameport:   defaultGamePort,
-		pingport:   defaultGamePingPort,
+
+		rconbin:  defaultRconBin,
+		rconpass: defaultRconPassword,
+		rconaddr: defaultRconAddress,
+
+		rconport: defaultRconPort,
+		gameport: defaultGamePort,
+		pingport: defaultGamePingPort,
 	}
 }
 

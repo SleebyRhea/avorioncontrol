@@ -309,17 +309,18 @@ func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
 	)
 
 	args := make(BotArgs, 0)
+	input := strings.TrimPrefix(m.Content, c.Prefix)
+	input = strings.TrimSpace(input)
 
 	// Split our arguments and add them to the args slice
 	for _, m := range regexp.MustCompile("[^\\s]+").
-		FindAllStringSubmatch(strings.TrimPrefix(m.Content, c.Prefix), -1) {
+		FindAllStringSubmatch(input, -1) {
 		args = append(args, m[0])
 	}
 
-	// If there was no command given, then it was invalid.
+	// If there was no command given, then just return nothing
 	if len(args) == 0 || len(args[0]) == 0 {
-		_, err = invalidCmd(s, m, args, c)
-		return err
+		return nil
 	}
 
 	name := args[0]
@@ -355,6 +356,9 @@ func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
 		logger.LogInfo(reg, out)
 		return err
 	}
+
+	// Update our arguments with the full command name
+	args[0] = cmd.Name()
 
 	// Execute our command and log any string returns
 	if out, err = cmd.exec(s, m, args, c); out != "" {

@@ -15,6 +15,7 @@ type Server interface {
 	PasswordLockable
 	Seeded
 	Websocketer
+	DiscordIntegrator
 
 	IsUp() bool
 	Stop() error
@@ -35,14 +36,17 @@ type Data struct {
 	Version     string
 }
 
-// OutputSender sends output from a Server to a channel
-type OutputSender interface {
-	SetSendChannel(chan []byte)
+// ChatData describes datapassed between Discord and the Server
+type ChatData struct {
+	Name string
+	UID  string
+	Msg  string
 }
 
 // Playable - Define an object that can track the players that have joined
 type Playable interface {
 	Player(string) Player
+	PlayerFromName(string) Player
 	Players() []Player
 	NewPlayer(string, string) Player
 	RemovePlayer(string) bool
@@ -62,6 +66,8 @@ type Player interface {
 
 	Online() bool
 	SetOnline(bool)
+
+	DiscordUID() string
 }
 
 // PlayerData represents a player, and includes the name and their IP address.
@@ -121,6 +127,14 @@ func GamePlayerData(gs Server) []*PlayerData {
 		})
 	}
 	return d
+}
+
+// DiscordIntegrator describes a gameserver.Server that is capable of integrating
+//	with Discord
+type DiscordIntegrator interface {
+	AddIntegrationRequest(string, string)
+	ValidateIntegrationPin(string, string) bool
+	DCOutput() chan ChatData
 }
 
 // GameStatus constructs a new Data struct from the given Server

@@ -10,7 +10,9 @@ package discord
 import (
 	"AvorionControl/discord/botconfig"
 	"AvorionControl/gameserver"
+	"fmt"
 	"log"
+	"regexp"
 	"strings"
 	"time"
 
@@ -22,7 +24,10 @@ import (
 
 // Bot is an object representing a Discord bot
 type Bot struct {
-	loglevel int
+	Mention          func() string
+	DiscordLink      func() string
+	processDirectMsg func(*discordgo.Session, *discordgo.MessageCreate)
+	loglevel         int
 }
 
 /*****************/
@@ -71,11 +76,31 @@ func Init(core *Bot, config *botconfig.Config, gs gameserver.Server) {
 	}
 
 	for _, g := range dg.State.Guilds {
-		onGuildJoin(g.ID, core, gs)
+		onGuildJoin(g.ID, dg, core, config, gs)
 	}
 
-	logger.LogInit(core, "DISCORD USER:   "+dg.State.User.String())
-	logger.LogInit(core, "DISCORD PREFIX: "+config.Prefix)
+	// If this works this is fucking terrible *and* incredible
+	core.Mention = func() string {
+		return dg.State.User.String()
+	}
+
+	core.DiscordLink = func() string {
+		return "https://discord.gg/z/Asdadw"
+	}
+
+	core.processDirectMsg = func(s *discordgo.Session,
+		m *discordgo.MessageCreate) {
+		v := regexp.MustCompile("^[0-9]+:[0-9]{6}$")
+		in := strings.TrimSpace(m.Content)
+
+		if !v.MatchString(in) {
+			return
+		}
+
+		if gs.ValidateIntegrationPin(in, m.Author.ID) {
+			s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
+		}
+	}
 
 	// Setup our message handler for processing commands
 	dg.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -84,8 +109,14 @@ func Init(core *Bot, config *botconfig.Config, gs gameserver.Server) {
 			err error
 		)
 
+		// Stop DMs
+		if m.GuildID == "" {
+			core.processDirectMsg(s, m)
+			return
+		}
+
 		if reg, err = commands.Registrar(m.GuildID); err != nil {
-			onGuildJoin(m.GuildID, core, gs)
+			onGuildJoin(m.GuildID, dg, core, config, gs)
 			if reg, err = commands.Registrar(m.GuildID); err != nil {
 				log.Fatal(err)
 			}
@@ -104,16 +135,51 @@ func Init(core *Bot, config *botconfig.Config, gs gameserver.Server) {
 		// Process a command if the prefix is used
 		if strings.HasPrefix(m.Content, config.Prefix) {
 			if err = reg.ProcessCommand(s, m, config); err != nil {
-				log.Fatal(err)
+				logger.LogError(reg, err.Error())
 			}
+			return
 		}
+
+		// Send messages from Discord to the gameserver as the user if its available
+		if gs.IsUp() && config.ChatChannel() != "" {
+			_, err = gs.RunCommand(fmt.Sprintf("say [%s] %s", m.Author.String(), m.Content))
+			if err != nil {
+				s.MessageReactionAdd(m.ChannelID, m.ID, "🚫")
+			} else {
+				s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
+			}
+			return
+		}
+
+		logger.LogInit(core, "DISCORD USER:   "+dg.State.User.String())
+		logger.LogInit(core, "DISCORD PREFIX: "+config.Prefix)
 	})
 }
 
 // onGuildJoin handler
-func onGuildJoin(gid string, b *Bot, gs gameserver.Server) {
-	cmdregistry := commands.NewRegistrar(gid, gs)
-	cmdregistry.SetLoglevel(b.Loglevel())
-	commands.InitializeCommandRegistry(cmdregistry)
-	logger.LogDebug(cmdregistry, "Initialized new command registrar")
+func onGuildJoin(gid string, s *discordgo.Session, b *Bot, c *botconfig.Config,
+	gs gameserver.Server) {
+
+	reg := commands.NewRegistrar(gid, gs)
+	reg.SetLoglevel(b.Loglevel())
+	commands.InitializeCommandRegistry(reg)
+
+	go func() {
+		for {
+			select {
+			case cm := <-gs.DCOutput():
+				if c.ChatChannel() != "" {
+					msg := string(cm.Msg)
+					if cm.UID != "" {
+						msg = fmt.Sprintf("<@%s>: %s", cm.UID, msg)
+					} else {
+						msg = fmt.Sprintf("**%s**: %s", cm.Name, msg)
+					}
+					s.ChannelMessageSend(c.ChatChannel(), msg)
+				}
+			}
+		}
+	}()
+
+	logger.LogDebug(reg, "Initialized new command registrar")
 }

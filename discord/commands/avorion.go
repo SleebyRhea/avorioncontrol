@@ -12,7 +12,6 @@ import (
 
 func rconCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	c *botconfig.Config) (string, error) {
-
 	var (
 		reg *CommandRegistrar
 		cmd *CommandRegistrant
@@ -28,16 +27,14 @@ func rconCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 		return "", err
 	}
 
-	if cmd, err = reg.Command("rcon"); err != nil {
+	if cmd, err = reg.Command(a[0]); err != nil {
 		return "", err
 	}
 
 	gs = reg.server
 
 	if !HasNumArgs(a, 1, -1) {
-		msg = sprintf("Invalid number of args passed to `%s`", a[0])
-		_, err = s.ChannelMessageSend(m.ChannelID, msg)
-		return out, err
+		return wrongArgsCmd(s, m, a, c)
 	}
 
 	gscmd = strings.Join(a[1:], " ")
@@ -51,9 +48,9 @@ func rconCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	_ = s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
 
 	if strings.ReplaceAll(out, " ", "") != "" {
-		out = sprintf("**Output: `%s`**\n```\n%s\n```", gscmd, out)
+		msg = sprintf("**Output: `%s`**\n```\n%s\n```", gscmd, out)
 		if utf8.RuneCountInString(out) <= 2000 {
-			_, err = s.ChannelMessageSend(m.ChannelID, out)
+			_, err = s.ChannelMessageSend(m.ChannelID, msg)
 		} else {
 			_, err = s.ChannelMessageSend(m.ChannelID, "Output too large for discord")
 		}
@@ -74,7 +71,7 @@ func restartServerCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotAr
 		return "", err
 	}
 
-	if cmd, err = reg.Command("server"); err != nil {
+	if cmd, err = reg.Command(a[0]); err != nil {
 		return "", err
 	}
 
@@ -101,7 +98,7 @@ func stopServerCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 		return "", err
 	}
 
-	if cmd, err = reg.Command("server"); err != nil {
+	if cmd, err = reg.Command(a[0]); err != nil {
 		return "", err
 	}
 
@@ -146,4 +143,44 @@ func startServerCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs
 
 	s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
 	return "", nil
+}
+
+func setChatChannelCmnd(s *discordgo.Session, m *discordgo.MessageCreate,
+	a BotArgs, c *botconfig.Config) (string, error) {
+	var (
+		channels []*discordgo.Channel
+
+		reg *CommandRegistrar
+		cmd *CommandRegistrant
+		out string
+		msg string
+		err error
+	)
+
+	if !HasNumArgs(a, 1, 1) {
+		return wrongArgsCmd(s, m, a, c)
+	}
+
+	if reg, err = Registrar(m.GuildID); err != nil {
+		return out, err
+	}
+
+	if cmd, err = reg.Command("setchatchannel"); err != nil {
+		return out, err
+	}
+
+	channels, err = s.GuildChannels(m.GuildID)
+
+	for _, dch := range channels {
+		logger.LogDebug(cmd, sprintf("Checking channel ID %s against %s", dch.ID, a[1]))
+		if dch.ID == a[1] && dch.Type == discordgo.ChannelTypeGuildText {
+			c.SetChatChannel(a[1])
+			err = s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
+			return "", err
+		}
+	}
+
+	msg = sprintf("Invalid channel ID: `%s`", a[1])
+	_, err = s.ChannelMessageSend(m.ChannelID, msg)
+	return out, err
 }

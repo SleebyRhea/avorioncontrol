@@ -1,12 +1,14 @@
 package avorion
 
 import (
+	"AvorionControl/discord"
 	"AvorionControl/gameserver"
 	"AvorionControl/logger"
 	"bufio"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -17,6 +19,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/otiai10/copy"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -46,9 +49,10 @@ type Server struct {
 	datapath   string
 
 	// IO
-	stdin  io.Writer
-	stdout io.Reader
-	output chan []byte
+	stdin   io.Writer
+	stdout  io.Reader
+	output  chan []byte
+	chatout chan gameserver.ChatData
 
 	// Logger
 	loglevel int
@@ -74,8 +78,13 @@ type Server struct {
 	motd     string
 	time     string
 
+	// Discord
+	bot      *discord.Bot
+	requests map[string]string
+
 	// Close goroutines
 	close chan struct{}
+	stop  chan struct{}
 }
 
 /******************/
@@ -83,7 +92,7 @@ type Server struct {
 /******************/
 
 // NewServer returns a new object of type Server
-func NewServer(out chan []byte, c *Configuration, args ...string) *Server {
+func NewServer(out chan gameserver.ChatData, c *Configuration, args ...string) *Server {
 	executable := "AvorionServer.exe"
 	if runtime.GOOS != "windows" {
 		executable = "AvorionServer"
@@ -99,14 +108,15 @@ func NewServer(out chan []byte, c *Configuration, args ...string) *Server {
 
 	s := &Server{
 		uuid:       "AvorionServer",
-		output:     out,
+		chatout:    out,
 		version:    string(version),
 		serverpath: c.installdir,
 		executable: executable,
+		config:     c,
 		rconpass:   c.rconpass,
 		rconaddr:   c.rconaddr,
 		rconport:   c.rconport,
-		config:     c}
+		requests:   make(map[string]string)}
 
 	s.SetLoglevel(3)
 	return s
@@ -121,19 +131,48 @@ func (s *Server) NotifyServer(in string) error {
 	return nil
 }
 
+// SetBot assignes a given Discord bot to the Server
+func (s *Server) SetBot(b *discord.Bot) {
+	s.bot = b
+}
+
+// Bot returns the currently assigned Discord bot
+func (s *Server) Bot() *discord.Bot {
+	return s.bot
+}
+
 /*********************/
 /* gameserver.Server */
 /*********************/
 
 // Start starts the Avorion server process
 func (s *Server) Start() error {
-	var err error
+	logger.LogInfo(s, "Syncing mods to data directory")
+	copy.Copy("./mods", s.config.datadir+"/mods")
+	confpath := s.config.datadir +
+		"mods/avocontrol-utilities/data/scripts/config/avocontrol-discord.lua"
+
+	read, err := ioutil.ReadFile(confpath)
+	if err != nil {
+		return err
+	}
+
+	newconfig := strings.ReplaceAll(string(read), "%INVLINK%", s.bot.DiscordLink())
+	newconfig = strings.ReplaceAll(newconfig, "%BOTNAME%", s.bot.Mention())
+
+	err = ioutil.WriteFile(confpath, []byte(newconfig), 0)
+	if err != nil {
+		panic(err)
+	}
 
 	s.Cmd = exec.Command(
 		s.serverpath+"/bin/"+s.executable,
-		"--galaxy-name", s.name,
+		"--galaxy-name", s.config.galaxyname,
+		"--datapath", s.config.datadir,
 		"--admin", s.admin,
-	)
+		"--rcon-ip", s.config.rconaddr,
+		"--rcon-password", s.config.rconpass,
+		"--rcon-port", fmt.Sprint(s.config.rconport))
 
 	s.Cmd.Dir = s.serverpath
 	s.Cmd.Env = append(os.Environ(),
@@ -158,22 +197,49 @@ func (s *Server) Start() error {
 		return err
 	}
 
-	s.close = make(chan struct{})
+	logger.LogInit(s, "Starting Server and waiting till ready")
 	ready := make(chan struct{})
+	s.stop = make(chan struct{})
+	s.close = make(chan struct{})
+
 	go superviseAvorionOut(s, ready, s.close)
 	go updateAvorionStatus(s, s.close)
 
-	logger.LogInit(s, "Starting Server and waiting till ready")
-	if err = s.Cmd.Start(); err != nil {
-		return err
+	go func() {
+		defer close(s.close)
+		defer close(s.stop)
+
+		if err := s.Cmd.Start(); err != nil {
+			logger.LogError(s, err.Error())
+			close(s.close)
+		}
+
+		for {
+			select {
+			case <-s.stop:
+				s.Cmd.Wait()
+				return
+			}
+		}
+	}()
+
+	for {
+		select {
+		case <-ready:
+			logger.LogInit(s, "Server is online")
+			s.UpdatePlayerDatabase(false)
+			return nil
+
+		case <-s.close:
+			close(ready)
+			return errors.New("Avorion died before initialization could complete")
+
+		case <-time.After(5 * time.Minute):
+			close(ready)
+			s.Cmd.Process.Kill()
+			return errors.New("Avorion took over 5 minutes to start")
+		}
 	}
-
-	// Wait until the process is ready and then continue
-	<-ready
-	logger.LogInit(s, "Server is online")
-	s.UpdatePlayerDatabase(false)
-
-	return nil
 }
 
 // Stop gracefully stops the Avorion process
@@ -183,26 +249,20 @@ func (s *Server) Stop() error {
 		return nil
 	}
 
-	defer close(s.close)
-	done := make(chan error)
-	s.players = nil
-
 	logger.LogOutput(s, "Stopping Avorion server and waiting for it to exit")
+
+	s.stop <- struct{}{}
 	s.RunCommand("save")
 	s.RunCommand("stop")
-
-	go func() { done <- s.Cmd.Wait() }()
+	s.players = nil
 
 	select {
 	case <-time.After(60 * time.Second):
 		s.Cmd.Process.Kill()
 		return errors.New("Avorion took too long to exit, killed")
 
-	case err := <-done:
+	case <-s.close:
 		logger.LogInfo(s, "Avorion server has been stopped")
-		if err != nil {
-			return err
-		}
 		return nil
 	}
 }
@@ -297,7 +357,7 @@ func (s *Server) SetLoglevel(l int) {
 /***************/
 
 // RunCommand runs a command via rcon and returns the output
-//	TODO 1: Modify this to use the games rcon websocket interface
+//	TODO 1: Modify this to use the games rcon websocket interface or an rcon lib
 //	TODO 2: Modify this function to make use of permitted command levels
 func (s *Server) RunCommand(c string) (string, error) {
 	if s.IsUp() {
@@ -391,14 +451,26 @@ func (s *Server) WSOutput() chan []byte {
 /* gameserver.Playable */
 /***********************/
 
-// Player return a player object that matches the string given
-func (s *Server) Player(index string) gameserver.Player {
+// Player return a player object that matches the index given
+func (s *Server) Player(plrstr string) gameserver.Player {
+	// Prefer to check indexes and steamids first as those are faster to check and are more
+	// common anyway
 	for _, p := range s.players {
-		if p.Index() == index {
+		if p.Index() == plrstr {
 			return p
 		}
 	}
+	return nil
+}
 
+// PlayerFromName return a player object that matches the name given
+func (s *Server) PlayerFromName(name string) gameserver.Player {
+	for _, p := range s.players {
+		logger.LogDebug(s, fmt.Sprintf("Does (%s) == (%s) ?", p.Name(), name))
+		if p.Name() == name {
+			return p
+		}
+	}
 	return nil
 }
 
@@ -453,6 +525,60 @@ func (s *Server) ChatMessages() [][2]string {
 // NewChatMessage logs the existence of a new message
 func (s *Server) NewChatMessage(msg, name string) {
 	s.messages = append(s.messages, [2]string{name, msg})
+}
+
+/********************************/
+/* gameserver.DiscordIntegrator */
+/********************************/
+
+// DCOutput returns the chan that is used to output to Discord
+func (s *Server) DCOutput() chan gameserver.ChatData {
+	return s.chatout
+}
+
+// AddIntegrationRequest registers a request by a player for Discord integration
+func (s *Server) AddIntegrationRequest(index, pin string) {
+	s.requests[index] = pin
+	path := fmt.Sprintf("%s/%s/discordrequests", s.config.datadir, s.config.galaxyname)
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		os.Mkdir(path, 0)
+	}
+
+	// For tracking when the server goes down and needs this rebuilt
+	if err := ioutil.WriteFile(path+"/"+index, []byte(pin), 0); err != nil {
+		logger.LogError(s, "Failed to write Discord integration request to "+
+			path+"/"+index)
+	}
+}
+
+// ValidateIntegrationPin confirms that a given pin was indeed a valid request
+//	and registers the integration
+func (s *Server) ValidateIntegrationPin(in, discordID string) bool {
+	m := regexp.MustCompile("^([0-9]+):([0-9]{6})$").FindStringSubmatch(in)
+	if val, ok := s.requests[m[1]]; ok {
+		path := fmt.Sprintf("%s/%s/discordrequests/%s",
+			s.config.datadir, s.config.galaxyname, m[1])
+		if val == m[2] {
+			if _, err := os.Stat(path); err == nil {
+				os.Remove(path)
+			} else {
+				logger.LogError(s, fmt.Sprintf("Failed to remove request file (%s)",
+					err))
+			}
+
+			delete(s.requests, m[1])
+			s.addIntegration(m[1], discordID)
+			return true
+		}
+	}
+
+	return false
+}
+
+// addIntegration is a helper function that registers an integration
+func (s *Server) addIntegration(index, discordID string) {
+	s.RunCommand(fmt.Sprintf("run Player(%s):setValue(\"discorduserid\", %s)",
+		index, discordID))
 }
 
 /**************/

@@ -26,6 +26,35 @@ func invalidCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	return "", err
 }
 
+// Default command used in cases where a command doesn't have the correct amount
+// of arguments passed
+func wrongArgsCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
+	c *botconfig.Config) (string, error) {
+	var (
+		reg *CommandRegistrar
+		cmd *CommandRegistrant
+		ok  bool
+		err error
+		out string
+	)
+
+	if reg, err = Registrar(m.GuildID); err != nil {
+		return "", err
+	}
+
+	if cmd, err = reg.Command(a[0]); err != nil {
+		if ok, a[0] = c.GetAliasedCommand(a[0]); ok {
+			cmd, _ = reg.Command(a[0])
+		} else {
+			return "", err
+		}
+	}
+
+	out = sprintf("`%s` was passed the wrong number of arguments", cmd.Name())
+	s.ChannelMessageSend(m.ChannelID, out)
+	return "", nil
+}
+
 // Default command used in cases where a user does not have the authorization to
 // a specific command
 func unauthorizedCmd(s *discordgo.Session, m *discordgo.MessageCreate,
@@ -36,6 +65,8 @@ func unauthorizedCmd(s *discordgo.Session, m *discordgo.MessageCreate,
 	return out, err
 }
 
+// Command to be used when the command being created is intended to be used with
+// subcommands
 func proxySubCmnd(s *discordgo.Session, m *discordgo.MessageCreate,
 	a BotArgs, c *botconfig.Config) (string, error) {
 	var (
@@ -47,9 +78,7 @@ func proxySubCmnd(s *discordgo.Session, m *discordgo.MessageCreate,
 	)
 
 	if !HasNumArgs(a, 1, 1) {
-		msg := sprintf("Invalid number of args passed to `%s`", a[0])
-		s.ChannelMessageSend(m.ChannelID, msg)
-		return out, nil
+		return wrongArgsCmd(s, m, a, c)
 	}
 
 	if reg, err = Registrar(m.GuildID); err != nil {
@@ -101,18 +130,16 @@ func loglevelCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 		ok bool
 	)
 
+	if !HasNumArgs(a, 2, -1) {
+		return wrongArgsCmd(s, m, a, c)
+	}
+
 	if reg, err = Registrar(m.GuildID); err != nil {
 		return "", err
 	}
 
 	if cmd, err = reg.Command("loglevel"); err != nil {
 		return "", err
-	}
-
-	if !HasNumArgs(a, 2, -1) {
-		out = sprintf("`%s` was not passed enough arguments", cmd.Name())
-		s.ChannelMessageSend(m.ChannelID, out)
-		return "", nil
 	}
 
 	// Validate our loglevel
@@ -204,10 +231,7 @@ func setprefixCmd(s *discordgo.Session, m *discordgo.MessageCreate,
 	author := m.Author.String()
 
 	if !HasNumArgs(a, 1, 1) {
-		msg = sprintf("Invalid number of args passed to `%s`", a[0])
-		out = "User" + author + " supplied the wrong number of arguments"
-		_, err := s.ChannelMessageSend(m.ChannelID, msg)
-		return out, err
+		return wrongArgsCmd(s, m, a, c)
 	}
 
 	if !regexp.MustCompile(r).MatchString(a[1]) {
@@ -225,9 +249,7 @@ func setprefixCmd(s *discordgo.Session, m *discordgo.MessageCreate,
 		msg = sprintf("Setting prefix to `%s`", a[1])
 	}
 
-	out = sprintf("Set the command prefix to %s", c.Prefix)
-	_, err := s.ChannelMessageSend(m.ChannelID, msg)
-
+	err := s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
 	return out, err
 }
 
@@ -247,9 +269,7 @@ func setaliasCmd(s *discordgo.Session, m *discordgo.MessageCreate,
 	}
 
 	if !HasNumArgs(a, 2, 2) {
-		msg := sprintf("Invalid number of args passed to `%s`", a[0])
-		_, err = s.ChannelMessageSend(m.ChannelID, msg)
-		return out, err
+		return wrongArgsCmd(s, m, a, c)
 	}
 
 	if !regexp.MustCompile(v).MatchString(a[2]) {
@@ -270,15 +290,42 @@ func setaliasCmd(s *discordgo.Session, m *discordgo.MessageCreate,
 		return out, err
 	}
 
-	msg := sprintf("Aliased `%s` to `%s`", a[2], a[1])
-	_, err = s.ChannelMessageSend(m.ChannelID, msg)
-
+	err = s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
 	return out, err
 }
 
 /*******************************/
 /* Globally Available Commands */
 /*******************************/
+
+func listCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
+	c *botconfig.Config) (string, error) {
+	var (
+		reg *CommandRegistrar
+		err error
+		msg string
+	)
+
+	if reg, err = Registrar(m.GuildID); err != nil {
+		return "", err
+	}
+
+	_, cmnds := reg.AllCommands()
+	for _, n := range cmnds {
+		cmd, _ := reg.Command(n)
+		msg = sprintf("%s\n%s - %s", msg, cmd.Name(), cmd.description)
+	}
+
+	if msg != "" {
+		_, err = s.ChannelMessageSend(m.ChannelID,
+			sprintf("**Available Commands:**\n```\n%s\n```", msg))
+		return "", err
+	}
+
+	_, err = s.ChannelMessageSend(m.ChannelID,
+		sprintf("No commands available"))
+	return "", err
+}
 
 // FIXME: Subcommands still need to be confirmed to work or fixed, once those
 // have been implemented.
@@ -348,6 +395,12 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 				"The subcommand that you would like help with")},
 		helpCmd)
 
+	r.Register("list",
+		"Output a list of all available commands",
+		"list",
+		make([]CommandArgument, 0),
+		listCmd)
+
 	// Debug Commands
 	r.Register("ping",
 		"Get a \"Pong!\" respons",
@@ -397,24 +450,28 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 			arg("...", "The commands arguments")},
 		rconCmd)
 
+	r.Register("setchatchannel",
+		"Control the state of the Avorion server",
+		"setchatchannel channelid",
+		[]CommandArgument{
+			arg("channelid", "UID of the channel to send server chat messages to")},
+		setChatChannelCmnd)
+
 	r.Register("server",
 		"Control the state of the Avorion server",
 		"server <start|stop|restart>",
 		make([]CommandArgument, 0),
 		proxySubCmnd)
-
 	r.Register("stop",
 		"Stop the Avorion server (if its up)",
 		"stop",
 		make([]CommandArgument, 0),
 		stopServerCmnd, "server")
-
 	r.Register("start",
 		"Start the Avorion server (if its down)",
 		"start",
 		make([]CommandArgument, 0),
 		startServerCmnd, "server")
-
 	r.Register("restart",
 		"Restart the Avorion server",
 		"restart",

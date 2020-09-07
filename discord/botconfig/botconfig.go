@@ -19,7 +19,18 @@ type Config struct {
 	Prefix      string
 	BotsAllowed bool
 
-	loglevel int
+	loglevel    int
+	chatchannel string
+}
+
+// New - Return a pointer to a newly initializaed Config struct.
+func New() *Config {
+	return &Config{
+		disabled:    make([]string, 10),
+		aliases:     make(map[string][]string),
+		BotsAllowed: false,
+		chatchannel: "",
+		loglevel:    1}
 }
 
 /******************************/
@@ -119,11 +130,13 @@ func (c *Config) AliasCommand(r string, a string) error {
 	return nil
 }
 
-// New - Return a pointer to a newly initializaed Config struct.
-func New() *Config {
-	return &Config{
-		disabled:    make([]string, 10),
-		aliases:     make(map[string][]string),
-		BotsAllowed: false,
-		loglevel:    3}
+// SetChatChannel sets the channel that gameserver chat is output to
+//	@id string		Channel ID to set
+func (c *Config) SetChatChannel(id string) {
+	c.chatchannel = id
+}
+
+// ChatChannel returns the current chat channel ID string
+func (c *Config) ChatChannel() string {
+	return c.chatchannel
 }
