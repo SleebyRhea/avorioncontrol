@@ -1,6 +1,7 @@
 package avorion
 
 import (
+	"AvorionControl/avorion/events"
 	"AvorionControl/discord"
 	"AvorionControl/gameserver"
 	"AvorionControl/logger"
@@ -38,7 +39,7 @@ var (
 
 // Server - Avorion server definition
 type Server struct {
-	gameserver.Server
+	gameserver.IServer
 
 	// Execution variables
 	Cmd        *exec.Cmd
@@ -87,12 +88,12 @@ type Server struct {
 	stop  chan struct{}
 }
 
-/******************/
-/* avorion.Server */
-/******************/
+/********/
+/* Main */
+/********/
 
-// NewServer returns a new object of type Server
-func NewServer(out chan gameserver.ChatData, c *Configuration, args ...string) *Server {
+// Create returns a new object of type Server
+func Create(out chan gameserver.ChatData, c *Configuration, args ...string) gameserver.IServer {
 	executable := "AvorionServer.exe"
 	if runtime.GOOS != "windows" {
 		executable = "AvorionServer"
@@ -141,9 +142,9 @@ func (s *Server) Bot() *discord.Bot {
 	return s.bot
 }
 
-/*********************/
-/* gameserver.Server */
-/*********************/
+/********************************/
+/* IFace gameserver.IGameServer */
+/********************************/
 
 // Start starts the Avorion server process
 func (s *Server) Start() error {
@@ -323,31 +324,35 @@ func (s *Server) UpdatePlayerDatabase(notify bool) error {
 
 		if p := s.Player(m[2]); p != nil {
 			p.SetOnline(o)
-			p.GetData()
+			p.Update()
 		} else {
 			p := s.NewPlayer(m[2], "")
 			p.SetOnline(o)
 		}
 	}
 
+	for _, p := range s.Players() {
+		logger.LogDebug(s, fmt.Sprintf("Processed: %s", p.Name()))
+	}
+
 	return nil
 }
 
-/************/
-/* Logger */
-/************/
+/************************/
+/* IFace logger.ILogger */
+/************************/
 
-// UUID -
+// UUID returns the UUID of an avorion.Server
 func (s *Server) UUID() string {
 	return s.uuid
 }
 
-// Loglevel -
+// Loglevel returns the loglevel of an avorion.Server
 func (s *Server) Loglevel() int {
 	return s.loglevel
 }
 
-// SetLoglevel -
+// SetLoglevel sets the loglevel of an avorion.Server
 func (s *Server) SetLoglevel(l int) {
 	s.loglevel = l
 }
@@ -381,9 +386,9 @@ func (s *Server) RunCommand(c string) (string, error) {
 	return "", errors.New("Server is not online")
 }
 
-/*************/
-/* Versioned */
-/*************/
+/*************************************/
+/* IFace gameserver.IVersionedServer */
+/*************************************/
 
 // SetVersion - Sets the current version of the Avorion server
 func (s *Server) SetVersion(v string) {
@@ -395,9 +400,9 @@ func (s *Server) Version() string {
 	return s.version
 }
 
-/**********/
-/* Seeded */
-/**********/
+/**********************************/
+/* IFace gameserver.ISeededServer */
+/**********************************/
 
 // Seed - Return the current game seed
 func (s *Server) Seed() string {
@@ -410,9 +415,9 @@ func (s *Server) SetSeed(seed string) {
 	s.seed = seed
 }
 
-/********************/
-/* PasswordLockable */
-/********************/
+/************************************/
+/* IFace gameserver.ILockableServer */
+/************************************/
 
 // Password - Return the current password
 func (s *Server) Password() string {
@@ -424,9 +429,9 @@ func (s *Server) SetPassword(p string) {
 	s.password = p
 }
 
-/*****************/
-/* LoginMessager */
-/*****************/
+/********************************/
+/* IFace gameserver.IMOTDServer */
+/********************************/
 
 // MOTD - Return the current MOTD
 func (s *Server) MOTD() string {
@@ -438,21 +443,12 @@ func (s *Server) SetMOTD(m string) {
 	s.motd = m
 }
 
-/***************/
-/* Websocketer */
-/***************/
-
-// WSOutput returns the chan that is used to output to a websocket
-func (s *Server) WSOutput() chan []byte {
-	return s.output
-}
-
-/***********************/
-/* gameserver.Playable */
-/***********************/
+/************************************/
+/* IFace gameserver.IPlayableServer */
+/************************************/
 
 // Player return a player object that matches the index given
-func (s *Server) Player(plrstr string) gameserver.Player {
+func (s *Server) Player(plrstr string) gameserver.IPlayer {
 	// Prefer to check indexes and steamids first as those are faster to check and are more
 	// common anyway
 	for _, p := range s.players {
@@ -464,10 +460,10 @@ func (s *Server) Player(plrstr string) gameserver.Player {
 }
 
 // PlayerFromName return a player object that matches the name given
-func (s *Server) PlayerFromName(name string) gameserver.Player {
+func (s *Server) PlayerFromName(name string) gameserver.IPlayer {
 	for _, p := range s.players {
-		logger.LogDebug(s, fmt.Sprintf("Does (%s) == (%s) ?", p.Name(), name))
-		if p.Name() == name {
+		logger.LogDebug(s, fmt.Sprintf("Does (%s) == (%s) ?", p.name, name))
+		if p.name == name {
 			return p
 		}
 	}
@@ -475,22 +471,22 @@ func (s *Server) PlayerFromName(name string) gameserver.Player {
 }
 
 // Players returns a slice of all of the  players that are currently in-game
-func (s *Server) Players() []gameserver.Player {
-	v := make([]gameserver.Player, 0)
+func (s *Server) Players() []gameserver.IPlayer {
+	v := make([]gameserver.IPlayer, 0)
 	for _, t := range s.players {
-		v = append(v, *t)
+		v = append(v, t)
 	}
 	return v
 }
 
 // NewPlayer adds a new player to the list of players if it isn't already present
-func (s *Server) NewPlayer(index, in string) gameserver.Player {
+func (s *Server) NewPlayer(index, in string) gameserver.IPlayer {
 	if _, err := strconv.Atoi(index); err != nil {
 		log.Fatal(errors.New("Invalid player index provided: " + index))
 	}
 
 	if p := s.Player(index); p != nil {
-		p.GetData()
+		p.Update()
 		return p
 	}
 
@@ -501,7 +497,7 @@ func (s *Server) NewPlayer(index, in string) gameserver.Player {
 		steam64:   0,
 		oldcoords: make([][2]int, 0)}
 
-	if err := p.GetData(); err != nil {
+	if err := p.Update(); err != nil {
 		logger.LogError(s, err.Error())
 	}
 
@@ -513,8 +509,8 @@ func (s *Server) NewPlayer(index, in string) gameserver.Player {
 // RemovePlayer removes a player from the list of online players
 // TODO: This function is currently a stub and needs to be made functional once
 // more.
-func (s *Server) RemovePlayer(n string) bool {
-	return false
+func (s *Server) RemovePlayer(n string) {
+	return
 }
 
 // ChatMessages returns the total number of messages that are logged
@@ -527,9 +523,9 @@ func (s *Server) NewChatMessage(msg, name string) {
 	s.messages = append(s.messages, [2]string{name, msg})
 }
 
-/********************************/
-/* gameserver.DiscordIntegrator */
-/********************************/
+/*********************************************/
+/* IFace gameserver.IDiscordIntegratedServer */
+/*********************************************/
 
 // DCOutput returns the chan that is used to output to Discord
 func (s *Server) DCOutput() chan gameserver.ChatData {
@@ -643,7 +639,7 @@ func superviseAvorionOut(s *Server, ready chan struct{},
 
 		// Once we're ready, start processing logs.
 		case <-ready:
-			e := gameserver.GetEventFromString(out)
+			e := events.GetFromString(out)
 
 			if e == nil {
 				logger.LogOutput(s, out)
@@ -661,10 +657,10 @@ func superviseAvorionOut(s *Server, ready chan struct{},
 		default:
 			switch out {
 			case "Server startup complete.":
-				logger.LogInit(s, "Avorion server initialization completed", s.WSOutput())
+				logger.LogInit(s, "Avorion server initialization completed")
 				close(ready) //Close the channel to close this path
 			default:
-				logger.LogInit(s, out, s.WSOutput())
+				logger.LogInit(s, out)
 			}
 		}
 	}

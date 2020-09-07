@@ -2,7 +2,6 @@ package commands
 
 import (
 	"AvorionControl/discord/botconfig"
-	"AvorionControl/gameserver"
 	"AvorionControl/logger"
 	"errors"
 	"fmt"
@@ -15,119 +14,6 @@ import (
 )
 
 var registrars map[string]*CommandRegistrar
-
-// BotArgs - Botarguments type (for BotCommand)
-type BotArgs []string
-
-// BotCommand - Function signature for a bots primary function
-type BotCommand = func(*discordgo.Session, *discordgo.MessageCreate, BotArgs,
-	*botconfig.Config) (string, error)
-
-// CommandArgument - Define an argument for a command
-//  @0    Argument's invokation
-//  @1    A description of it's effect on the command
-type CommandArgument [2]string
-
-// CommandRegistrant - Command definition
-type CommandRegistrant struct {
-	name        string
-	description string
-
-	exec         BotCommand
-	cmdlets      []*CommandRegistrant
-	args         []CommandArgument
-	usage        string
-	hasauthlevel bool
-	registrar    *CommandRegistrar
-
-	// Implements logger.Loggable
-	loglevel int
-}
-
-// SetLoglevel - Set the current loglevel
-func (c *CommandRegistrant) SetLoglevel(l int) {
-	c.loglevel = l
-	logger.LogInfo(c, sprintf("Setting loglevel to %d", l))
-}
-
-// UUID - Return a commands name and guild information
-func (c *CommandRegistrant) UUID() string {
-	return c.name + "Cmd:" + c.registrar.GuildID
-}
-
-// Loglevel - Return the current loglevel for the CommandRegistrant
-func (c *CommandRegistrant) Loglevel() int {
-	var l int
-	if c.loglevel < 0 {
-		l = c.registrar.Loglevel()
-	} else {
-		l = c.loglevel
-	}
-
-	return l
-}
-
-// Name - Return a commands name.
-func (c *CommandRegistrant) Name() string {
-	return c.name
-}
-
-// Help - Return a commands help text with following markdown formatting
-// preapplied
-//  TODO: Convert this into an embed
-//  Current Format:
-//    **Command:**
-//    `cmdname` - Command description
-//    ```
-//    Command usage
-//    ```
-//    **Arguments:**
-//    ```
-//    1: Arg1 - Description
-//    2: Arg2 - Description
-//    ```
-//    **Subcommands:**
-//    ```
-//    1: sub1 - Description
-//    2: sub1 - Description
-//    ```
-func (c *CommandRegistrant) Help() (out string, _ error) {
-	out = fmt.Sprintf("**`%s`** - %s\n```\n%s\n```\n", c.name,
-		c.description, c.usage)
-
-	if len(c.args) > 0 {
-		out = fmt.Sprintf("%s**Arguments:**\n```\n", out)
-		for _, a := range c.args {
-			out = fmt.Sprintf("%s%s - %s\n", out, a[0], a[1])
-		}
-		out = fmt.Sprintf("%s```\n", out)
-	}
-
-	if len(c.cmdlets) > 0 {
-		out = fmt.Sprintf("%s**Subcommands:**\n```\n", out)
-		for _, sc := range c.cmdlets {
-			out = fmt.Sprintf("%s%s - %s\n", out, sc.Name(),
-				sc.description)
-		}
-		out = fmt.Sprintf("%s```\n", out)
-	}
-
-	return out, nil
-}
-
-// Subcommands - Return all the count of the subcommands added to a command, and
-// their slice.
-func (c *CommandRegistrant) Subcommands() (int, []*CommandRegistrant) {
-	if c.cmdlets != nil {
-		return len(c.cmdlets), c.cmdlets
-	}
-	return 0, nil
-}
-
-// Registrar - Return a commands master CommandRegistrar
-func (c *CommandRegistrant) Registrar() *CommandRegistrar {
-	return c.registrar
-}
 
 // CommandRegistrar - Guild specific container for commands and authorization
 // level settings
@@ -150,7 +36,7 @@ type CommandRegistrar struct {
 	loglevel int
 
 	// Gameserver
-	server gameserver.Server
+	server IBotCommandableServer
 }
 
 // SetLoglevel - Set the current loglevel
@@ -378,7 +264,7 @@ func Registrar(gid string) (r *CommandRegistrar, err error) {
 
 // NewRegistrar - Create and return a new instance of CommandRegistrar
 //  @gid string    ID string of the guild the CommandRegistrar belongs to
-func NewRegistrar(gid string, gs gameserver.Server) *CommandRegistrar {
+func NewRegistrar(gid string, gs IBotCommandableServer) *CommandRegistrar {
 	registrars[gid] = &CommandRegistrar{
 		GuildID:    gid,
 		commands:   make(map[string]*CommandRegistrant, 10),
@@ -390,42 +276,6 @@ func NewRegistrar(gid string, gs gameserver.Server) *CommandRegistrar {
 		loglevel:   1}
 
 	return registrars[gid]
-}
-
-func newArgument(a, b string) CommandArgument {
-	return CommandArgument{a, b}
-}
-
-/*******************/
-/* Other Functions */
-/*******************/
-
-// HasNumArgs - Determine if a set of command arguments is between min and max
-//  @a BotArgs    Argument set to process
-//  @min int      Minimum number of positional arguments
-//  @max int      Maximum number of positional arguments
-//
-//  You can use -1 in place of either min or max (or both) to disable the check
-//  for that range.
-func HasNumArgs(a BotArgs, min, max int) bool {
-	if len(a) == 0 || len(a[0]) == 0 {
-		log.Fatal("Empty argument list passed to commands.HasNumArgs")
-		return false
-	}
-
-	if min == -1 {
-		min = 0
-	}
-
-	if max == -1 {
-		max = len(a[1:]) + 1
-	}
-
-	if len(a[1:]) > max || len(a[1:]) < min {
-		return false
-	}
-
-	return true
 }
 
 func init() {

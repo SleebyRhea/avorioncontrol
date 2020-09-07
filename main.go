@@ -23,7 +23,7 @@ var (
 
 	bot          *discord.Bot
 	botconf      *botconfig.Config
-	server       *avorion.Server
+	server       gameserver.IServer
 	serverconfig *avorion.Configuration
 )
 
@@ -53,7 +53,7 @@ func main() {
 	sc = make(chan os.Signal, 1)
 	dc = make(chan gameserver.ChatData)
 
-	server = avorion.NewServer(dc, serverconfig)
+	server = avorion.Create(dc, serverconfig)
 	server.SetBot(bot)
 
 	if err := serverconfig.Validate(); err != nil {

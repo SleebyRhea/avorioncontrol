@@ -2,7 +2,6 @@ package commands
 
 import (
 	"AvorionControl/discord/botconfig"
-	"AvorionControl/gameserver"
 	"AvorionControl/logger"
 	"strings"
 	"unicode/utf8"
@@ -10,18 +9,22 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-func rconCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
+func rconCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	c *botconfig.Config) (string, error) {
 	var (
+		srv IBotCommandableServer
 		reg *CommandRegistrar
 		cmd *CommandRegistrant
-		gs  gameserver.Server
-		err error
-		out string
-		msg string
 
-		gscmd string
+		rcmd string
+		out  string
+		msg  string
+		err  error
 	)
+
+	if !HasNumArgs(a, 1, -1) {
+		return wrongArgsCmd(s, m, a, c)
+	}
 
 	if reg, err = Registrar(m.GuildID); err != nil {
 		return "", err
@@ -31,16 +34,11 @@ func rconCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 		return "", err
 	}
 
-	gs = reg.server
+	srv = reg.server
+	rcmd = strings.Join(a[1:], " ")
 
-	if !HasNumArgs(a, 1, -1) {
-		return wrongArgsCmd(s, m, a, c)
-	}
-
-	gscmd = strings.Join(a[1:], " ")
-
-	if out, err = gs.RunCommand(gscmd); err != nil {
-		logger.LogError(cmd, sprintf("Failed to run \"%s\": %s", gscmd, err.Error()))
+	if out, err = srv.RunCommand(rcmd); err != nil {
+		logger.LogError(cmd, sprintf("Failed to run \"%s\": %s", rcmd, err.Error()))
 		_ = s.MessageReactionAdd(m.ChannelID, m.ID, "🚫")
 		return "", nil
 	}
@@ -48,7 +46,7 @@ func rconCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	_ = s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
 
 	if strings.ReplaceAll(out, " ", "") != "" {
-		msg = sprintf("**Output: `%s`**\n```\n%s\n```", gscmd, out)
+		msg = sprintf("**Output: `%s`**\n```\n%s\n```", rcmd, out)
 		if utf8.RuneCountInString(out) <= 2000 {
 			_, err = s.ChannelMessageSend(m.ChannelID, msg)
 		} else {
@@ -56,7 +54,7 @@ func rconCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 		}
 	}
 
-	return "", nil
+	return "", err
 }
 
 func restartServerCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
@@ -105,7 +103,7 @@ func stopServerCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	if reg.server.IsUp() {
 		if err = reg.server.Stop(); err != nil {
 			s.MessageReactionAdd(m.ChannelID, m.ID, "🚫")
-			s.ChannelMessageSend(m.ChannelID, "Encountered an error stopping Avorion")
+			s.ChannelMessageSend(m.ChannelID, "Encountered an error stopping the server")
 			logger.LogError(cmd, err.Error())
 			return "", nil
 		}
@@ -135,7 +133,7 @@ func startServerCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs
 		if err = reg.server.Start(); err != nil {
 			s.MessageReactionAdd(m.ChannelID, m.ID, "🚫")
 			s.ChannelMessageSend(m.ChannelID, sprintf(
-				"Encountered an error starting Avorion:\n```%s\n```\n", err.Error()))
+				"Encountered an error starting the server:\n```%s\n```\n", err.Error()))
 			logger.LogError(cmd, err.Error())
 			return "", nil
 		}

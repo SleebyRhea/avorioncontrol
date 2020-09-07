@@ -9,7 +9,6 @@ package discord
 
 import (
 	"AvorionControl/discord/botconfig"
-	"AvorionControl/gameserver"
 	"fmt"
 	"log"
 	"regexp"
@@ -30,9 +29,9 @@ type Bot struct {
 	loglevel         int
 }
 
-/*****************/
-/* logger.Logger */
-/*****************/
+/************************/
+/* IFace logger.ILogger */
+/************************/
 
 // SetLoglevel sets the current loglevel for the object
 func (b *Bot) SetLoglevel(l int) {
@@ -50,7 +49,8 @@ func (b *Bot) UUID() string {
 }
 
 // Init initializes the discordgo backend
-func Init(core *Bot, config *botconfig.Config, gs gameserver.Server) {
+func Init(core *Bot, config *botconfig.Config,
+	gs commands.IBotCommandableServer) {
 	dg, err := discordgo.New("Bot " + config.Token)
 	if err != nil {
 		log.Fatal("error creating Discord session,", err)
@@ -158,7 +158,7 @@ func Init(core *Bot, config *botconfig.Config, gs gameserver.Server) {
 
 // onGuildJoin handler
 func onGuildJoin(gid string, s *discordgo.Session, b *Bot, c *botconfig.Config,
-	gs gameserver.Server) {
+	gs commands.IBotCommandableServer) {
 
 	reg := commands.NewRegistrar(gid, gs)
 	reg.SetLoglevel(b.Loglevel())

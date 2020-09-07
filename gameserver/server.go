@@ -1,0 +1,77 @@
+package gameserver
+
+import (
+	"AvorionControl/logger"
+)
+
+// IServer describes an interface to a server with full capability
+type IServer interface {
+	IGameServer
+	IMOTDServer
+	ISeededServer
+	ILockableServer
+	IPlayableServer
+	IVersionedServer
+	ICommandableServer
+	IDiscordIntegratedServer
+}
+
+// IGameServer defines an interface to a Gameserver that we can change the status
+//	of and log
+type IGameServer interface {
+	IsUp() bool
+	Stop() error
+	Start() error
+	Restart() error
+
+	logger.ILogger
+}
+
+// IPlayableServer defines an object that can track the players that have joined
+type IPlayableServer interface {
+	Players() []IPlayer
+	RemovePlayer(string)
+	NewPlayer(string, string) IPlayer
+
+	Player(string) IPlayer
+	PlayerFromName(string) IPlayer
+	PlayerFromIndex(string) IPlayer
+}
+
+// IVersionedServer describes an interface to an IGameserver's version information
+type IVersionedServer interface {
+	Version() string
+	SetVersion(string)
+}
+
+// ILockableServer describes an interface to lock a server with a password
+type ILockableServer interface {
+	Password() string
+	SetPassword(string)
+}
+
+// ICommandableServer describes an interface to an IGameServer that can have run
+//	game commands
+type ICommandableServer interface {
+	RunCommand(string) (string, error)
+}
+
+// IMOTDServer describes an interface to a server that can set an MOTD
+type IMOTDServer interface {
+	MOTD() string
+	SetMOTD(string)
+}
+
+// ISeededServer is an interface to an object that has a seed
+type ISeededServer interface {
+	Seed() string
+	SetSeed(string)
+}
+
+// IDiscordIntegratedServer describes an IGameServer that is capable of integrating
+//	with Discord
+type IDiscordIntegratedServer interface {
+	AddIntegrationRequest(string, string)
+	ValidateIntegrationPin(string, string) bool
+	DCOutput() chan ChatData
+}

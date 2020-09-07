@@ -226,13 +226,13 @@ func setprefixCmd(s *discordgo.Session, m *discordgo.MessageCreate,
 		p   string
 	)
 
-	//eg: aa!, aa!!, !, !!, or <@!USERID> if mention is used
-	r := "^([a-zA-Z0-9]{0,2}[?!;:>%$#~=+-]{1,2}|mention)$"
-	author := m.Author.String()
-
 	if !HasNumArgs(a, 1, 1) {
 		return wrongArgsCmd(s, m, a, c)
 	}
+
+	//eg: aa!, aa!!, !, !!, or <@!USERID> if mention is used
+	r := "^([a-zA-Z0-9]{0,2}[?!;:>%$#~=+-]{1,2}|mention)$"
+	author := m.Author.String()
 
 	if !regexp.MustCompile(r).MatchString(a[1]) {
 		msg = sprintf("Invalid prefix supplied: `%s`", a[1])
@@ -260,16 +260,16 @@ func setaliasCmd(s *discordgo.Session, m *discordgo.MessageCreate,
 		err error
 	)
 
+	if !HasNumArgs(a, 2, 2) {
+		return wrongArgsCmd(s, m, a, c)
+	}
+
 	author := m.Author.String()
 	out := ""
 	v := "^[a-zA-Z]{1,10}$"
 
 	if reg, err = Registrar(m.GuildID); err != nil {
 		return out, err
-	}
-
-	if !HasNumArgs(a, 2, 2) {
-		return wrongArgsCmd(s, m, a, c)
 	}
 
 	if !regexp.MustCompile(v).MatchString(a[2]) {
@@ -448,7 +448,7 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 		[]CommandArgument{
 			arg("command", "Name of the command to run"),
 			arg("...", "The commands arguments")},
-		rconCmd)
+		rconCmnd)
 
 	r.Register("setchatchannel",
 		"Control the state of the Avorion server",
