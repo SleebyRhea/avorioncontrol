@@ -1,8 +1,8 @@
 package avorion
 
-import "AvorionControl/gameserver"
+import "AvorionControl/ifaces"
 
 func init() {
-	var _ gameserver.IPlayer = (*Player)(nil)
-	var _ gameserver.IServer = (*Server)(nil)
+	var _ ifaces.IPlayer = (*Player)(nil)
+	var _ ifaces.IGameServer = (*Server)(nil)
 }

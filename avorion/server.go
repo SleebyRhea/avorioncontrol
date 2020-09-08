@@ -3,7 +3,7 @@ package avorion
 import (
 	"AvorionControl/avorion/events"
 	"AvorionControl/discord"
-	"AvorionControl/gameserver"
+	"AvorionControl/ifaces"
 	"AvorionControl/logger"
 	"bufio"
 	"errors"
@@ -39,7 +39,7 @@ var (
 
 // Server - Avorion server definition
 type Server struct {
-	gameserver.IServer
+	ifaces.IGameServer
 
 	// Execution variables
 	Cmd        *exec.Cmd
@@ -53,7 +53,7 @@ type Server struct {
 	stdin   io.Writer
 	stdout  io.Reader
 	output  chan []byte
-	chatout chan gameserver.ChatData
+	chatout chan ifaces.ChatData
 
 	// Logger
 	loglevel int
@@ -70,7 +70,7 @@ type Server struct {
 
 	// Config
 	configfile string
-	config     *Configuration
+	config     ifaces.IConfigurator
 
 	// Game State
 	password string
@@ -92,18 +92,18 @@ type Server struct {
 /* Main */
 /********/
 
-// Create returns a new object of type Server
-func Create(out chan gameserver.ChatData, c *Configuration, args ...string) gameserver.IServer {
+// New returns a new object of type Server
+func New(out chan ifaces.ChatData, c ifaces.IConfigurator, args ...string) ifaces.IGameServer {
 	executable := "AvorionServer.exe"
 	if runtime.GOOS != "windows" {
 		executable = "AvorionServer"
 	}
 
-	version, err := exec.Command(c.installdir+"/bin/"+executable,
+	version, err := exec.Command(c.InstallPath()+"/bin/"+executable,
 		"--version").Output()
 
 	if err != nil {
-		log.Fatal("Failed to get Avorion version: " + c.installdir + "/bin/" + executable)
+		log.Fatal("Failed to get Avorion version: " + c.InstallPath() + "/bin/" + executable)
 		os.Exit(1)
 	}
 
@@ -111,12 +111,12 @@ func Create(out chan gameserver.ChatData, c *Configuration, args ...string) game
 		uuid:       "AvorionServer",
 		chatout:    out,
 		version:    string(version),
-		serverpath: c.installdir,
+		serverpath: c.InstallPath(),
 		executable: executable,
 		config:     c,
-		rconpass:   c.rconpass,
-		rconaddr:   c.rconaddr,
-		rconport:   c.rconport,
+		rconpass:   c.RCONPass(),
+		rconaddr:   c.RCONAddr(),
+		rconport:   c.RCONPort(),
 		requests:   make(map[string]string)}
 
 	s.SetLoglevel(3)
@@ -132,25 +132,15 @@ func (s *Server) NotifyServer(in string) error {
 	return nil
 }
 
-// SetBot assignes a given Discord bot to the Server
-func (s *Server) SetBot(b *discord.Bot) {
-	s.bot = b
-}
-
-// Bot returns the currently assigned Discord bot
-func (s *Server) Bot() *discord.Bot {
-	return s.bot
-}
-
 /********************************/
-/* IFace gameserver.IGameServer */
+/* IFace ifaces.IGameServer */
 /********************************/
 
 // Start starts the Avorion server process
 func (s *Server) Start() error {
 	logger.LogInfo(s, "Syncing mods to data directory")
-	copy.Copy("./mods", s.config.datadir+"/mods")
-	confpath := s.config.datadir +
+	copy.Copy("./mods", s.config.DataPath()+"/mods")
+	confpath := s.config.DataPath() +
 		"mods/avocontrol-utilities/data/scripts/config/avocontrol-discord.lua"
 
 	read, err := ioutil.ReadFile(confpath)
@@ -158,8 +148,8 @@ func (s *Server) Start() error {
 		return err
 	}
 
-	newconfig := strings.ReplaceAll(string(read), "%INVLINK%", s.bot.DiscordLink())
-	newconfig = strings.ReplaceAll(newconfig, "%BOTNAME%", s.bot.Mention())
+	newconfig := strings.ReplaceAll(string(read), "%INVLINK%", s.config.DiscordLink())
+	newconfig = strings.ReplaceAll(newconfig, "%BOTNAME%", s.config.BotMention())
 
 	err = ioutil.WriteFile(confpath, []byte(newconfig), 0)
 	if err != nil {
@@ -168,12 +158,12 @@ func (s *Server) Start() error {
 
 	s.Cmd = exec.Command(
 		s.serverpath+"/bin/"+s.executable,
-		"--galaxy-name", s.config.galaxyname,
-		"--datapath", s.config.datadir,
+		"--galaxy-name", s.config.Galaxy(),
+		"--datapath", s.config.DataPath(),
 		"--admin", s.admin,
-		"--rcon-ip", s.config.rconaddr,
-		"--rcon-password", s.config.rconpass,
-		"--rcon-port", fmt.Sprint(s.config.rconport))
+		"--rcon-ip", s.config.RCONAddr(),
+		"--rcon-password", s.config.RCONPass(),
+		"--rcon-port", fmt.Sprint(s.config.RCONPort()))
 
 	s.Cmd.Dir = s.serverpath
 	s.Cmd.Env = append(os.Environ(),
@@ -368,7 +358,8 @@ func (s *Server) RunCommand(c string) (string, error) {
 	if s.IsUp() {
 		logger.LogDebug(s, "Running: "+c)
 
-		ret, err := exec.Command(s.config.rconbin, "-H", s.rconaddr,
+		// TODO:
+		ret, err := exec.Command(s.config.RCONBin(), "-H", s.rconaddr,
 			"-p", fmt.Sprint(s.rconport), "-P", s.rconpass, c).Output()
 		out := string(ret)
 
@@ -387,7 +378,7 @@ func (s *Server) RunCommand(c string) (string, error) {
 }
 
 /*************************************/
-/* IFace gameserver.IVersionedServer */
+/* IFace ifaces.IVersionedServer */
 /*************************************/
 
 // SetVersion - Sets the current version of the Avorion server
@@ -401,7 +392,7 @@ func (s *Server) Version() string {
 }
 
 /**********************************/
-/* IFace gameserver.ISeededServer */
+/* IFace ifaces.ISeededServer */
 /**********************************/
 
 // Seed - Return the current game seed
@@ -416,7 +407,7 @@ func (s *Server) SetSeed(seed string) {
 }
 
 /************************************/
-/* IFace gameserver.ILockableServer */
+/* IFace ifaces.ILockableServer */
 /************************************/
 
 // Password - Return the current password
@@ -430,7 +421,7 @@ func (s *Server) SetPassword(p string) {
 }
 
 /********************************/
-/* IFace gameserver.IMOTDServer */
+/* IFace ifaces.IMOTDServer */
 /********************************/
 
 // MOTD - Return the current MOTD
@@ -444,11 +435,11 @@ func (s *Server) SetMOTD(m string) {
 }
 
 /************************************/
-/* IFace gameserver.IPlayableServer */
+/* IFace ifaces.IPlayableServer */
 /************************************/
 
 // Player return a player object that matches the index given
-func (s *Server) Player(plrstr string) gameserver.IPlayer {
+func (s *Server) Player(plrstr string) ifaces.IPlayer {
 	// Prefer to check indexes and steamids first as those are faster to check and are more
 	// common anyway
 	for _, p := range s.players {
@@ -460,7 +451,7 @@ func (s *Server) Player(plrstr string) gameserver.IPlayer {
 }
 
 // PlayerFromName return a player object that matches the name given
-func (s *Server) PlayerFromName(name string) gameserver.IPlayer {
+func (s *Server) PlayerFromName(name string) ifaces.IPlayer {
 	for _, p := range s.players {
 		logger.LogDebug(s, fmt.Sprintf("Does (%s) == (%s) ?", p.name, name))
 		if p.name == name {
@@ -471,8 +462,8 @@ func (s *Server) PlayerFromName(name string) gameserver.IPlayer {
 }
 
 // Players returns a slice of all of the  players that are currently in-game
-func (s *Server) Players() []gameserver.IPlayer {
-	v := make([]gameserver.IPlayer, 0)
+func (s *Server) Players() []ifaces.IPlayer {
+	v := make([]ifaces.IPlayer, 0)
 	for _, t := range s.players {
 		v = append(v, t)
 	}
@@ -480,7 +471,7 @@ func (s *Server) Players() []gameserver.IPlayer {
 }
 
 // NewPlayer adds a new player to the list of players if it isn't already present
-func (s *Server) NewPlayer(index, in string) gameserver.IPlayer {
+func (s *Server) NewPlayer(index, in string) ifaces.IPlayer {
 	if _, err := strconv.Atoi(index); err != nil {
 		log.Fatal(errors.New("Invalid player index provided: " + index))
 	}
@@ -524,18 +515,19 @@ func (s *Server) NewChatMessage(msg, name string) {
 }
 
 /*********************************************/
-/* IFace gameserver.IDiscordIntegratedServer */
+/* IFace ifaces.IDiscordIntegratedServer */
 /*********************************************/
 
 // DCOutput returns the chan that is used to output to Discord
-func (s *Server) DCOutput() chan gameserver.ChatData {
+func (s *Server) DCOutput() chan ifaces.ChatData {
 	return s.chatout
 }
 
 // AddIntegrationRequest registers a request by a player for Discord integration
 func (s *Server) AddIntegrationRequest(index, pin string) {
 	s.requests[index] = pin
-	path := fmt.Sprintf("%s/%s/discordrequests", s.config.datadir, s.config.galaxyname)
+	path := fmt.Sprintf("%s/%s/discordrequests", s.config.DataPath(),
+		s.config.Galaxy())
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		os.Mkdir(path, 0)
 	}
@@ -553,7 +545,7 @@ func (s *Server) ValidateIntegrationPin(in, discordID string) bool {
 	m := regexp.MustCompile("^([0-9]+):([0-9]{6})$").FindStringSubmatch(in)
 	if val, ok := s.requests[m[1]]; ok {
 		path := fmt.Sprintf("%s/%s/discordrequests/%s",
-			s.config.datadir, s.config.galaxyname, m[1])
+			s.config.DataPath(), s.config.Galaxy(), m[1])
 		if val == m[2] {
 			if _, err := os.Stat(path); err == nil {
 				os.Remove(path)

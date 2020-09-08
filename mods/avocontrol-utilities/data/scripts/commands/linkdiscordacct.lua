@@ -1,9 +1,23 @@
+--[[
+
+  AvorionControl - data/scripts/commands/linkdiscordacct.lua
+  -----------------------------
+
+  Generates a pin that is output both on STDOUT with an identifying string for
+  bot processing, and sends the player an email with instructions on how to link
+  their discord user to their Avorion user. If used by RCON, this command can
+  be used to generate an Integration request for a given user.
+
+  License: WTFPL
+  Info: https://en.wikipedia.org/wiki/WTFPL
+
+]]
+
 if not onServer() then
-  return
 end
 
 mod = {
-  name        = "linkdiscord",
+  name        = "linkdiscordacct",
   description = "Generate a PIN to link your discord account with Avorion"
 }
 
@@ -17,37 +31,40 @@ function getHelp(cmnd)
   return "Usage: " .. (cmnd or mod.name)
 end
 
--- execute is the main function that is executed when this command is run
+-- execute is the main function that is run when this command is run
 function execute(user, cmnd, ...)
   if type(user) == "nil" then
-    return 1, "Cannot generate an integration request for RCON"
+    args = {...}
+    user=args[1]
+    if type(user) ~= "number" or Player(user) == nil then
+      return 1, "Please supply a valid user index"
+    end
   end
 
   package.path = package.path .. ";data/scripts/lib/?.lua"
-  package.path = package.path .. ";data/scripts/config/?.lua"
-  include("avocontrol-discord")
+  discord = include("avocontrol-discord")
   include("stringutility")
   include("randomext")
 
-  local plr = Player(user)
+  local player = Player(user)
   local pin = ""
   local du  = ""
+
+  if type(player) == "nil" then
+    return 0, "Failed to get playerdata"
+  end
 
   for i=1, 5, 1 do
     pin = pin .. getInt(0,9)
   end
 
-  if type(plr) == "nil" then
-    return 0, "Failed to get playerdata"
-  end
-
-  du = Discord.IsLinked(plr.index)
+  du = discord.IsLinked(player.index)
   if du ~= "" then
     return 0, "You've already linked your Discord account to ${d}"%_T % {d=du}, ""
   end
 
-  local msg = "Hello, ${p}!\n\n"%_T % {p=plr.name}
-    .. "Here is your Discord integration code: ${i}:${c}"%_T % {i=plr.index, c=pin}
+  local msg = "Hello, ${p}!\n\n"%_T % {p=player.name}
+    .. "Here is your Discord integration code: ${i}:${c}"%_T % {i=player.index, c=pin}
     .. "\n\n"
     .. "To use that code, all you need to do is direct message it to our Discord "
     .. "bot. Make sure to do this *after* you have joined the Discord server ("
@@ -55,14 +72,14 @@ function execute(user, cmnd, ...)
     .. "out to us!\n\n"
     .. "Take care!\n\n"
     .. "Discord Link: ${l}\nDiscord Bot:  ${b}"%_T % {
-      l=Discord.Url(), b=Discord.Bot()}
+          l=discord.Url(), b=discord.Bot()}
 
-  m = Mail()
-  m.text = msg
-  m.sender = "Server"
-  m.header = "Discord Integration Request"
-  plr:addMail(m)
+  mail = Mail()
+  mail.text = msg
+  mail.sender = "Server"
+  mail.header = "Discord Integration Request"
+  player:addMail(m)
 
-  print("DiscordIntegrationRequest: ${i} ${c}"%_T % {i=plr.index, c=pin})
+  print("DiscordIntegrationRequest: ${i} ${c}"%_T % {i=player.index, c=pin})
   return 1, "Code sent (check your mail for instructions)", ""
 end

@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"AvorionControl/discord/botconfig"
+	"AvorionControl/ifaces"
 	"AvorionControl/logger"
 	"strings"
 	"unicode/utf8"
@@ -10,9 +10,9 @@ import (
 )
 
 func rconCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c *botconfig.Config) (string, error) {
+	c ifaces.IConfigurator) (string, error) {
 	var (
-		srv IBotCommandableServer
+		srv ifaces.IGameServer
 		reg *CommandRegistrar
 		cmd *CommandRegistrant
 
@@ -58,7 +58,7 @@ func rconCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 }
 
 func restartServerCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c *botconfig.Config) (string, error) {
+	c ifaces.IConfigurator) (string, error) {
 	var (
 		reg *CommandRegistrar
 		cmd *CommandRegistrant
@@ -85,7 +85,7 @@ func restartServerCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotAr
 }
 
 func stopServerCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c *botconfig.Config) (string, error) {
+	c ifaces.IConfigurator) (string, error) {
 	var (
 		reg *CommandRegistrar
 		cmd *CommandRegistrant
@@ -114,7 +114,7 @@ func stopServerCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 }
 
 func startServerCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c *botconfig.Config) (string, error) {
+	c ifaces.IConfigurator) (string, error) {
 	var (
 		reg *CommandRegistrar
 		cmd *CommandRegistrant
@@ -144,7 +144,7 @@ func startServerCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs
 }
 
 func setChatChannelCmnd(s *discordgo.Session, m *discordgo.MessageCreate,
-	a BotArgs, c *botconfig.Config) (string, error) {
+	a BotArgs, c ifaces.IConfigurator) (string, error) {
 	var (
 		channels []*discordgo.Channel
 

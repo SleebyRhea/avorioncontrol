@@ -1,7 +1,7 @@
 package events
 
 import (
-	"AvorionControl/gameserver"
+	"AvorionControl/ifaces"
 	"AvorionControl/logger"
 )
 
@@ -27,13 +27,13 @@ func initB() {
 		defaultEventHandler)
 }
 
-func handleEventConnection(srv gameserver.IServer, e *Event, in string,
+func handleEventConnection(srv ifaces.IGameServer, e *Event, in string,
 	oc chan string) {
 	m := e.Capture.FindStringSubmatch(in)
 	go func() { oc <- m[1] }()
 }
 
-func handleEventPlayerJoin(srv gameserver.IServer, e *Event, in string,
+func handleEventPlayerJoin(srv ifaces.IGameServer, e *Event, in string,
 	oc chan string) {
 	m := e.Capture.FindStringSubmatch(in)
 	logger.LogOutput(srv, in)
@@ -45,7 +45,7 @@ func handleEventPlayerJoin(srv gameserver.IServer, e *Event, in string,
 	}
 }
 
-func handleEventPlayerLeft(srv gameserver.IServer, e *Event, in string,
+func handleEventPlayerLeft(srv ifaces.IGameServer, e *Event, in string,
 	oc chan string) {
 	m := e.Capture.FindStringSubmatch(in)
 	logger.LogOutput(srv, in)
@@ -58,7 +58,7 @@ func handleEventPlayerLeft(srv gameserver.IServer, e *Event, in string,
 	logger.LogError(srv, "Player logged off, but has no tracking: "+m[2])
 }
 
-func handlePlayerChat(srv gameserver.IServer, e *Event, in string,
+func handlePlayerChat(srv ifaces.IGameServer, e *Event, in string,
 	oc chan string) {
 	logger.LogOutput(srv, in)
 	m := e.Capture.FindStringSubmatch(in)
@@ -71,25 +71,25 @@ func handlePlayerChat(srv gameserver.IServer, e *Event, in string,
 		}
 
 		if p := srv.PlayerFromName(m[1]); p != nil {
-			srv.DCOutput() <- gameserver.ChatData{
+			srv.DCOutput() <- ifaces.ChatData{
 				Name: m[1],
 				UID:  p.DiscordUID(),
 				Msg:  out}
 		} else {
 			logger.LogWarning(srv, "Unable to locate player: "+m[1])
-			srv.DCOutput() <- gameserver.ChatData{
+			srv.DCOutput() <- ifaces.ChatData{
 				Name: m[1],
 				Msg:  out}
 		}
 	}
 }
 
-func handleEventServerLag(srv gameserver.IServer, e *Event, in string,
+func handleEventServerLag(srv ifaces.IGameServer, e *Event, in string,
 	oc chan string) {
 	logger.LogWarning(srv, in)
 }
 
-func defaultEventHandler(srv gameserver.IServer, e *Event, in string,
+func defaultEventHandler(srv ifaces.IGameServer, e *Event, in string,
 	oc chan string) {
 	logger.LogOutput(srv, in)
 }

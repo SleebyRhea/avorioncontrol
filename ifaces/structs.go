@@ -1,4 +1,4 @@
-package gameserver
+package ifaces
 
 // ChatData describes datapassed between Discord and the Server
 type ChatData struct {

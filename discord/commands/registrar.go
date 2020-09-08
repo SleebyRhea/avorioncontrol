@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"AvorionControl/discord/botconfig"
+	"AvorionControl/ifaces"
 	"AvorionControl/logger"
 	"errors"
 	"fmt"
@@ -36,7 +36,7 @@ type CommandRegistrar struct {
 	loglevel int
 
 	// Gameserver
-	server IBotCommandableServer
+	server ifaces.IGameServer
 }
 
 // SetLoglevel - Set the current loglevel
@@ -184,9 +184,9 @@ func (reg *CommandRegistrar) UserAuthorized(cmd string, m *discordgo.Member) boo
 // and runs the correct command given its contents
 //  @s *discordgo.Session          Discordgo Session
 //  @m *discordgo.MessageCreate    Discordgo message event
-//  @c *botconfig.Config           Bot configuration pointer
+//  @c IConfigurator           Bot configuration pointer
 func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
-	m *discordgo.MessageCreate, c *botconfig.Config) error {
+	m *discordgo.MessageCreate, c ifaces.IConfigurator) error {
 	var (
 		err    error
 		out    string
@@ -195,7 +195,7 @@ func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
 	)
 
 	args := make(BotArgs, 0)
-	input := strings.TrimPrefix(m.Content, c.Prefix)
+	input := strings.TrimPrefix(m.Content, c.Prefix())
 	input = strings.TrimSpace(input)
 
 	// Split our arguments and add them to the args slice
@@ -264,7 +264,7 @@ func Registrar(gid string) (r *CommandRegistrar, err error) {
 
 // NewRegistrar - Create and return a new instance of CommandRegistrar
 //  @gid string    ID string of the guild the CommandRegistrar belongs to
-func NewRegistrar(gid string, gs IBotCommandableServer) *CommandRegistrar {
+func NewRegistrar(gid string, gs ifaces.IGameServer) *CommandRegistrar {
 	registrars[gid] = &CommandRegistrar{
 		GuildID:    gid,
 		commands:   make(map[string]*CommandRegistrant, 10),

@@ -8,7 +8,7 @@
 package discord
 
 import (
-	"AvorionControl/discord/botconfig"
+	"AvorionControl/ifaces"
 	"fmt"
 	"log"
 	"regexp"
@@ -23,10 +23,12 @@ import (
 
 // Bot is an object representing a Discord bot
 type Bot struct {
-	Mention          func() string
-	DiscordLink      func() string
 	processDirectMsg func(*discordgo.Session, *discordgo.MessageCreate)
-	loglevel         int
+
+	config      ifaces.IConfigurator
+	loglevel    int
+	chatchannel chan ifaces.ChatData
+	session     *discordgo.Session
 }
 
 /************************/
@@ -48,10 +50,17 @@ func (b *Bot) UUID() string {
 	return "Bot"
 }
 
-// Init initializes the discordgo backend
-func Init(core *Bot, config *botconfig.Config,
-	gs commands.IBotCommandableServer) {
-	dg, err := discordgo.New("Bot " + config.Token)
+// New returns a new instance of discord.Bot
+func New(c ifaces.IConfigurator) *Bot {
+	b := &Bot{
+		config: c}
+	b.SetLoglevel(c.Loglevel())
+	return b
+}
+
+// Start initializes the discordgo backend
+func (b *Bot) Start(gs ifaces.IGameServer) {
+	dg, err := discordgo.New("Bot " + b.config.Token())
 	if err != nil {
 		log.Fatal("error creating Discord session,", err)
 		return
@@ -63,8 +72,8 @@ func Init(core *Bot, config *botconfig.Config,
 	}
 
 	// Default to a user mention as the prefix
-	if config.Prefix == "" {
-		config.Prefix = "<@!" + dg.State.User.ID + ">"
+	if b.config.Prefix() == "" {
+		b.config.SetPrefix(fmt.Sprintf("<@!%s>", dg.State.User.ID))
 	}
 
 	for {
@@ -76,19 +85,10 @@ func Init(core *Bot, config *botconfig.Config,
 	}
 
 	for _, g := range dg.State.Guilds {
-		onGuildJoin(g.ID, dg, core, config, gs)
+		onGuildJoin(g.ID, dg, b, gs)
 	}
 
-	// If this works this is fucking terrible *and* incredible
-	core.Mention = func() string {
-		return dg.State.User.String()
-	}
-
-	core.DiscordLink = func() string {
-		return "https://discord.gg/z/Asdadw"
-	}
-
-	core.processDirectMsg = func(s *discordgo.Session,
+	b.processDirectMsg = func(s *discordgo.Session,
 		m *discordgo.MessageCreate) {
 		v := regexp.MustCompile("^[0-9]+:[0-9]{6}$")
 		in := strings.TrimSpace(m.Content)
@@ -111,12 +111,12 @@ func Init(core *Bot, config *botconfig.Config,
 
 		// Stop DMs
 		if m.GuildID == "" {
-			core.processDirectMsg(s, m)
+			b.processDirectMsg(s, m)
 			return
 		}
 
 		if reg, err = commands.Registrar(m.GuildID); err != nil {
-			onGuildJoin(m.GuildID, dg, core, config, gs)
+			onGuildJoin(m.GuildID, dg, b, gs)
 			if reg, err = commands.Registrar(m.GuildID); err != nil {
 				log.Fatal(err)
 			}
@@ -128,20 +128,20 @@ func Init(core *Bot, config *botconfig.Config,
 		}
 
 		// Disallow other bots from commanding this one
-		if strings.HasPrefix(m.Author.Token, "Bot ") && !config.BotsAllowed {
+		if strings.HasPrefix(m.Author.Token, "Bot ") && !b.config.BotsAllowed() {
 			return
 		}
 
 		// Process a command if the prefix is used
-		if strings.HasPrefix(m.Content, config.Prefix) {
-			if err = reg.ProcessCommand(s, m, config); err != nil {
+		if strings.HasPrefix(m.Content, b.config.Prefix()) {
+			if err = reg.ProcessCommand(s, m, b.config); err != nil {
 				logger.LogError(reg, err.Error())
 			}
 			return
 		}
 
-		// Send messages from Discord to the gameserver as the user if its available
-		if gs.IsUp() && config.ChatChannel() != "" {
+		// Send messages from Discord to the ifaces as the user if its available
+		if gs.IsUp() && b.config.ChatChannel() != "" {
 			_, err = gs.RunCommand(fmt.Sprintf("say [%s] %s", m.Author.String(), m.Content))
 			if err != nil {
 				s.MessageReactionAdd(m.ChannelID, m.ID, "🚫")
@@ -151,14 +151,19 @@ func Init(core *Bot, config *botconfig.Config,
 			return
 		}
 
-		logger.LogInit(core, "DISCORD USER:   "+dg.State.User.String())
-		logger.LogInit(core, "DISCORD PREFIX: "+config.Prefix)
+		logger.LogInit(b, "DISCORD USER:   "+dg.State.User.String())
+		logger.LogInit(b, "DISCORD PREFIX: "+b.config.Prefix())
 	})
 }
 
+// Mention returns the sesions bot mention
+func (b *Bot) Mention() string {
+	return b.session.State.User.String()
+}
+
 // onGuildJoin handler
-func onGuildJoin(gid string, s *discordgo.Session, b *Bot, c *botconfig.Config,
-	gs commands.IBotCommandableServer) {
+func onGuildJoin(gid string, s *discordgo.Session, b *Bot,
+	gs ifaces.IGameServer) {
 
 	reg := commands.NewRegistrar(gid, gs)
 	reg.SetLoglevel(b.Loglevel())
@@ -168,14 +173,14 @@ func onGuildJoin(gid string, s *discordgo.Session, b *Bot, c *botconfig.Config,
 		for {
 			select {
 			case cm := <-gs.DCOutput():
-				if c.ChatChannel() != "" {
+				if b.config.ChatChannel() != "" {
 					msg := string(cm.Msg)
 					if cm.UID != "" {
 						msg = fmt.Sprintf("<@%s>: %s", cm.UID, msg)
 					} else {
 						msg = fmt.Sprintf("**%s**: %s", cm.Name, msg)
 					}
-					s.ChannelMessageSend(c.ChatChannel(), msg)
+					s.ChannelMessageSend(b.config.ChatChannel(), msg)
 				}
 			}
 		}

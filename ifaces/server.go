@@ -1,12 +1,12 @@
-package gameserver
+package ifaces
 
 import (
 	"AvorionControl/logger"
 )
 
-// IServer describes an interface to a server with full capability
-type IServer interface {
-	IGameServer
+// IGameServer describes an interface to a server with full capability
+type IGameServer interface {
+	IServer
 	IMOTDServer
 	ISeededServer
 	ILockableServer
@@ -16,9 +16,9 @@ type IServer interface {
 	IDiscordIntegratedServer
 }
 
-// IGameServer defines an interface to a Gameserver that we can change the status
+// IServer defines an interface to a Gameserver that we can change the status
 //	of and log
-type IGameServer interface {
+type IServer interface {
 	IsUp() bool
 	Stop() error
 	Start() error

@@ -7,6 +7,12 @@ import (
 var events []*Event             // Iteration
 var eventsMap map[string]*Event // Reference
 
+func init() {
+	events = make([]*Event, 0)
+	eventsMap = make(map[string]*Event)
+	initB()
+}
+
 // New makes,registers, and returns a game event using the Regex that is used
 // to detect it. Panic if the Regexp that was provided matches the Regexp of a
 // previously registered Event. Returns the index of the registered event

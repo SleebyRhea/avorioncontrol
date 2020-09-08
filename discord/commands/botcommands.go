@@ -1,13 +1,12 @@
 package commands
 
 import (
+	"AvorionControl/ifaces"
 	"AvorionControl/logger"
 	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
-
-	"AvorionControl/discord/botconfig"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -20,7 +19,7 @@ var sprintf = fmt.Sprintf
 
 // Default command used in cases where a user supplies an invalid command
 func invalidCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c *botconfig.Config) (string, error) {
+	c ifaces.IConfigurator) (string, error) {
 	msg := sprintf("The command `%s` is invalid", a[0])
 	_, err := s.ChannelMessageSend(m.ChannelID, msg)
 	return "", err
@@ -29,7 +28,7 @@ func invalidCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 // Default command used in cases where a command doesn't have the correct amount
 // of arguments passed
 func wrongArgsCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c *botconfig.Config) (string, error) {
+	c ifaces.IConfigurator) (string, error) {
 	var (
 		reg *CommandRegistrar
 		cmd *CommandRegistrant
@@ -58,7 +57,7 @@ func wrongArgsCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 // Default command used in cases where a user does not have the authorization to
 // a specific command
 func unauthorizedCmd(s *discordgo.Session, m *discordgo.MessageCreate,
-	a BotArgs, c *botconfig.Config) (string, error) {
+	a BotArgs, c ifaces.IConfigurator) (string, error) {
 	msg := sprintf("You do not have permission to run `%s`", a[0])
 	out := sprintf("Unauthorized attempt to run command: ", a[0])
 	_, err := s.ChannelMessageSend(m.ChannelID, msg)
@@ -68,7 +67,7 @@ func unauthorizedCmd(s *discordgo.Session, m *discordgo.MessageCreate,
 // Command to be used when the command being created is intended to be used with
 // subcommands
 func proxySubCmnd(s *discordgo.Session, m *discordgo.MessageCreate,
-	a BotArgs, c *botconfig.Config) (string, error) {
+	a BotArgs, c ifaces.IConfigurator) (string, error) {
 	var (
 		reg *CommandRegistrar
 		cmd *CommandRegistrant
@@ -107,19 +106,19 @@ func proxySubCmnd(s *discordgo.Session, m *discordgo.MessageCreate,
 /************************/
 
 func pingCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c *botconfig.Config) (string, error) {
+	c ifaces.IConfigurator) (string, error) {
 	_, err := s.ChannelMessageSend(m.ChannelID, "Pong!")
 	return "Ping request received", err
 }
 
 func pongCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c *botconfig.Config) (string, error) {
+	c ifaces.IConfigurator) (string, error) {
 	_, err := s.ChannelMessageSend(m.ChannelID, "Ping~")
 	return "Pong request received", err
 }
 
 func loglevelCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c *botconfig.Config) (out string, err error) {
+	c ifaces.IConfigurator) (out string, err error) {
 	var (
 		reg    *CommandRegistrar
 		cmd    *CommandRegistrant
@@ -219,7 +218,7 @@ func loglevelCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 /************************/
 
 func setprefixCmd(s *discordgo.Session, m *discordgo.MessageCreate,
-	a BotArgs, c *botconfig.Config) (string, error) {
+	a BotArgs, c ifaces.IConfigurator) (string, error) {
 	var (
 		msg string
 		out string
@@ -242,10 +241,10 @@ func setprefixCmd(s *discordgo.Session, m *discordgo.MessageCreate,
 	}
 
 	if a[1] == "mention" {
-		c.Prefix = "<@!" + s.State.User.ID + ">"
+		c.SetPrefix(sprintf("<@!%s>", s.State.User.ID))
 		msg = sprintf("Setting prefix to %s", p)
 	} else {
-		c.Prefix = a[1]
+		c.SetPrefix(a[1])
 		msg = sprintf("Setting prefix to `%s`", a[1])
 	}
 
@@ -254,7 +253,7 @@ func setprefixCmd(s *discordgo.Session, m *discordgo.MessageCreate,
 }
 
 func setaliasCmd(s *discordgo.Session, m *discordgo.MessageCreate,
-	a BotArgs, c *botconfig.Config) (string, error) {
+	a BotArgs, c ifaces.IConfigurator) (string, error) {
 	var (
 		reg *CommandRegistrar
 		err error
@@ -285,7 +284,7 @@ func setaliasCmd(s *discordgo.Session, m *discordgo.MessageCreate,
 		return out, err
 	}
 
-	if err = c.AliasCommand(a[1], a[2]); err != nil {
+	if err = c.SetAliasCommand(a[1], a[2]); err != nil {
 		_, err = s.ChannelMessageSend(m.ChannelID, "Failed to configure Alias!")
 		return out, err
 	}
@@ -299,7 +298,7 @@ func setaliasCmd(s *discordgo.Session, m *discordgo.MessageCreate,
 /*******************************/
 
 func listCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c *botconfig.Config) (string, error) {
+	c ifaces.IConfigurator) (string, error) {
 	var (
 		reg *CommandRegistrar
 		err error
@@ -330,7 +329,7 @@ func listCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 // FIXME: Subcommands still need to be confirmed to work or fixed, once those
 // have been implemented.
 func helpCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c *botconfig.Config) (string, error) {
+	c ifaces.IConfigurator) (string, error) {
 	var (
 		maincmd *CommandRegistrant //Primary command being checked
 		reg     *CommandRegistrar
@@ -441,7 +440,7 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 			arg("alias", "Name of the alias that is being created")},
 		setaliasCmd)
 
-	// gameserver.Server (Avorion)
+	// ifaces.Server (Avorion)
 	r.Register("rcon",
 		"Run a command in Avorion and return its result",
 		"rcon <command> ...",

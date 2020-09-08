@@ -2,9 +2,9 @@ package main
 
 import (
 	"AvorionControl/avorion"
+	"AvorionControl/configuration"
 	"AvorionControl/discord"
-	"AvorionControl/discord/botconfig"
-	"AvorionControl/gameserver"
+	"AvorionControl/ifaces"
 	"AvorionControl/logger"
 	"flag"
 	"fmt"
@@ -18,29 +18,26 @@ var (
 	showhelp bool
 	loglevel int
 
-	sc chan os.Signal
-	dc chan gameserver.ChatData
-
-	bot          *discord.Bot
-	botconf      *botconfig.Config
-	server       gameserver.IServer
-	serverconfig *avorion.Configuration
+	config *configuration.Conf
+	server ifaces.IGameServer
+	disbot ifaces.IDiscordBot
 )
 
 func init() {
-	bot = &discord.Bot{}
-	botconf = botconfig.New()
-	serverconfig = avorion.NewConfiguration()
-
-	flag.StringVar(&botconf.Token, "t", "", "Bot token")
-	flag.StringVar(&botconf.Prefix, "P", "", "Command prefix")
+	config = configuration.New()
+	flag.StringVar(&config.Token, "t", "", "Bot token")
+	flag.StringVar(&config.Prefix, "P", "", "Command prefix")
 	flag.BoolVar(&showhelp, "h", false, "Help text")
 	flag.IntVar(&loglevel, "l", 0, "Log level")
 	flag.Parse()
 }
 
 func main() {
-	if botconf.Token == "" {
+	if showhelp {
+		os.Exit(0)
+	}
+
+	if config.Token == "" {
 		fmt.Printf("%s. %s:\n1. %s\n2. %s\n3. %s\n",
 			"Please supply a token",
 			"You can use one of the following methods",
@@ -50,24 +47,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	sc = make(chan os.Signal, 1)
-	dc = make(chan gameserver.ChatData)
+	sc := make(chan os.Signal, 1)
+	dc := make(chan ifaces.ChatData)
 
-	server = avorion.Create(dc, serverconfig)
-	server.SetBot(bot)
+	server = avorion.New(dc, config)
+	disbot = discord.New(dc, config)
 
-	if err := serverconfig.Validate(); err != nil {
+	if err := config.Validate(); err != nil {
 		log.Fatal(err)
 	}
 
 	// We start this early to prevent an errant os.Interrupt from leaving the
 	// AvorionServer process running.
 	signal.Notify(sc)
+	disbot.Start()
 
-	server.SetLoglevel(loglevel)
-	bot.SetLoglevel(loglevel)
-
-	discord.Init(bot, botconf, server)
 	if err := server.Start(); err != nil {
 		log.Output(1, err.Error())
 		os.Exit(1)

@@ -1,158 +1,201 @@
 --[[
 
-    DS9 Utilities - Welcome Email
-    -----------------------------
-    Sends off an email to a newly joined player using either the defaults
-    provided below, or via a WelcomeEmail.txt file located in the Server
-    root directory. Also optionally (and by default) adds one or more
-    turrets of your spefication to the email as an attachment.
+  AvorionControl - data/scripts/galaxy/server.lua
+  -----------------------------
 
-    License: WTFPL
-	Info: https://en.wikipedia.org/wiki/WTFPL
+  Sends off an email to a newly joined player using either the defaults
+  provided below, or via a WelcomeEmail.txt file located in the Server
+  root directory. Also optionally (and by default) adds one or more
+  turrets of your spefication to the email as an attachment.
+
+  License: WTFPL
+  Info: https://en.wikipedia.org/wiki/WTFPL
 
 ]]
 
 do
-    local __old_path = package.path
-    local vanilla_initialize = initialize
-    local vanilla_onPlayerCreated = onPlayerCreated
+  local __old_path = package.path
+  local __mailfile = Server().folder .. "/WelcomeEmail.txt",
+  local vanilla_initialize = initialize
+  local vanilla_onPlayerCreated = onPlayerCreated
 
-    package.path = package.path .. ";data/scripts/lib/?.lua"
-    package.path = package.path .. ";data/scripts/?.lua"
+  package.path = package.path .. ";data/scripts/lib/?.lua"
+  include("utility")
+  include("stringutility")
+  include("weapontype")
+
+
+  -- Override for the vanilla initialize function. Just used here to output some
+  --  text.
+  function initialize()
+    vanilla_initialize()
+    print("Loaded avocontrol (server.lua). Welcome email file location is: "
+      .. __mailfile)
+  end
+
+
+  -- Returns a table with turrets generated using the table data provided or
+  --  returns false.
+  --
+  -- Returns:
+  --  @1    Table[n] userdata
+  local function __make_turrets(data)
+    if type(data.x) ~= "number" or type(data.y) ~= "number"
+      print("avocontrol (server.lua): __make_turrets: nil coordinate supplied")
+      return false
+    end
+
+    local stg = include("sectorturretgenerator")(SectorSeed(data.x, data.y))
+    local turrets = {}
+
+    for c=(data.count or 0), 0, -1 do
+      turrets.insert(stg:generate(data.x, data.y, data.o, data.rarity,
+        data.type, data.material))
+    end
     
-    include("utility")
-    include("stringutility")
-    include("weapontype")
+    return turrets
+  end
 
-    local __d = {
-        -- Mod Init
-        turret     = nil,
 
-        -- Default Message Information
-        m_sender   = "DS9 Admin Team",
-        m_header   = "Welcome to DS9.875!",
-        m_text     = "Welcome to our Server! If you have any questions, feel free to ask!",
-        m_file     = Server().folder .. "/WelcomeEmail.txt",
+  -- Make sure that the material we've configured is valid, and return a reference
+  --  to an object of it's type if it is. Otherwise, return a new reference to
+  --  a MaterialType.Iron object.
+  --
+  -- Return:
+  --  @1    Material
+  local function __check_material(string)
+    if MaterialType[string] == "nil" then
+      print("avocontrol (server.lua): __check_material: "..
+        "Invalid material type: " .. string)
+      return Material(MaterialType.Iron)
+    end
+    return Material(MaterialType[string])
+  end
 
-        -- Resources
-        r_money    = 500000,
-        r_iron     = 25000,
-        r_titanium = 25000,
-        r_naonite  = 5000,
-        r_trinium  = 0,
-        r_xanion   = 0,
-        r_ogonite  = 0,
-        r_avorion  = 0,
 
-        -- Turret Data
-        t_num      = 1,
-        t_mat      = Material(MaterialType.Titanium),
-        t_rarity   = Rarity(2),
-        t_type     = WeaponType.RawMiningLaser,
-        t_sec_x    = -200,
-        t_sec_y    = -200,
-        t_sec_o    = 2,
-    }
+  -- Make sure that the type of turret that we've configured is valid. If it is,
+  --  return the enum for that WeaponType. Otherwise, return the enum for
+  --  WeaponType.MiningLaser
+  --
+  -- Return:
+  --  @1    WeaponType
+  local function __check_type(string)
+    if WeaponType[string] == "nil" then
+      print("avocontrol (server.lua): Invalid turret type: " .. string)
+      return WeaponType.MiningLaser
+    end
+    return WeaponType[string]
+  end
 
-    -- https://stackoverflow.com/questions/4990990/check-if-a-file-exists-with-lua
-    local function __does_file_exist(name)
-        local f=io.open(name,"r")
-        if f~=nil then io.close(f) return true else return false end
+
+  -- Make sure that the configured rarity is a valid rarity and return a new
+  --  reference to a Rarity object of that type. Otherwise, return a Rarity
+  --  of type 2 (common)
+  --
+  -- Return:
+  --  @1    Rarity
+  local function __check_rarity(number)
+    if type(number) ~= "number" then
+      return Rarity(2)
+    end
+    return Rarity(number)
+  end
+
+
+  -- Make sure that the coordinate passed is both a number and falls between
+  --  -999 and 999. Otherwise, return 999 (default to very weak)
+  --
+  -- Return:
+  --  @1    Number
+  local function __check_coord(number)
+    local n = math.abs(number)
+    return (n < 0 or n > 999) and nil or number
+  end
+
+
+  -- Override for the onPlayerCreated callback. Adds our configured welcome
+  --  email and turret
+  function onPlayerCreated (index)
+    vanilla_onPlayerCreated(index)
+
+    local msgfooter = "Used default text body."
+    local madeTurret, usedMailFile = false, false
+    local player = Player(index)
+    local server = Server()
+    local mail   = Mail()
+
+    -- Fetch our mail configuration from the server
+    local maildata = FetchConfigData("Wemail", {
+      text     = "string",
+      sender   = "string",
+      header   = "string",
+      money    = "number",
+      Iron     = "number",
+      Titanium = "number",
+      Naonite  = "number",
+      Trinium  = "number",
+      Xanion   = "number",
+      Ogonite  = "number",
+      Avorion  = "number"})
+
+    -- Fetch our turret from the server. Closures here are so that we dont need
+    -- to loop this table again.
+    local turretdata = FetchConfigData("Wturret", {
+      count    = "number",
+      offset   = "number",
+      material = __check_material,
+      rarity   = __check_rarity,
+      type     = __check_type,
+      x        = __check_coord,
+      y        = __check_coord})
+
+    -- Update our maildata with the contents of our email file if it exists
+    if FileExists(__mailfile) then
+      maildata.text = FileSlurp(__mailfile)
+      usedMailFile = true
     end
 
-    -- Returns a newly generated turret using the data provided
-    local function __make_turret(__d)
-        local __stg = include("sectorturretgenerator")
-        return __stg(SectorSeed(__d.t_sec_x, __d.t_sec_y)):generate(
-            __d.t_sec_x,
-            __d.t_sec_y,
-            __d.t_sec_o,
-            __d.t_rarity,
-            __d.t_type,
-            __d.t_mat
-        )
+    -- Apply our configurations to the email. Failed/missing configurations are
+    -- replaced with the following defaults.
+    mail.sender = (maildata.sender or "Server")
+    mail.header = (maildata.header or "Welcome!")
+    mail.text   = (maildata.text   or "Welcome to our server!")
+    mail.money  = (maildata.money  or 0)
+
+    mail:setResources(
+      maildata.Iron     or 0,
+      maildata.Titanium or 0,
+      maildata.Naonite  or 0,
+      maildata.Trinium  or 0,
+      maildata.Xanion   or 0,
+      maildata.Ogonite  or 0,
+      maildata.Avorion  or 0)
+
+    -- Generate and add our turrets, or break if that fails
+    for _, t in ipairs(__make_turrets(turretdata)) do
+      if type(t) == "userdata" then
+        mail:addTurret(t)
+        madeTurret = true
+      else
+        print("Skipped adding turret to player mail. " ..
+          "Datatype is incorrect (${s})"%_T % {s=type(t)})
+        break
+      end
     end
 
-    -- Initial turret generation; __d.turret is mostly used as a safeguard
-    -- in case turret generation breaks again.
-    function initialize()
-        vanilla_initialize()
-        __d.turret = __make_turret(__d)
-        if type(__d.turret) == "nil" then 
-            print("Generated turret is nil! Skipping turret email addition.")
-        else
-            print("Generated turret is of type <${t_type}>."%_T % {t_type=type(__d.turret)} )
-        end
-
-        print("Mail text file location is: ${m_file}"%_T % {m_file=__d.m_file})
+    if usedMailFile then
+      msgfooter = "Used "..__mailfile.." for mail text."
     end
 
-    function onPlayerCreated (index)
-        vanilla_onPlayerCreated(index)
-
-        local __player = Player(index)
-        local __mail = Mail()
-        local __msgfooter = "Used default text body."
-        local __turret, __mailfile = false, false
-
-        -- Adapted from DirtyRedzServer Manager. Override the default message if
-        -- a file called WelcomeEmail.txt is present in the server directory and is
-        -- readable. We load this on demand so that we dont need to restart the
-        -- whole server to update our email
-        __mail.sender = __d.m_sender
-        __mail.header = __d.m_header
-        __mail.text   = __d.m_text
-        if __does_file_exist(__d.m_file) then
-            local FILE = assert(io.open(__d.m_file, "r"))
-            __mail.text = FILE:read("*all")
-            FILE:close()
-            FILE = nil
-
-            __mailfile = true
-        end
-
-        -- Resources
-        __mail.money  = __d.r_money
-        __mail:setResources(
-            __d.r_iron,
-            __d.r_titanium,
-            __d.r_naonite,
-            __d.r_trinium,
-            __d.r_xanion,
-            __d.r_ogonite,
-            __d.r_avorion
-        )
-
-        -- Make sure we **actually** generated the initial turret,
-        -- and then make sure that the number set to be given is
-        -- greater than 0 before adding it to the player.
-        if type(__d.turret) == "userdata" and __d.t_num > 0 then
-            __mail:addTurret(__d.turret)
-            
-            -- If the number mentioned is set higher than 1, generate
-            -- even more turrets and attach them to the email.
-            if __d.t_num > 1 then
-                for i=2, __d.t_num, 1 do
-                    __mail:addTurret(__make_turret(__d))
-                end
-            end
-
-            __turret = true
-        else
-            print("Skipped adding turret to player mail. Datatype is incorrect: <%{t_type}>"%_T % {t_type=type(__d.turret)} )
-        end
-        
-        if __mailfile then
-            __msgfooter = "Used <"..__d.m_file.."> for mail text."
-        end
-
-        if __turret then
-            __msgfooter = __msgfooter.." Attached "..__d.t_num.." turret[s]"
-        end
-
-        __player:addMail(__mail)
-        print("Sent welcome email to <${pname}>. ${footer}"%_T % {pname=__player.name,footer=__msgfooter} )
+    if madeTurret then
+      msgfooter = msgfooter.." Attached "..turretdata.count.." turret[s]."
     end
 
-    package.path = __old_path
+    player:addMail(mail)
+    print("Sent welcome email to <${p}>. ${f}"%_T % {
+      p=player.name,
+      f=msgfooter})
+  end
+
+  package.path = __old_path
 end

@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"AvorionControl/discord/botconfig"
+	"AvorionControl/ifaces"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -11,7 +11,7 @@ type BotArgs []string
 
 // BotCommand - Function signature for a bots primary function
 type BotCommand = func(*discordgo.Session, *discordgo.MessageCreate, BotArgs,
-	*botconfig.Config) (string, error)
+	ifaces.IConfigurator) (string, error)
 
 // CommandArgument - Define an argument for a command
 //  @0    Argument's invokation

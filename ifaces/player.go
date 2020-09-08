@@ -1,11 +1,11 @@
-package gameserver
+package ifaces
 
 import (
 	"AvorionControl/logger"
 	"net"
 )
 
-// IPlayer describes a an IServer player
+// IPlayer describes a an IGameServer player
 type IPlayer interface {
 	IDiscordIntegratedPlayer
 	IModeratablePlayer

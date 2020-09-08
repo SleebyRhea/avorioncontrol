@@ -1,7 +1,7 @@
 package avorion
 
 import (
-	"AvorionControl/gameserver"
+	"AvorionControl/ifaces"
 	"AvorionControl/logger"
 	"fmt"
 	"net"
@@ -14,7 +14,7 @@ var resourceMap map[string]int
 // Player is a player that has connected to the server at some point, and has
 // data present in the game db
 type Player struct {
-	gameserver.IPlayer
+	ifaces.IPlayer
 
 	// avorion.Player
 	index     string
@@ -24,7 +24,7 @@ type Player struct {
 	resources map[string]int64
 	discordid string
 
-	// gameserver.Player
+	// ifaces.Player
 	ip       net.IP
 	name     string
 	online   bool
@@ -167,7 +167,7 @@ func (p *Player) UpdateCoords(x, y int) {
 }
 
 /*********************/
-/* gameserver.Player */
+/* ifaces.Player */
 /*********************/
 
 // IP returns the IP address that the player used to connect this session
