@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	"AvorionControl/ifaces"
 	"AvorionControl/logger"
 	"errors"
 	"fmt"
@@ -53,14 +54,17 @@ type Conf struct {
 	pingport int
 
 	// Discord
-	Token       string
-	Prefix      string
+	token       string
+	prefix      string
 	chatchannel string
-	DiscordLink string
-	BotsAllowed bool
+	discordLink string
+	botsallowed bool
 
 	aliasedCommands  map[string][]string
 	disabledCommands []string
+
+	// Chat
+	chatpipe chan ifaces.ChatData
 }
 
 // New returns a new object representing our program configuration
@@ -176,10 +180,10 @@ func (c *Conf) DisableCommand(s string) error {
 	return nil
 }
 
-// AliasCommand - Alias a command if the alias has net yet been set.
+// SetAliasCommand - Alias a command if the alias has net yet been set.
 //  @r string    Comand to be aliased
 //  @a string    Alias to be configured
-func (c *Conf) AliasCommand(r string, a string) error {
+func (c *Conf) SetAliasCommand(r string, a string) error {
 	for cmdname, cmd := range c.aliasedCommands {
 		for _, ac := range cmd {
 			if ac == a {
@@ -198,14 +202,116 @@ func (c *Conf) AliasCommand(r string, a string) error {
 	return nil
 }
 
+/*************************************/
+/* IFace ifaces.IDiscordConfigurator */
+/*************************************/
+
+// BotsAllowed returns whether or not bots are permitted to issue commands to this
+//	bot
+func (c *Conf) BotsAllowed() bool {
+	return c.botsallowed
+}
+
+// SetBotsAllowed sets BotsAllowed
+func (c *Conf) SetBotsAllowed(allowed bool) {
+	c.botsallowed = allowed
+}
+
+// DiscordLink returns a link to a Discord server
+func (c *Conf) DiscordLink() string {
+	return c.discordLink
+}
+
+// SetDiscordLink sets a link to a Discord server
+func (c *Conf) SetDiscordLink(link string) {
+	c.discordLink = link
+}
+
+// SetPrefix sets the current bot prefix
+// 	TODO perform the checks for the prefix configuration *here* rather than in
+// 	the *discord.Bot object
+func (c *Conf) SetPrefix(prefix string) {
+	c.prefix = prefix
+}
+
+// Prefix returns the current prefix
+func (c *Conf) Prefix() string {
+	return c.prefix
+}
+
+// SetToken sets the current Token
+func (c *Conf) SetToken(t string) {
+	c.token = t
+}
+
+// Token returns the current Token
+func (c *Conf) Token() string {
+	return c.token
+}
+
+/**********************************/
+/* IFace ifaces.IGameConfigurator */
+/**********************************/
+
+// InstallPath returns the current installation path for Avorion
+func (c *Conf) InstallPath() string {
+	return c.installdir
+}
+
+// DataPath returns the current datapath for Avorion
+func (c *Conf) DataPath() string {
+	return c.datadir
+}
+
+// Galaxy returns the current Galaxyname for Avorion
+func (c *Conf) Galaxy() string {
+	return c.galaxyname
+}
+
+// SetGalaxy returns the current Galaxyname for Avorion
+func (c *Conf) SetGalaxy(name string) {
+	c.galaxyname = name
+}
+
+// RCONBin returns the current RCON binary in use
+// TODO: This is temporary, until the rconlib is implemented
+func (c *Conf) RCONBin() string {
+	return c.rconbin
+}
+
+// RCONPort returns the current RCON port
+func (c *Conf) RCONPort() int {
+	return c.rconport
+}
+
+// RCONAddr returns the current RCON address
+func (c *Conf) RCONAddr() string {
+	return c.rconaddr
+}
+
+// RCONPass returns the current RCON password
+func (c *Conf) RCONPass() string {
+	return c.rconpass
+}
+
+/**********************************/
+/* IFace ifaces.IChatConfigurator */
+/**********************************/
+
 // SetChatChannel sets the channel that ifaces chat is output to
 //	@id string		Channel ID to set
 func (c *Conf) SetChatChannel(id string) error {
 	c.chatchannel = id
+	c.chatpipe = make(chan ifaces.ChatData)
 	return nil
 }
 
 // ChatChannel returns the current chat channel ID string
 func (c *Conf) ChatChannel() string {
 	return c.chatchannel
+}
+
+// ChatPipe returns a go channel for chat piping
+func (c *Conf) ChatPipe() chan ifaces.ChatData {
+	return c.chatpipe
 }

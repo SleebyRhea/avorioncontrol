@@ -14,5 +14,5 @@ type IBotMentioner interface {
 
 // IBotStarter describes a bot that can start
 type IBotStarter interface {
-	Start()
+	Start(IGameServer)
 }

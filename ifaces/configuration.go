@@ -1,6 +1,8 @@
 package ifaces
 
-import "AvorionControl/logger"
+import (
+	"AvorionControl/logger"
+)
 
 // IConfigurator describes an interface to our configuration backend
 type IConfigurator interface {
@@ -17,10 +19,10 @@ type IConfigurator interface {
 // IDiscordConfigurator describes an interface that describes Discord configurations
 type IDiscordConfigurator interface {
 	Token() string
-	BotUID() string
-	BotMention() string
-	InviteLink() string
+
 	BotsAllowed() bool
+	DiscordLink() string
+	SetDiscordLink(string)
 	SetBotsAllowed(bool)
 }
 
@@ -37,7 +39,7 @@ type IGameConfigurator interface {
 // IGalaxyConfigurator describes an interface to an object that can configure a
 //	galaxy
 type IGalaxyConfigurator interface {
-	SetGalaxy(string) error
+	SetGalaxy(string)
 	Galaxy() string
 }
 
@@ -53,10 +55,14 @@ type ICommandConfigurator interface {
 
 	SetPrefix(string)
 	Prefix() string
+
+	SetToken(string)
+	Token() string
 }
 
 // IChatConfigurator describes an interface to an object that can configure chats
 type IChatConfigurator interface {
+	ChatPipe() chan ChatData
 	SetChatChannel(string) error
 	ChatChannel() string
 }

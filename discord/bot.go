@@ -25,10 +25,9 @@ import (
 type Bot struct {
 	processDirectMsg func(*discordgo.Session, *discordgo.MessageCreate)
 
-	config      ifaces.IConfigurator
-	loglevel    int
-	chatchannel chan ifaces.ChatData
-	session     *discordgo.Session
+	config   ifaces.IConfigurator
+	session  *discordgo.Session
+	loglevel int
 }
 
 /************************/

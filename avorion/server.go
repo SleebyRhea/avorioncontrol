@@ -93,7 +93,7 @@ type Server struct {
 /********/
 
 // New returns a new object of type Server
-func New(out chan ifaces.ChatData, c ifaces.IConfigurator, args ...string) ifaces.IGameServer {
+func New(c ifaces.IConfigurator, args ...string) ifaces.IGameServer {
 	executable := "AvorionServer.exe"
 	if runtime.GOOS != "windows" {
 		executable = "AvorionServer"
@@ -109,7 +109,6 @@ func New(out chan ifaces.ChatData, c ifaces.IConfigurator, args ...string) iface
 
 	s := &Server{
 		uuid:       "AvorionServer",
-		chatout:    out,
 		version:    string(version),
 		serverpath: c.InstallPath(),
 		executable: executable,
@@ -138,23 +137,9 @@ func (s *Server) NotifyServer(in string) error {
 
 // Start starts the Avorion server process
 func (s *Server) Start() error {
+	var err error
 	logger.LogInfo(s, "Syncing mods to data directory")
 	copy.Copy("./mods", s.config.DataPath()+"/mods")
-	confpath := s.config.DataPath() +
-		"mods/avocontrol-utilities/data/scripts/config/avocontrol-discord.lua"
-
-	read, err := ioutil.ReadFile(confpath)
-	if err != nil {
-		return err
-	}
-
-	newconfig := strings.ReplaceAll(string(read), "%INVLINK%", s.config.DiscordLink())
-	newconfig = strings.ReplaceAll(newconfig, "%BOTNAME%", s.config.BotMention())
-
-	err = ioutil.WriteFile(confpath, []byte(newconfig), 0)
-	if err != nil {
-		panic(err)
-	}
 
 	s.Cmd = exec.Command(
 		s.serverpath+"/bin/"+s.executable,

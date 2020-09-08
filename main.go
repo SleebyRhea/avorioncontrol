@@ -17,6 +17,8 @@ import (
 var (
 	showhelp bool
 	loglevel int
+	token    string
+	prefix   string
 
 	config *configuration.Conf
 	server ifaces.IGameServer
@@ -25,11 +27,14 @@ var (
 
 func init() {
 	config = configuration.New()
-	flag.StringVar(&config.Token, "t", "", "Bot token")
-	flag.StringVar(&config.Prefix, "P", "", "Command prefix")
+	flag.StringVar(&token, "t", "", "Bot token")
+	flag.StringVar(&prefix, "P", "", "Command prefix")
 	flag.BoolVar(&showhelp, "h", false, "Help text")
 	flag.IntVar(&loglevel, "l", 0, "Log level")
 	flag.Parse()
+
+	config.SetToken(token)
+	config.SetPrefix(prefix)
 }
 
 func main() {
@@ -37,7 +42,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	if config.Token == "" {
+	if config.Token() == "" {
 		fmt.Printf("%s. %s:\n1. %s\n2. %s\n3. %s\n",
 			"Please supply a token",
 			"You can use one of the following methods",
@@ -48,10 +53,9 @@ func main() {
 	}
 
 	sc := make(chan os.Signal, 1)
-	dc := make(chan ifaces.ChatData)
 
-	server = avorion.New(dc, config)
-	disbot = discord.New(dc, config)
+	server = avorion.New(config)
+	disbot = discord.New(config)
 
 	if err := config.Validate(); err != nil {
 		log.Fatal(err)
@@ -60,7 +64,7 @@ func main() {
 	// We start this early to prevent an errant os.Interrupt from leaving the
 	// AvorionServer process running.
 	signal.Notify(sc)
-	disbot.Start()
+	disbot.Start(server)
 
 	if err := server.Start(); err != nil {
 		log.Output(1, err.Error())
