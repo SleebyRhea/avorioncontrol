@@ -605,7 +605,7 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 			return
 
 		// Check the server status every 5 minutes
-		case <-time.After(time.Minute * 5):
+		case <-time.After(time.Second * 30):
 			done := make(chan error)
 
 			go func() {
@@ -616,9 +616,35 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 			// Wait for 60 seconds and restart the server if Avorion is taking too long
 			select {
 			case <-time.After(60 * time.Second):
-				logger.LogError(s, "Avorion is lagging, restarting")
-				s.Restart()
-			case <-done:
+				logger.LogError(s, "Avorion is lagging, restarting...")
+				if err := s.Restart(); err == nil {
+					s.SendChat(ifaces.ChatData{
+						Msg:  "Complete.",
+						Name: "Server"})
+				} else {
+					s.SendChat(ifaces.ChatData{
+						Msg:  "Failed to restart Avorion",
+						Name: "Server"})
+				}
+
+			// If rcon couldn't connect, restart.
+			case err := <-done:
+				if err != nil {
+					logger.LogError(s, err.Error())
+					s.SendChat(ifaces.ChatData{
+						Msg:  "Avorion crashed, restarting...",
+						Name: "Server"})
+					if err := s.Restart(); err == nil {
+						s.SendChat(ifaces.ChatData{
+							Msg:  "Complete.",
+							Name: "Server"})
+					} else {
+						s.SendChat(ifaces.ChatData{
+							Msg:  "Failed to restart Avorion",
+							Name: "Server"})
+					}
+				}
+
 				continue
 			}
 
