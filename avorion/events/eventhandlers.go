@@ -3,6 +3,7 @@ package events
 import (
 	"AvorionControl/ifaces"
 	"AvorionControl/logger"
+	"fmt"
 )
 
 func initB() {
@@ -43,12 +44,20 @@ func handleEventPlayerJoin(srv ifaces.IGameServer, e *Event, in string,
 		p.SetOnline(true)
 		p.Update()
 	}
+
+	srv.SendChat(ifaces.ChatData{
+		Msg:  fmt.Sprintf("Player %s has logged in", m[1]),
+		Name: "Server"})
 }
 
 func handleEventPlayerLeft(srv ifaces.IGameServer, e *Event, in string,
 	oc chan string) {
 	m := e.Capture.FindStringSubmatch(in)
 	logger.LogOutput(srv, in)
+
+	srv.SendChat(ifaces.ChatData{
+		Msg:  fmt.Sprintf("Player %s has logged off", m[1]),
+		Name: "Server"})
 
 	if p := srv.Player(m[2]); p != nil {
 		p.SetOnline(false)
@@ -70,17 +79,11 @@ func handlePlayerChat(srv ifaces.IGameServer, e *Event, in string,
 			out += "...(truncated)"
 		}
 
-		if p := srv.PlayerFromName(m[1]); p != nil {
-			srv.DCOutput() <- ifaces.ChatData{
-				Name: m[1],
-				UID:  p.DiscordUID(),
-				Msg:  out}
-		} else {
-			logger.LogWarning(srv, "Unable to locate player: "+m[1])
-			srv.DCOutput() <- ifaces.ChatData{
-				Name: m[1],
-				Msg:  out}
-		}
+		output := ifaces.ChatData{
+			Name: m[1],
+			Msg:  out}
+
+		srv.SendChat(output)
 	}
 }
 

@@ -21,10 +21,12 @@ do
   local sector = Sector()
   local old_path = package.path
   local alliance = (player.allianceIndex and Alliance(player.allianceIndex) or nil)
+  local __vanillaInitialize = initialize
 
   package.path = package.path .. ";data/scripts/lib/?.lua"
-
   include("stringutility")
+
+  print("Starting player init")
   include("avocontrol-utils")
 
   -- Get ownership counts for the entities in the given table
@@ -101,6 +103,6 @@ do
 
   print("LoginInfo: ${p} System: playerstations=<${n1}>, alliancestations=<${n2}>"%_T % {
     p=__d.plr, n1=__d.sector_player_stations, n2=__d.sector_alliance_stations})
-
+  
   package.path = old_path
 end

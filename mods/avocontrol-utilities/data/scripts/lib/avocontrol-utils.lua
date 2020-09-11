@@ -34,7 +34,7 @@ end
 -- Returns:
 --  @1    Integer or Boolean
 function TblLen(t)
-  if type(t) ~= "table"
+  if type(t) ~= "table" then
     print("avocontrol-utils: TblLen: Input is not a table")
     return false
   end

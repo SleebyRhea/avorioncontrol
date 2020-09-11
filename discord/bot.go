@@ -27,6 +27,7 @@ type Bot struct {
 
 	config   ifaces.IConfigurator
 	session  *discordgo.Session
+	chatpipe chan ifaces.ChatData
 	loglevel int
 }
 
@@ -49,6 +50,16 @@ func (b *Bot) UUID() string {
 	return "Bot"
 }
 
+// SetChatPipe sets the current channel to pipe chats into
+func (b *Bot) SetChatPipe(cd chan ifaces.ChatData) {
+	b.chatpipe = cd
+}
+
+// ChatPipe returns the current channel to pipe chats into
+func (b *Bot) ChatPipe() chan ifaces.ChatData {
+	return b.chatpipe
+}
+
 // New returns a new instance of discord.Bot
 func New(c ifaces.IConfigurator) *Bot {
 	b := &Bot{
@@ -59,6 +70,8 @@ func New(c ifaces.IConfigurator) *Bot {
 
 // Start initializes the discordgo backend
 func (b *Bot) Start(gs ifaces.IGameServer) {
+	logger.LogInit(b, "Initialized Discord bot")
+	defer logger.LogInfo(b, "Stopped Discord bot")
 	dg, err := discordgo.New("Bot " + b.config.Token())
 	if err != nil {
 		log.Fatal("error creating Discord session,", err)
@@ -140,7 +153,7 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 		}
 
 		// Send messages from Discord to the ifaces as the user if its available
-		if gs.IsUp() && b.config.ChatChannel() != "" {
+		if gs.IsUp() && b.config.ChatChannel() == m.ChannelID {
 			_, err = gs.RunCommand(fmt.Sprintf("say [%s] %s", m.Author.String(), m.Content))
 			if err != nil {
 				s.MessageReactionAdd(m.ChannelID, m.ID, "🚫")
@@ -149,10 +162,10 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 			}
 			return
 		}
-
-		logger.LogInit(b, "DISCORD USER:   "+dg.State.User.String())
-		logger.LogInit(b, "DISCORD PREFIX: "+b.config.Prefix())
 	})
+
+	logger.LogInit(b, "DISCORD USER:   "+dg.State.User.String())
+	logger.LogInit(b, "DISCORD PREFIX: "+b.config.Prefix())
 }
 
 // Mention returns the sesions bot mention
@@ -169,18 +182,28 @@ func onGuildJoin(gid string, s *discordgo.Session, b *Bot,
 	commands.InitializeCommandRegistry(reg)
 
 	go func() {
+		defer logger.LogInfo(b, "Stopped bot chat supervisor")
+		logger.LogInit(b, "Started bot chat supervisor")
+
 		for {
 			select {
-			case cm := <-gs.DCOutput():
+			case cm := <-b.config.ChatPipe():
+				logger.LogDebug(b, "Processing chat data from server")
 				if b.config.ChatChannel() != "" {
 					msg := string(cm.Msg)
+					if len(msg) > 2000 {
+						msg = msg[0:1900]
+						msg += "...(truncated)"
+					}
 					if cm.UID != "" {
 						msg = fmt.Sprintf("<@%s>: %s", cm.UID, msg)
 					} else {
-						msg = fmt.Sprintf("**%s**: %s", cm.Name, msg)
+						msg = fmt.Sprintf("▫️ **%s**: %s", cm.Name, msg)
 					}
 					s.ChannelMessageSend(b.config.ChatChannel(), msg)
 				}
+			default:
+				logger.LogInfo(b, "New channel selected")
 			}
 		}
 	}()

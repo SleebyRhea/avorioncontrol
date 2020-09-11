@@ -23,6 +23,7 @@ type IServer interface {
 	Stop() error
 	Start() error
 	Restart() error
+	Config() IConfigurator
 
 	logger.ILogger
 }
@@ -73,5 +74,7 @@ type ISeededServer interface {
 type IDiscordIntegratedServer interface {
 	AddIntegrationRequest(string, string)
 	ValidateIntegrationPin(string, string) bool
-	DCOutput() chan ChatData
+	SetChatPipe(chan ChatData)
+	SendChat(ChatData)
+	ChatPipe() chan ChatData
 }

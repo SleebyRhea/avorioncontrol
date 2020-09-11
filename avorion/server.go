@@ -82,6 +82,7 @@ type Server struct {
 	// Discord
 	bot      *discord.Bot
 	requests map[string]string
+	chatpipe chan ifaces.ChatData
 
 	// Close goroutines
 	close chan struct{}
@@ -270,6 +271,11 @@ func (s *Server) IsUp() bool {
 	return false
 }
 
+// Config returns the server configuration struct
+func (s *Server) Config() ifaces.IConfigurator {
+	return s.config
+}
+
 // UpdatePlayerDatabase updates the Avorion player database with all of the
 // players that are known to the game
 func (s *Server) UpdatePlayerDatabase(notify bool) error {
@@ -343,7 +349,7 @@ func (s *Server) RunCommand(c string) (string, error) {
 	if s.IsUp() {
 		logger.LogDebug(s, "Running: "+c)
 
-		// TODO:
+		// TODO: Make this use an rcon lib
 		ret, err := exec.Command(s.config.RCONBin(), "-H", s.rconaddr,
 			"-p", fmt.Sprint(s.rconport), "-P", s.rconpass, c).Output()
 		out := string(ret)
@@ -440,6 +446,7 @@ func (s *Server) PlayerFromName(name string) ifaces.IPlayer {
 	for _, p := range s.players {
 		logger.LogDebug(s, fmt.Sprintf("Does (%s) == (%s) ?", p.name, name))
 		if p.name == name {
+			logger.LogDebug(s, "Found player.")
 			return p
 		}
 	}
@@ -548,10 +555,37 @@ func (s *Server) ValidateIntegrationPin(in, discordID string) bool {
 	return false
 }
 
+// SendChat sends an ifaces.ChatData object to the discord bot if chatting is
+//	currently enabled in the configuration
+func (s *Server) SendChat(input ifaces.ChatData) {
+	if len(input.Msg) >= 2000 {
+		logger.LogInfo(s, "Truncated player message for sending")
+		input.Msg = input.Msg[0:1900]
+		input.Msg += "...(truncated)"
+	}
+
+	select {
+	case s.Config().ChatPipe() <- input:
+		logger.LogDebug(s, "Sent chat data to bot")
+	case <-time.After(time.Second * 5):
+		logger.LogWarning(s, "Failed to send chat message, took too long (discarded)")
+	}
+}
+
 // addIntegration is a helper function that registers an integration
 func (s *Server) addIntegration(index, discordID string) {
 	s.RunCommand(fmt.Sprintf("run Player(%s):setValue(\"discorduserid\", %s)",
 		index, discordID))
+}
+
+// SetChatPipe sets the current channel to pipe chats into
+func (s *Server) SetChatPipe(cd chan ifaces.ChatData) {
+	s.chatpipe = cd
+}
+
+// ChatPipe returns the current channel to pipe chats into
+func (s *Server) ChatPipe() chan ifaces.ChatData {
+	return s.chatpipe
 }
 
 /**************/
@@ -562,12 +596,12 @@ func (s *Server) addIntegration(index, discordID string) {
 // server is still accessible, and restarting it when needed. In addition, this
 // goroutine also updates various server related data values at set intervals
 func updateAvorionStatus(s *Server, closech chan struct{}) {
+	defer logger.LogInfo(s, "Stopped status supervisor")
 	logger.LogInit(s, "Starting status supervisor")
 	for {
 		// Close the routine gracefully
 		select {
 		case <-closech:
-			logger.LogInfo(s, "Stopping status supervisor")
 			return
 
 		// Check the server status every 5 minutes
@@ -601,17 +635,17 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 // to be processed by our websocket handler.
 func superviseAvorionOut(s *Server, ready chan struct{},
 	closech chan struct{}) {
+	defer logger.LogInfo(s, "Stopped Avorion stdout supervisor")
+	logger.LogInit(s, "Started Avorion stdout supervisor")
 	scanner := bufio.NewScanner(s.stdout)
 	pch := make(chan string, 0) // Player Login
 
-	logger.LogInit(s, "Starting STDOUT supervisor")
 	for scanner.Scan() {
 		out := scanner.Text()
 
 		select {
 		// Exit gracefully
 		case <-closech:
-			logger.LogInfo(s, "Stopping STDOUT supervisor")
 			return
 
 		// Once we're ready, start processing logs.
@@ -635,7 +669,8 @@ func superviseAvorionOut(s *Server, ready chan struct{},
 			switch out {
 			case "Server startup complete.":
 				logger.LogInit(s, "Avorion server initialization completed")
-				close(ready) //Close the channel to close this path
+				close(ready)
+
 			default:
 				logger.LogInit(s, out)
 			}

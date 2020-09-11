@@ -63,6 +63,6 @@ type ICommandConfigurator interface {
 // IChatConfigurator describes an interface to an object that can configure chats
 type IChatConfigurator interface {
 	ChatPipe() chan ChatData
-	SetChatChannel(string) error
+	SetChatChannel(string) chan ChatData
 	ChatChannel() string
 }

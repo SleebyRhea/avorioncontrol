@@ -29,6 +29,7 @@ const (
 	defaultServerInstallation = "/srv/avorion/server_files/"
 	defaultTimeDatabaseUpdate = time.Minute * 60
 	defaultTimeHangCheck      = time.Minute * 5
+	defaultCommandPrefix      = "!!"
 )
 
 var sprintf = fmt.Sprintf
@@ -82,7 +83,9 @@ func New() *Conf {
 
 		rconport: defaultRconPort,
 		gameport: defaultGamePort,
-		pingport: defaultGamePingPort}
+		pingport: defaultGamePingPort,
+
+		aliasedCommands: make(map[string][]string)}
 }
 
 /************************/
@@ -300,10 +303,21 @@ func (c *Conf) RCONPass() string {
 
 // SetChatChannel sets the channel that ifaces chat is output to
 //	@id string		Channel ID to set
-func (c *Conf) SetChatChannel(id string) error {
+func (c *Conf) SetChatChannel(id string) chan ifaces.ChatData {
 	c.chatchannel = id
+
+	// Close the channel if its still listening.
+	if c.chatpipe != nil {
+		select {
+		case <-c.chatpipe:
+		case <-time.After(10 * time.Nanosecond):
+			logger.LogDebug(c, "Closing old chatpipe")
+			close(c.chatpipe)
+		}
+	}
+
 	c.chatpipe = make(chan ifaces.ChatData)
-	return nil
+	return c.chatpipe
 }
 
 // ChatChannel returns the current chat channel ID string
