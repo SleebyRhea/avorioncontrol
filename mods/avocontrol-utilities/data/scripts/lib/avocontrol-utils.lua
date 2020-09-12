@@ -72,20 +72,47 @@ function FetchConfigData(prefix, wants)
   local serverkey, valuetype
   local config = {}
 
-  for k,t in pairs(wants) do
-    serverkey = "avorioncontrol:"..k..":"..p
+  for k, t in pairs(wants) do
+    serverkey = "avorioncontrol:"..prefix..":"..k
     servervalue = server:getValue(serverkey)
 
     if type(t) == "function" then
       serverkey = t(serverkey)
     elseif type(servervalue) == t then
-      config[k] = serverconfig
+      config[k] = servervalue
     elseif type(t) ~= "string" then
       print("avocontrol-utilities: FetchConfigData: Invalid object type string: "..t)
     end
   end
 
   return config
+end
+
+
+-- SetConfigData sets data values on the server given a prefix and a table of
+--  values that are to be set.
+--
+-- Returns:
+--  @1    Boolean
+function SetConfigData(prefix, sets)
+  if type(prefix) ~= "string" then
+    return false
+  end
+
+  if type(sets) ~= "table" then
+    return false
+  end
+
+  local server = Server()
+  local serverkey = ""
+
+  for k,v in pairs(sets) do
+    serverkey = "avorioncontrol:"..prefix..":"..k
+    print("Setting: "..serverkey)
+    server:setValue(serverkey, v)
+  end
+
+  return true
 end
 
 
