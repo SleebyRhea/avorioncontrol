@@ -11,24 +11,22 @@
 
 ]]
 
-local command
-
 package.path = package.path .. ";data/scripts/lib/?.lua"
 include("stringutility")
 
-command             = include("avocontrol-command")
+local command       = include("avocontrol-command")
 command.name        = "getplayerdata"
 command.description = "Returns data on all players and player alliances"
 
-command:SetExecute(function (user, cmnd, ...)
+local restypes  = {
+  [1] = "iron",    [2] = "titanium", 
+  [3] = "naonite", [4] = "trinium",
+  [5] = "xanian",  [6] = "ogonite", 
+  [7] = "avorion"}
+
+command:SetExecute(function ()
   local alliances = {}
   local output    = ""
-  local restypes  = {
-    [1] = "iron",    [2] = "titanium", 
-    [3] = "naonite", [4] = "trinium",
-    [5] = "xanian",  [6] = "ogonite", 
-    [7] = "avorion"
-  }
 
   for _, player in ipairs({Server():getPlayers()}) do
     if player.alliance then
