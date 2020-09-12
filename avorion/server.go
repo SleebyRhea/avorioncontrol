@@ -109,11 +109,11 @@ func New(c ifaces.IConfigurator, args ...string) ifaces.IGameServer {
 	}
 
 	s := &Server{
+		config:     c,
 		uuid:       "AvorionServer",
 		version:    string(version),
 		serverpath: c.InstallPath(),
 		executable: executable,
-		config:     c,
 		rconpass:   c.RCONPass(),
 		rconaddr:   c.RCONAddr(),
 		rconport:   c.RCONPort(),
