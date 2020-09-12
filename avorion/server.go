@@ -260,6 +260,10 @@ func (s *Server) Restart() error {
 
 // IsUp checks whether or not the game process is running
 func (s *Server) IsUp() bool {
+	if s.Cmd == nil {
+		return false
+	}
+
 	if s.Cmd.ProcessState != nil {
 		return false
 	}
