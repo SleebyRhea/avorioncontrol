@@ -107,7 +107,7 @@ func handlePlayerChat(srv ifaces.IGameServer, e *Event, in string,
 	oc chan string) {
 	logger.LogOutput(srv, in)
 	m := e.Capture.FindStringSubmatch(in)
-	if m[1] != "Server" {
+	if m[1] != "Server" && m[1] != "D" {
 		out := m[2]
 		if len(out) >= 2000 {
 			logger.LogInfo(srv, "Truncated player message for sending")

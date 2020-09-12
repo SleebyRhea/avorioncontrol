@@ -6,8 +6,6 @@ function execute(user, cmd, botuser, discordlink)
     return 1, "\\c(f00)Do not run this please.", ""
   end
 
-
-  print("Updating Discord data")
   local ok = SetConfigData("Discord", {
     discordUrl = discordlink,
     discordBot = botuser})
@@ -24,5 +22,4 @@ function getDescription()
 end
 
 function getHelp()
-  return "None"
 end

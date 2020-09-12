@@ -108,7 +108,6 @@ function SetConfigData(prefix, sets)
 
   for k,v in pairs(sets) do
     serverkey = "avorioncontrol:"..prefix..":"..k
-    print("Setting: "..serverkey)
     server:setValue(serverkey, v)
   end
 

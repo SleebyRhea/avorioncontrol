@@ -15,8 +15,7 @@ include("avocontrol-utils")
 do
   local data = FetchConfigData("Discord", {
     discordUrl = "string",
-    discordBot = "string",
-  })
+    discordBot = "string"})
 
   -- Discord.Url() returns the configured Discord URL
   local function __discordUrl()
@@ -35,9 +34,16 @@ do
     return (tonumber(l) and l or "")
   end
 
+  function __discordSay(user, message)
+    local server = Server()
+    server:broadcastChatMessage("D", ChatMessageType.Normal,
+      "\\c(77c)<"..user.."> \\c(ddd)"..message)
+  end
+
   return {
     Url      = __discordUrl,
     Bot      = __discordBot,
+    Say      = __discordSay,
     IsLinked = __discordIsLinked}
 end
 

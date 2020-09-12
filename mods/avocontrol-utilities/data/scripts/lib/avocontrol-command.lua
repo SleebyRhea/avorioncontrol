@@ -12,6 +12,9 @@
 ]]
 
 do
+  package.path = package.path .. ";data/scripts/lib/?.lua"
+  include("avocontrol-utils")
+
   local unpack = (type(table.unpack) == "function" and table.unpack or _G.unpack)
 
   local debug = (FetchConfigData("AvoDebug", {debug = "boolean"}).debug
@@ -19,7 +22,6 @@ do
 
   local Command = {
     name        = "UnsetName",
-    usage       = "No help text defined",
     arguments   = {},
     description = "No description defined",
     execute     = function ()
@@ -27,10 +29,6 @@ do
     end}
   
   Command.__index = Command
-
-  local function __valid_arg(in)
-  end
-
 
   -- Command.AddArgument adds an argument definition to the argument definition
   --  list for later processing.
@@ -40,19 +38,19 @@ do
   function Command.AddArgument(self, kind, short, long, usage, help, func)
     for k, v in pairs({kind=kind, short=short, long=long, usage=usage, help=help}) do
       if type(v) ~= "string" then
-        print(self:Trace.."AddArgument: Invalid argument for "..k)
+        print(self:Trace().."AddArgument: Invalid argument for "..k)
         return false, "Script error: Command argument definition is invalid"
       end
     end
 
     if type(func) ~= "function" then
-      print(self:Trace.."AddArgument: Invalid function passed (not a function)")
+      print(self:Trace().."AddArgument: Invalid function passed (not a function)")
         return false, "Script error: Command argument definition is invalid"
     end
 
     table.insert(self.arguments, {
       exec  = exec,
-      data  = {}
+      data  = {},
       help  = help,
       long  = long,
       usage = usage,
@@ -99,7 +97,7 @@ do
         local err = self.arguments[cur].execute(unpack(self.arguments[cur].data))
         self.arguments[cur].data = {}
 
-        if err
+        if err then
           return false, err
         end
 
@@ -159,6 +157,11 @@ do
   -- Return:
   --  @1    String
   function Command.GetHelp(self)
+    if #self.arguments > 0 then
+      -- Code to process argument help
+    else
+      return "Example: /"..self.name
+    end
   end
 
 
