@@ -450,7 +450,7 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 		rconCmnd)
 
 	r.Register("setchatchannel",
-		"Control the state of the Avorion server",
+		"Sets the channel to output server chat into",
 		"setchatchannel channelid",
 		[]CommandArgument{
 			arg("channelid", "UID of the channel to send server chat messages to")},
