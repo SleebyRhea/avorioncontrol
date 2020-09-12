@@ -30,12 +30,12 @@ do
   
   Command.__index = Command
 
-  -- Command.AddArgument adds an argument definition to the argument definition
+  -- Command.AddFlag adds an argument definition to the argument definition
   --  list for later processing.
   --
   -- Returns:
   --  @1    Boolean
-  function Command.AddArgument(self, kind, short, long, usage, help, func)
+  function Command.AddFlag(self, kind, short, long, usage, help, func)
     for k, v in pairs({kind=kind, short=short, long=long, usage=usage, help=help}) do
       if type(v) ~= "string" then
         print(self:Trace().."AddArgument: Invalid argument for "..k)
@@ -135,10 +135,13 @@ do
   --  @2    String Output
   --  @3    String (Avorion uses this for something but its undocumented)
   function Command.Execute(self, user, cmnd, ...)
-    if debug then
-      print(self:Trace().."Execute: Running self.execute")
+    local ok, err = self:ParseFlags(...)
+    
+    if not ok then
+      return 1, err, ""
     end
-    return self.execute(user, cmnd, ...)
+
+    return self.execute(user, cmnd)
   end
 
 
