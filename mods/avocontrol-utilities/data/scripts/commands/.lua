@@ -9,7 +9,7 @@ function execute(user, cmnd, ...)
     out = out .. ": " .. table.concat({...}, " ")
   end
 
-  print("NilCommandEvent: "..out)
+  print("nilCommandEvent: "..out)
   return 0, "", ""
 end
 

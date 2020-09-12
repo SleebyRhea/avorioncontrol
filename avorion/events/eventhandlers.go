@@ -7,9 +7,25 @@ import (
 )
 
 func initB() {
+	New("EventShipTrackInit",
+		"^\\s*shipTrackInitEvent: (-?[0-9]+) (-?[0-9]+) (-?[0-9]+):(-?[0-9]+) (.*)$",
+		handleEventShipTrackInit)
+
 	New("EventPlayerChat",
 		"^\\s*<(.+?)> (.*)",
 		handlePlayerChat)
+
+	New("EventShipJump",
+		"^\\s*shipJumpEvent: (-?[0-9]+) (-?[0-9]+) (-?[0-9]+):(-?[0-9]+) (.*)$",
+		handleEventShipJump)
+
+	New("EventShipDestroyed",
+		"^\\s*shipDestroyedEvent: (-?[0-9]+)$",
+		handleEventShipDestroyed)
+
+	New("EventShipDeleted",
+		"^\\s*shipDeletedEvent: (-?[0-9]+)$",
+		handleEventShipDeleted)
 
 	New("EventPlayerJoin",
 		"^\\s*Player logged in: (.+?), index: ([0-9]+)\\s*$",
@@ -22,6 +38,10 @@ func initB() {
 	New("EventServerLag",
 		"^\\s*Server frame took over [0-9]+ seconds?\\.?\\s*$",
 		handleEventServerLag)
+
+	New("NilCommandEvent",
+		"^\\s*nilCommandEvent: (.*)$",
+		handleNilCommand)
 
 	New("EventNone",
 		".*",
@@ -48,6 +68,22 @@ func handleEventPlayerJoin(srv ifaces.IGameServer, e *Event, in string,
 	srv.SendChat(ifaces.ChatData{
 		Msg:  fmt.Sprintf("Player %s has logged in", m[1]),
 		Name: "Server"})
+}
+
+func handleEventShipJump(srv ifaces.IGameServer, e *Event, in string,
+	oc chan string) {
+}
+
+func handleEventShipTrackInit(srv ifaces.IGameServer, e *Event, in string,
+	oc chan string) {
+}
+
+func handleEventShipDestroyed(srv ifaces.IGameServer, e *Event, in string,
+	oc chan string) {
+}
+
+func handleEventShipDeleted(srv ifaces.IGameServer, e *Event, in string,
+	oc chan string) {
 }
 
 func handleEventPlayerLeft(srv ifaces.IGameServer, e *Event, in string,
@@ -85,6 +121,10 @@ func handlePlayerChat(srv ifaces.IGameServer, e *Event, in string,
 
 		srv.SendChat(output)
 	}
+}
+
+func handleNilCommand(srv ifaces.IGameServer, e *Event, in string,
+	oc chan string) {
 }
 
 func handleEventServerLag(srv ifaces.IGameServer, e *Event, in string,
