@@ -74,7 +74,5 @@ type ISeededServer interface {
 type IDiscordIntegratedServer interface {
 	AddIntegrationRequest(string, string)
 	ValidateIntegrationPin(string, string) bool
-	SetChatPipe(chan ChatData)
 	SendChat(ChatData)
-	ChatPipe() chan ChatData
 }
