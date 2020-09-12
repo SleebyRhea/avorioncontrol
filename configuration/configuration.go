@@ -11,7 +11,7 @@ import (
 
 const (
 	// Discord
-	defaultDiscordLink = ""
+	defaultDiscordLink = "https://discord.gg/b5sqfy"
 	defaultBotsAllowed = false
 	defaultChatChannel = ""
 	defaultLoglevel    = 1
@@ -20,7 +20,7 @@ const (
 	defaultGamePort           = 27000
 	defaultGamePingPort       = 27020
 	defaultRconPort           = 27015
-	defaultRconBin            = "/usr/bin/rcon"
+	defaultRconBin            = "/usr/local/bin/rcon"
 	defaultRconAddress        = "127.0.0.1"
 	defaultRconPassword       = "123123"
 	defaultGalaxyName         = "Galaxy"
@@ -77,9 +77,10 @@ func New() *Conf {
 		datadir:    defaultDataDirectory,
 		logdir:     defaultServerLogDirectory,
 
-		rconbin:  defaultRconBin,
-		rconpass: defaultRconPassword,
-		rconaddr: defaultRconAddress,
+		rconbin:     defaultRconBin,
+		rconpass:    defaultRconPassword,
+		rconaddr:    defaultRconAddress,
+		discordLink: defaultDiscordLink,
 
 		rconport: defaultRconPort,
 		gameport: defaultGamePort,
