@@ -20,7 +20,7 @@ do
 
   -- Discord.Url() returns the configured Discord URL
   local function __discordUrl()
-    return data.discordURL
+    return data.discordUrl
   end
 
   -- Discord.Bot() returns the current name of the bot managing this config file
