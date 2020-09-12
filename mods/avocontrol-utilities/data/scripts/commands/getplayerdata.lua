@@ -1,6 +1,6 @@
 --[[
 
-  AvorionControl - data/scripts/commands/allplayerdata.lua
+  AvorionControl - data/scripts/commands/getplayerdata.lua
   -----------------------------
 
   Returns data on all players and player alliances. This command exists solely
