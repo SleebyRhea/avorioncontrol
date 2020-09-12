@@ -558,17 +558,19 @@ func (s *Server) ValidateIntegrationPin(in, discordID string) bool {
 // SendChat sends an ifaces.ChatData object to the discord bot if chatting is
 //	currently enabled in the configuration
 func (s *Server) SendChat(input ifaces.ChatData) {
-	if len(input.Msg) >= 2000 {
-		logger.LogInfo(s, "Truncated player message for sending")
-		input.Msg = input.Msg[0:1900]
-		input.Msg += "...(truncated)"
-	}
+	if s.config.ChatPipe() != nil {
+		if len(input.Msg) >= 2000 {
+			logger.LogInfo(s, "Truncated player message for sending")
+			input.Msg = input.Msg[0:1900]
+			input.Msg += "...(truncated)"
+		}
 
-	select {
-	case s.Config().ChatPipe() <- input:
-		logger.LogDebug(s, "Sent chat data to bot")
-	case <-time.After(time.Second * 5):
-		logger.LogWarning(s, "Failed to send chat message, took too long (discarded)")
+		select {
+		case s.Config().ChatPipe() <- input:
+			logger.LogDebug(s, "Sent chat data to bot")
+		case <-time.After(time.Second * 5):
+			logger.LogWarning(s, "Failed to send chat message, took too long (discarded)")
+		}
 	}
 }
 
@@ -576,16 +578,6 @@ func (s *Server) SendChat(input ifaces.ChatData) {
 func (s *Server) addIntegration(index, discordID string) {
 	s.RunCommand(fmt.Sprintf("run Player(%s):setValue(\"discorduserid\", %s)",
 		index, discordID))
-}
-
-// SetChatPipe sets the current channel to pipe chats into
-func (s *Server) SetChatPipe(cd chan ifaces.ChatData) {
-	s.chatpipe = cd
-}
-
-// ChatPipe returns the current channel to pipe chats into
-func (s *Server) ChatPipe() chan ifaces.ChatData {
-	return s.chatpipe
 }
 
 /**************/
