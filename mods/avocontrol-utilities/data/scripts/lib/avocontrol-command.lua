@@ -37,7 +37,7 @@ do
   --
   -- Returns:
   --  @1    Boolean
-  function Command:AddArgument(kind, short, long, usage, help, func)
+  function Command.AddArgument(self, kind, short, long, usage, help, func)
     for k, v in pairs({kind=kind, short=short, long=long, usage=usage, help=help}) do
       if type(v) ~= "string" then
         print(self:Trace.."AddArgument: Invalid argument for "..k)
@@ -68,7 +68,7 @@ do
   -- Returns:
   --  @1    Boolean (return status)
   --  @2    Error
-  function Command:ParseFlags(...)
+  function Command.ParseFlags(self, ...)
     local input = {...}
 
     if #self.arguments < 1 then
@@ -119,7 +119,7 @@ do
   --
   -- Returns:
   --  @1    Boolean
-  function Command:SetExecute(func)
+  function Command.SetExecute(self, func)
     if type(func) ~= "function" then
       print(self:Trace().."SetExecute: Bad type (SetExecute expects a function)")
       return false
@@ -136,7 +136,7 @@ do
   --  @1    Int (return status)
   --  @2    String Output
   --  @3    String (Avorion uses this for something but its undocumented)
-  function Command:Execute(user, cmnd, ...)
+  function Command.Execute(self, user, cmnd, ...)
     if debug then
       print(self:Trace().."Execute: Running self.execute")
     end
@@ -148,7 +148,7 @@ do
   --
   -- Returns:
   --  @1    String
-  function Command:GetDescription()
+  function Command.GetDescription(self)
     return self.description
   end
 
@@ -158,7 +158,7 @@ do
   --
   -- Return:
   --  @1    String
-  function Command:GetHelp()
+  function Command.GetHelp(self)
   end
 
 
@@ -166,7 +166,7 @@ do
   --
   -- Return:
   --  @1    String
-  function Command:Trace()
+  function Command.Trace(self)
     return "avocontrol: command: "..self.name..": "
   end
 
