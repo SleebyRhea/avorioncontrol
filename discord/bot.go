@@ -164,6 +164,16 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 		}
 	})
 
+	go func() {
+		for {
+			time.Sleep(time.Minute * 10)
+			if gs.IsUp() {
+				gs.RunCommand(fmt.Sprintf("setdiscorddata \"%s\" \"%s\"",
+					dg.State.User.String(), b.config.DiscordLink()))
+			}
+		}
+	}()
+
 	logger.LogInit(b, "DISCORD USER:   "+dg.State.User.String())
 	logger.LogInit(b, "DISCORD PREFIX: "+b.config.Prefix())
 }
