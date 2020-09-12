@@ -3,7 +3,8 @@
   AvorionControl - data/scripts/commands/allplayerdata.lua
   -----------------------------
 
-  Returns data on all players and player alliances
+  Returns data on all players and player alliances. This command exists solely
+  for easy parsing by the bot, and to remove the need for playerinfo rcon loops
 
   License: WTFPL
   Info: https://en.wikipedia.org/wiki/WTFPL
@@ -11,34 +12,69 @@
 ]]
 
 local command
+
+package.path = package.path .. ";data/scripts/lib/?.lua"
+include("stringutility")
+
 command             = include("avocontrol-command")
 command.name        = "getplayerdata"
 command.description = "Returns data on all players and player alliances"
-command.usage       = command.name .. ""
 
-command.SetExecute(func(user, cmnd, ...) {
+command:SetExecute(function (user, cmnd, ...)
   local alliances = {}
-  local output = ""
+  local output    = ""
+  local restypes  = {
+    [1] = "iron",    [2] = "titanium", 
+    [3] = "naonite", [4] = "trinium",
+    [5] = "xanian",  [6] = "ogonite", 
+    [7] = "avorion"
+  }
 
-  for _, player in ipairs({Server().getPlayers}) do
+  for _, player in ipairs({Server():getPlayers()}) do
     if player.alliance then
       alliances[player.alliance] = player.alliance
     end
 
-    output = output .. "${pi} ${ps} ${m} "%_T % {
+    local x, y = player:getSectorCoordinates()
+
+    output = output .. "player: ${pi} ${x}:${y} ${ps} ${pS} credits:${m}"%_T % {
       pi = player.index,
-      ps = player.numships,
-      m  = player.money}
-    
-    for _, resource in ipairs(player:getResources()) do
-      output = output .. "${mn}:${ma}"%_T % {
-        mn = resource.name,
-        ma = resource.value}
+      ps = player.numShips,
+      pS = player.numStations,
+      m  = player.money,
+      x  = x,
+      y  = y}
+
+    local i = 1
+    for _, v in ipairs({player:getResources()}) do
+      output = output .. " ${mn}:${ma}"%_T % {
+        mn = restypes[i],
+        ma = v}
+      i = i + 1
     end
 
-    return 0, output, ""
+    output = output.." "..player.name.."\n"
   end
-})
+
+  for _, alliance in pairs(alliances) do
+    output = output .. "alliance: ${pi} ${ps} ${pS} credits:${m}"%_T % {
+      pi = alliance.index,
+      ps = alliance.numShips,
+      pS = alliance.numStations,
+      m  = alliance.money}
+
+      local i = 1
+      for _, v in ipairs({alliance:getResources()}) do
+        output = output .. " ${mn}:${ma}"%_T % {
+          mn = restypes[i],
+          ma = v}
+        i = i + 1
+      end
+      output = output .. " "..alliance.name .. "\n"
+  end
+
+  return 0, output, ""
+end)
 
 
 function getHelp()
