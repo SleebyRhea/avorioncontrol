@@ -482,7 +482,8 @@ func (s *Server) NewPlayer(index, in string) ifaces.IPlayer {
 		online:    true,
 		server:    s,
 		steam64:   0,
-		oldcoords: make([][2]int, 0)}
+		oldcoords: make([][2]int, 0),
+		loglevel:  s.Loglevel()}
 
 	if err := p.Update(); err != nil {
 		logger.LogError(s, err.Error())
@@ -523,7 +524,8 @@ func (s *Server) NewAlliance(index, in string) ifaces.IAlliance {
 	}
 
 	a := &Alliance{
-		index: index}
+		index:    index,
+		loglevel: s.Loglevel()}
 
 	s.alliances = append(s.alliances, a)
 	logger.LogDebug(s, "Registering alliance index "+index)

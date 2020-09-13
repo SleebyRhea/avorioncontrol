@@ -177,6 +177,8 @@ func (p *Player) AddJump(sc ifaces.ShipCoordData) {
 	if len(p.jumphistory) > 1000 {
 		p.jumphistory = p.jumphistory[1:]
 	}
+
+	logger.LogDebug(p, "Updated jumphistory")
 }
 
 /*****************/
@@ -238,7 +240,7 @@ func (p *Player) Message(string) {
 
 // UUID returns the UUID of a player
 func (p *Player) UUID() string {
-	return fmt.Sprintf("%s:%s", p.index, p.name)
+	return fmt.Sprintf("Player:%s:%s", p.index, p.name)
 }
 
 // Loglevel returns the loglevel of a player

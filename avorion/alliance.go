@@ -2,6 +2,7 @@ package avorion
 
 import (
 	"AvorionControl/ifaces"
+	"AvorionControl/logger"
 	"fmt"
 	"time"
 )
@@ -49,6 +50,8 @@ func (a *Alliance) AddJump(sc ifaces.ShipCoordData) {
 	if len(a.jumphistory) > 1000 {
 		a.jumphistory = a.jumphistory[1:]
 	}
+
+	logger.LogDebug(a, "Updated jumphistory")
 }
 
 /************************/
@@ -57,7 +60,7 @@ func (a *Alliance) AddJump(sc ifaces.ShipCoordData) {
 
 // UUID returns the UUID of an alliance
 func (a *Alliance) UUID() string {
-	return fmt.Sprintf("%s:%s", a.index, a.name)
+	return fmt.Sprintf("Alliance:%s:%s", a.index, a.name)
 }
 
 // Loglevel returns the loglevel of an alliance
