@@ -287,37 +287,52 @@ func (s *Server) UpdatePlayerDatabase(notify bool) error {
 		s.NotifyServer("Updating playerinfo DB. Possible lag incoming.")
 	}
 
-	out, err := s.RunCommand("playerinfo -o -i -s -t")
+	out, err := s.RunCommand("getplayerdata")
 	if err != nil {
 		return err
 	}
 
 	for _, info := range strings.Split(out, "\n") {
-		var (
-			m []string
-			o bool
-		)
+		var m []string
 
-		if m = rePlayerDataOfflineSteamIndex.FindStringSubmatch(info); m != nil {
-			o = false
-		} else if m = rePlayerDataOnlineSteamIndex.FindStringSubmatch(info); m != nil {
-			o = true
-		} else {
-			logger.LogError(s, fmt.Sprintf("Unable to parse line: (%s)", info))
-			continue
-		}
+		if strings.HasPrefix(info, "player:") {
+			if m = rePlayerData.FindStringSubmatch(info); m != nil {
+				if p := s.Player(m[1]); p != nil {
+					if err := p.UpdateFromData(m); err != nil {
+						logger.LogError(s, fmt.Sprintf(
+							"Failed to update player from data (%s)", err.Error()))
+					}
+				} else {
+					s.NewPlayer(m[1], m)
+				}
+			} else {
+				logger.LogError(s, fmt.Sprintf("Unable to parse player line: (%s)", info))
+				continue
+			}
 
-		if p := s.Player(m[2]); p != nil {
-			p.SetOnline(o)
-			p.Update()
-		} else {
-			p := s.NewPlayer(m[2], "")
-			p.SetOnline(o)
+		} else if strings.HasPrefix(info, "alliance:") {
+			if m = reAllianceData.FindStringSubmatch(info); m != nil {
+				if a := s.Alliance(m[1]); a != nil {
+					if err := a.UpdateFromData(m); err != nil {
+						logger.LogError(s, fmt.Sprintf(
+							"Failed to update player from data (%s)", err.Error()))
+					}
+				} else {
+					s.NewAlliance(m[1], m)
+				}
+			} else {
+				logger.LogError(s, fmt.Sprintf("Unable to parse player line: (%s)", info))
+				continue
+			}
 		}
 	}
 
-	for _, p := range s.Players() {
-		logger.LogDebug(s, fmt.Sprintf("Processed: %s", p.Name()))
+	for _, p := range s.players {
+		logger.LogDebug(s, fmt.Sprintf("Processed player: %s", p.Name()))
+	}
+
+	for _, a := range s.alliances {
+		logger.LogDebug(s, fmt.Sprintf("Processed alliance: %s", a.Name()))
 	}
 
 	return nil
@@ -457,48 +472,13 @@ func (s *Server) PlayerFromName(name string) ifaces.IPlayer {
 	return nil
 }
 
-// Players returns a slice of all of the  players that are currently in-game
+// Players returns a slice of all of the  players that are known
 func (s *Server) Players() []ifaces.IPlayer {
 	v := make([]ifaces.IPlayer, 0)
 	for _, t := range s.players {
 		v = append(v, t)
 	}
 	return v
-}
-
-// NewPlayer adds a new player to the list of players if it isn't already present
-func (s *Server) NewPlayer(index, in string) ifaces.IPlayer {
-	if _, err := strconv.Atoi(index); err != nil {
-		log.Fatal(errors.New("Invalid player index provided: " + index))
-	}
-
-	if p := s.Player(index); p != nil {
-		p.Update()
-		return p
-	}
-
-	p := &Player{
-		index:     index,
-		online:    true,
-		server:    s,
-		steam64:   0,
-		oldcoords: make([][2]int, 0),
-		loglevel:  s.Loglevel()}
-
-	if err := p.Update(); err != nil {
-		logger.LogError(s, err.Error())
-	}
-
-	s.players = append(s.players, p)
-	logger.LogDebug(s, "Registering player index "+index)
-	return p
-}
-
-// RemovePlayer removes a player from the list of online players
-// TODO: This function is currently a stub and needs to be made functional once
-// more.
-func (s *Server) RemovePlayer(n string) {
-	return
 }
 
 // Alliance returns a reference to the given alliance
@@ -511,11 +491,74 @@ func (s *Server) Alliance(index string) ifaces.IAlliance {
 	return nil
 }
 
+// Alliances returns a slice of all of the alliances that are currently known
+func (s *Server) Alliances() []ifaces.IAlliance {
+	v := make([]ifaces.IAlliance, 0)
+	for _, t := range s.alliances {
+		v = append(v, t)
+	}
+	return v
+}
+
+// NewPlayer adds a new player to the list of players if it isn't already present
+func (s *Server) NewPlayer(index string, d []string) ifaces.IPlayer {
+	if _, err := strconv.Atoi(index); err != nil {
+		log.Fatal(errors.New("Invalid player index provided: " + index))
+	}
+
+	if len(d) < 15 {
+		if data, err := s.RunCommand("getplayerdata -p " + index); err != nil {
+			logger.LogError(s, fmt.Sprintf("Failed to get player data: (%s)", err.Error()))
+		} else {
+			if d = rePlayerData.FindStringSubmatch(data); d != nil {
+				logger.LogError(s,
+					fmt.Sprintf("Failed to parse player string, gracefully stopping: (%s)", data))
+				s.Stop()
+				<-s.close
+				panic("Failed to parse data string")
+			}
+		}
+	}
+
+	p := &Player{
+		index:       index,
+		name:        d[14],
+		server:      s,
+		jumphistory: make([]ifaces.ShipCoordData, 0),
+		loglevel:    s.Loglevel()}
+
+	p.UpdateFromData(d)
+	s.players = append(s.players, p)
+	logger.LogInfo(p, "Registered player")
+	return p
+}
+
+// RemovePlayer removes a player from the list of online players
+// TODO: This function is currently a stub and needs to be made functional once
+// more.
+func (s *Server) RemovePlayer(n string) {
+	return
+}
+
 // NewAlliance adds a new alliance to the list of alliances if it isn't already
 //	present
-func (s *Server) NewAlliance(index, in string) ifaces.IAlliance {
+func (s *Server) NewAlliance(index string, d []string) ifaces.IAlliance {
 	if _, err := strconv.Atoi(index); err != nil {
 		log.Fatal(errors.New("Invalid alliance index provided: " + index))
+	}
+
+	if len(d) < 13 {
+		if data, err := s.RunCommand("getplayerdata -a " + index); err != nil {
+			logger.LogError(s, fmt.Sprintf("Failed to get alliance data: (%s)", err.Error()))
+		} else {
+			if d = rePlayerData.FindStringSubmatch(data); d != nil {
+				logger.LogError(s,
+					fmt.Sprintf("Failed to parse alliance string, gracefully stopping: (%s)", data))
+				s.Stop()
+				<-s.close
+				panic("Failed to parse alliance data string")
+			}
+		}
 	}
 
 	if p := s.Alliance(index); p != nil {
@@ -524,11 +567,14 @@ func (s *Server) NewAlliance(index, in string) ifaces.IAlliance {
 	}
 
 	a := &Alliance{
-		index:    index,
-		loglevel: s.Loglevel()}
+		index:       index,
+		name:        d[12],
+		server:      s,
+		jumphistory: make([]ifaces.ShipCoordData, 0),
+		loglevel:    s.Loglevel()}
 
 	s.alliances = append(s.alliances, a)
-	logger.LogDebug(s, "Registering alliance index "+index)
+	logger.LogInfo(a, "Registered alliance")
 	return a
 }
 

@@ -22,7 +22,7 @@ do
 
   local Command = {
     name        = "UnsetName",
-    arguments   = {},
+    flags       = {},
     description = "No description defined",
     execute     = function ()
       print(trace.." Attempted to run command without running SetExecute")
@@ -30,32 +30,49 @@ do
   
   Command.__index = Command
 
+  local function validFlag(self, arg)
+    if type(arg) ~= "string" then
+      return nil, nil
+    end
+
+    -- Check the argument against all assigned flags and if one fits, return the
+    --  flag index for referencing but not the argument
+    for index, flag in ipairs(self.flags) do
+      if "-"..flag.short == arg or "--"..flag.long == arg then
+        return index, nil
+      end
+    end
+
+    -- If no matches were found, return the argument but not the index
+    return nil, arg
+  end
+
   -- Command.AddFlag adds an argument definition to the argument definition
   --  list for later processing.
   --
   -- Returns:
   --  @1    Boolean
-  function Command.AddFlag(self, kind, short, long, usage, help, func)
-    for k, v in pairs({kind=kind, short=short, long=long, usage=usage, help=help}) do
+  function Command.AddFlag(self, d)
+    for k, v in pairs({short=d.short, long=d.long, usage=d.usage, help=d.help}) do
       if type(v) ~= "string" then
         print(self:Trace().."AddArgument: Invalid argument for "..k)
         return false, "Script error: Command argument definition is invalid"
       end
     end
 
-    if type(func) ~= "function" then
+    if type(d.func) ~= "function" then
       print(self:Trace().."AddArgument: Invalid function passed (not a function)")
         return false, "Script error: Command argument definition is invalid"
     end
 
-    table.insert(self.arguments, {
-      exec  = exec,
-      data  = {},
-      help  = help,
-      long  = long,
-      usage = usage,
-      short = short})
+    table.insert(self.flags, {
+      execute = d.func,
+      help    = d.help,
+      long    = d.long,
+      usage   = d.usage,
+      short   = d.short})
     
+    print("Added flag: "..d.long)
     return true
   end
 
@@ -69,45 +86,74 @@ do
   function Command.ParseFlags(self, ...)
     local input = {...}
 
-    if #self.arguments < 1 then
+    if #self.flags < 1 then
       return true
     end
    
-    local cur  = 0
-    local last = 0
+    local cur     = false
+    local extra   = {}
+    local handled = {}
 
-    repeat
-      local arg, data = __valid_arg(table.remove(input, 1))
+    for _, v in ipairs(input) do
+      local flag, arg = validFlag(self, v)
 
-      -- If arg is set, then update the last variable to hold the old argument
-      --  index and update cur to hold the new argument index
-      if arg then
-        last, cur = cur, arg
+      -- Debug output. TODO: Remove this when this is done
+      print((type(flag)~="nil" and flag or "nil") .. ":"
+        .. (type(arg) ~= "nil" and arg or "nil"))
+
+      -- If flag is set, and its data is present, then it's been handled before
+      --  and we should specify this.
+      if flag then
+        if type(self.flags[flag].data) == "table" then
+          handled[flag] = true
+        else
+          handled[flag] = false
+        end
+
+        cur = flag
         goto continue
       end
 
-      if not cur and not data then
+      -- Assign any arguments that do not have a given flag to the extra table.
+      --  These will be unpacked into the command.execute function
+      if not cur and arg then
+        print("Adding argument to extra: "..arg)
+        table.insert(extra, arg)
+        goto continue
+      end
+
+      -- Catch bad inputs. Execution ends here.
+      if not cur and not arg then
         return false, "Invalid argument supplied"
       end
 
-      -- If both the current argument and the previously processed argument
-      --  were the same, then we run that arguments execution function
-      --  and reset that table
-      if last == cur then
-        local err = self.arguments[cur].execute(unpack(self.arguments[cur].data))
-        self.arguments[cur].data = {}
-
+      -- If the current argument has already input, process its data and set its
+      --  handled value to false and reset the flag data table
+      if handled[cur] then
+        print("Running flag: "..self.flags[cur].long)
+        local err = self.flags[cur].execute(unpack(self.flags[cur].data))
+        self.flags[cur].data = nil
         if err then
           return false, err
         end
-
-        goto continue
       end
 
-      table.insert(self.arguments.data, data)
-      ::continue::
-    until GetTblLen(data) < 1
+      -- Add our argument data and set the to false to complete the input
+      print("Adding \""..arg.."\" to flag: "..self.flags[cur].long)
+      self.flags[cur].data = {}
+      table.insert(self.flags[cur].data, arg)
+      cur = false
 
+      ::continue::
+    end
+
+    for i, _ in ipairs(self.flags) do
+      if type(self.flags[i].data) == "table" then
+        self.flags[i].execute(unpack(self.flags[i].data))
+      end
+    end
+
+    self.data.extra = extra
     return true
   end
 
@@ -141,7 +187,7 @@ do
       return 1, err, ""
     end
     
-    return self.execute(user)
+    return self.execute(user, unpack(self.data.extra))
   end
 
 
@@ -160,8 +206,11 @@ do
   -- Return:
   --  @1    String
   function Command.GetHelp(self)
-    if #self.arguments > 0 then
-      -- Code to process argument help
+    if #self.flags > 0 then
+      -- local output = "Example: /"..self.name.." [--parameter|-p] argument\n"
+      -- for i, v in self.flags do
+      --   output = 
+      -- end
     else
       return "Example: /"..self.name
     end
@@ -176,7 +225,7 @@ do
     return "avocontrol: command: "..self.name..": "
   end
 
-  local command = setmetatable({}, Command)
+  local command = setmetatable({data = {}}, Command)
 
   -- Set the global functions that Avorion looks for. Doing this here means that
   --  simply sourcing our library creates a usable command.

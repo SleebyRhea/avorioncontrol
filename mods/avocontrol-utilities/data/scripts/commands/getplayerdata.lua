@@ -3,8 +3,19 @@
   AvorionControl - data/scripts/commands/getplayerdata.lua
   -----------------------------
 
-  Returns data on all players and player alliances. This command exists solely
-  for easy parsing by the bot, and to remove the need for playerinfo rcon loops
+  IMPORTANT: Bug reports with cases where this script was modified will be closed.
+
+  A reimplementation of the playerinfo command. While this does not provide data
+  on the players Steam64ID nor their IP address, this command does have the ability
+  to output data on every player and alliance that currently exists in the game.
+
+  More importantly than that though, this command exists primarily for use by the
+  manager object to have a command with a controllable regex for matching against.
+
+  For users of this bot, do NOT modify this command unless you are 100% sure that
+  the output will not differ. If you do so, and this either breaks or it's return
+  output differs from the bots regex definitions, player and alliance tracking
+  will no longer function and will likely break other functionality.
 
   License: WTFPL
   Info: https://en.wikipedia.org/wiki/WTFPL
@@ -18,7 +29,7 @@ local command       = include("avocontrol-command")
 command.name        = "getplayerdata"
 command.description = "Returns data on all players and player alliances"
 
-local restypes  = {}
+local restypes = {}
 table.insert(restypes, "iron")
 table.insert(restypes, "titanium")
 table.insert(restypes, "naonite")
@@ -27,15 +38,80 @@ table.insert(restypes, "xanian")
 table.insert(restypes, "ogonite")
 table.insert(restypes, "avorion")
 
-command:SetExecute(function ()
-  local alliances = {}
-  local output    = ""
-
-  for _, player in ipairs({Server():getPlayers()}) do
-    if player.alliance then
-      alliances[player.alliance] = player.alliance
+command:AddFlag({
+  short = "p",
+  long  = "player",
+  usage = "[-p|--player] index",
+  help  = "Return data on specified player index",
+  func  = function(arg)
+    if type(command.data.players) == "nil" then
+      command.data.players = {}
     end
+    table.insert(command.data.players, arg)
+  end})
 
+command:AddFlag({
+  short = "a",
+  long  = "alliance",
+  usage = "[-a|--alliance] index",
+  help  = "Return data on specified Alliance index",
+  func  = function(arg)
+    if type(command.data.alliances) == "nil" then
+      command.data.alliances = {}
+    end
+    table.insert(command.data.alliances, arg)
+  end})
+
+command:SetExecute(function ()
+  local doEveryPlayer   = true
+  local doEveryAlliance = true
+
+  local alliances  = {}
+  local playerlist = {}
+  local output     = ""
+
+  -- Process our provided players if they were given. We also disable the default
+  --  behaviour of processing all player data here if this is processed
+  if type(command.data.players) ~= "nil" and #command.data.players > 0 then
+    for _, index in ipairs(command.data.players) do
+      local p = Player(index)
+      if p == nil then
+        return 1, "Failed to acquire data for index: "..index, ""
+      end
+
+      table.insert(playerlist, p)
+    end
+    doEveryPlayer = false
+    doEveryAlliance = false
+  end
+
+  -- Process our provided alliances if they were given. We also disable the default
+  --  behaviour of processing all alliance data here if this is processed
+  if type(command.data.alliances) ~= "nil" and #command.data.alliances > 0 then
+    for _, index in ipairs(command.data.alliances) do
+      local a = Alliance(index)
+      if a == nil then
+        return 1, "Failed to acquire data for index: "..index, ""
+      end
+
+      alliances[index] = a
+    end
+    doEveryPlayer = false
+    doEveryAlliance = false
+  end
+
+  -- Default to processing every player
+  if doEveryPlayer then
+    playerlist = {Server():getPlayers()}
+  end
+
+  for _, player in ipairs(playerlist) do
+    if doEveryAlliance then
+      if player.alliance then
+        alliances[player.alliance] = player.alliance
+      end
+    end
+    
     local x, y = player:getSectorCoordinates()
 
     output = output .. "player: ${pi} ${x}:${y} ${ps} ${pS} credits:${m}"%_T % {
@@ -64,14 +140,14 @@ command:SetExecute(function ()
       pS = alliance.numStations,
       m  = alliance.money}
 
-      local i = 1
-      for _, v in ipairs({alliance:getResources()}) do
-        output = output .. " ${mn}:${ma}"%_T % {
-          mn = restypes[i],
-          ma = v}
-        i = i + 1
-      end
-      output = output .. " "..alliance.name .. "\n"
+    local i = 1
+    for _, v in ipairs({alliance:getResources()}) do
+      output = output .. " ${mn}:${ma}"%_T % {
+        mn = restypes[i],
+        ma = v}
+      i = i + 1
+    end
+    output = output .. " "..alliance.name .. "\n"
   end
 
   return 0, output, ""

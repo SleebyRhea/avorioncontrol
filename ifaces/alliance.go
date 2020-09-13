@@ -14,7 +14,9 @@ type ITrackedAlliance interface {
 	logger.ILogger
 	Name() string
 	Index() string
-	Update() error
 	Message(string)
 	AddJump(ShipCoordData)
+
+	Update() error
+	UpdateFromData([]string) error
 }

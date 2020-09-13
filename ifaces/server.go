@@ -32,14 +32,14 @@ type IServer interface {
 type IPlayableServer interface {
 	Players() []IPlayer
 	RemovePlayer(string)
-	NewPlayer(string, string) IPlayer
+	NewPlayer(string, []string) IPlayer
 
 	Player(string) IPlayer
 	PlayerFromName(string) IPlayer
 	PlayerFromIndex(string) IPlayer
 
 	Alliance(string) IAlliance
-	NewAlliance(string, string) IAlliance
+	NewAlliance(string, []string) IAlliance
 }
 
 // IVersionedServer describes an interface to an IGameserver's version information

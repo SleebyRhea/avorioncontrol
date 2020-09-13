@@ -52,7 +52,7 @@ func handleEventPlayerJoin(srv ifaces.IGameServer, e *Event, in string,
 	m := e.Capture.FindStringSubmatch(in)
 	logger.LogOutput(srv, in)
 	if p := srv.Player(m[2]); p == nil {
-		srv.NewPlayer(m[2], in)
+		srv.NewPlayer(m[2], m)
 	} else {
 		p.SetOnline(true)
 		p.Update()

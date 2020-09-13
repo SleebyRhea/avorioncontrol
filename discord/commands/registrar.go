@@ -184,7 +184,7 @@ func (reg *CommandRegistrar) UserAuthorized(cmd string, m *discordgo.Member) boo
 // and runs the correct command given its contents
 //  @s *discordgo.Session          Discordgo Session
 //  @m *discordgo.MessageCreate    Discordgo message event
-//  @c IConfigurator           Bot configuration pointer
+//  @c IConfigurator               Bot configuration pointer
 func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
 	m *discordgo.MessageCreate, c ifaces.IConfigurator) error {
 	var (

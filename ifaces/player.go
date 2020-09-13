@@ -18,9 +18,11 @@ type ITrackedPlayer interface {
 	logger.ILogger
 	Name() string
 	Index() string
-	Update() error
 	Message(string)
 	AddJump(ShipCoordData)
+
+	Update() error
+	UpdateFromData([]string) error
 }
 
 // INetPlayer describes a an interface to a player that can connect

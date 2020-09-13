@@ -5,7 +5,6 @@ import (
 	"AvorionControl/logger"
 	"fmt"
 	"net"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -20,8 +19,6 @@ type Player struct {
 	// avorion.Player
 	index     string
 	steam64   int64
-	coords    [2]int
-	oldcoords [][2]int
 	discordid string
 
 	// ifaces.Player
@@ -38,15 +35,9 @@ type Player struct {
 
 // Update updates our tracked data for the player
 func (p *Player) Update() error {
-	logger.LogDebug(p.server, "Attempting to update player: "+p.index)
-	cmd := "playerinfo -i -s -t -c -p " + fmt.Sprint(p.index)
-
-	if p.online {
-		cmd += " -a"
-	}
+	cmd := fmt.Sprintf("getplayerdata -p %s", p.index)
 
 	out, err := p.server.RunCommand(cmd)
-
 	if err != nil {
 		logger.LogError(p.server, fmt.Sprintf(
 			"Failed to acquire player data for: %s (%s)", p.index, p.name))
@@ -54,97 +45,17 @@ func (p *Player) Update() error {
 	}
 
 	out = strings.TrimSuffix(out, "\n")
-	logger.LogDebug(p.server, fmt.Sprintf("Processing: (%s)", out))
-	for _, o := range strings.Split(out, "\n") {
-		if m := rePlayerDataFull.FindStringSubmatch(o); m != nil {
-			logger.LogDebug(p.server, "Found online player string")
-			p.online = true
+	logger.LogDebug(p, fmt.Sprintf("Processing: (%s)", out))
 
-			var (
-				x   int
-				y   int
-				err error
-			)
+	//d := rePlayerData.FindStringSubmatch(out)
 
-			// Perform data sanity checks
-			id, _ := strconv.ParseInt(m[1], 10, 64)
+	return nil
+}
 
-			if p.steam64 == 0 {
-				p.steam64 = id
-			}
-
-			if id != p.steam64 {
-				return fmt.Errorf("Failed to update playerdata, Steam64 ID mismatch (%s != %d)",
-					m[1], p.steam64)
-			}
-
-			if m[2] != p.index {
-				return fmt.Errorf("Failed to update playerdata, index mismatch (%s != %s)",
-					m[2], p.index)
-			}
-
-			coords := strings.Split(m[3], ":")
-
-			if x, err = strconv.Atoi(coords[0]); err != nil {
-				return fmt.Errorf("Failed to update playerdata, x couldn't be converted: (%s)",
-					m[3])
-			}
-
-			if y, err = strconv.Atoi(coords[1]); err != nil {
-				return fmt.Errorf("Failed to update playerdata, y couldn't be converted: (%s)",
-					m[3])
-			}
-
-			p.UpdateCoords(ifaces.ShipCoordData{X: x, Y: y, Name: ""})
-			p.name = m[4]
-			if p.ip = net.ParseIP(m[6]); p.ip == nil {
-				return fmt.Errorf("Failed to parse player IP address: (%s)", m[4])
-			}
-
-			logger.LogInfo(p.server, fmt.Sprintf(
-				"Updated player information for %s (%s:%s)", p.index, p.name, p.ip.String()))
-
-			p.discordid, _ = p.server.RunCommand("getlinkeddiscord " + m[2])
-			continue
-		}
-
-		if m := rePlayerDataOffline.FindStringSubmatch(o); m != nil {
-			logger.LogDebug(p.server, "Found offline player string")
-			p.online = false
-
-			// Perform data sanity checks
-			id, _ := strconv.ParseInt(m[1], 10, 64)
-
-			if p.steam64 == 0 {
-				p.steam64 = id
-			}
-
-			if id != p.steam64 {
-				return fmt.Errorf("Failed to update playerdata, Steam64 ID mismatch (%s != %d)",
-					m[1], p.steam64)
-			}
-
-			if m[2] != p.index {
-				return fmt.Errorf("Failed to update playerdata, index mismatch (%s != %s)",
-					m[2], p.index)
-			}
-
-			p.name = m[3]
-			p.discordid, _ = p.server.RunCommand("getlinkeddiscord " + m[2])
-			logger.LogInfo(p.server, fmt.Sprintf(
-				"Updated player information for %s (%s)", p.index, p.name))
-			continue
-		}
-
-		if m := rePlayerAlliance.FindStringSubmatch(o); m != nil {
-			// TODO: Add alliance tracking. avorion.Allliance needs to be implented
-			logger.LogDebug(p.server, "Found alliance string (unimplemented)")
-			continue
-		}
-
-		return fmt.Errorf("Unable to parse the following line: (%s)", o)
-	}
-
+// UpdateFromData updates the players information using the data from
+//	a successful rePlayerData match
+func (p *Player) UpdateFromData(d []string) error {
+	logger.LogInfo(p, "Updated database")
 	return nil
 }
 
@@ -160,14 +71,6 @@ func (p *Player) Index() string {
 // Steam64 returns the players steam64 ID
 func (p *Player) Steam64() int64 {
 	return p.steam64
-}
-
-// UpdateCoords saves the previous coordinates that the player was in, and sets
-// their current position. Saves up to 100 previous coordinate locations
-func (p *Player) UpdateCoords(sc ifaces.ShipCoordData) {
-	p.oldcoords = append(p.oldcoords, p.coords)
-	p.oldcoords = p.oldcoords[1:]
-	p.coords = [2]int{sc.X, sc.Y}
 }
 
 // AddJump registers a jump that a player took into a system

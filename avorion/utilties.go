@@ -8,94 +8,43 @@ import "regexp"
 
 /**
  * Substring Match Indexes:
- * 1	Steam64 ID
- * 2  Player Index
- * 3 	Coordinates
- * 4 	Player name
- * 5 	Playtime
- * 6 	IP address
- * 7 	Credits
- * 8	Iron
- * 9	Titanium
- * 10	Naonite
- * 11 Trinium
- * 12	Xanium
- * 13	Ogonite
- * 14	Avorion
- * 15	Ships
- * 16 Stations
- **/
-var rePlayerDataFull = regexp.MustCompile(
-	"^\\s*([0-9]+) ([0-9]+) \\((-?[0-9]{1,3}:-?[0-9]{1,3})\\) (.+?) currently logged in, " +
-		"playtime: (.+?) (" + ipv4re + "):[0-9]+ ([0-9\\.]+) Credits, " +
-		"([0-9\\.]+) Iron, ([0-9\\.]+) Titanium, ([0-9\\.]+) Naonite, " +
-		"([0-9\\.]+) Trinium, ([0-9\\.]+) Xanion, ([0-9\\.]+) Ogonite, " +
-		"([0-9\\.]+) Avorion, ([0-9\\.]+) Ships, ([0-9\\.]+) Stations\\.?\\s*$")
+ * 0  Entire string
+ * 1  Player index
+ * 2  Current coordinates (X)
+ * 3  Current coordinates (Y)
+ * 4  Ship Count
+ * 5  Station Count
+ * 6  Money
+ * 7  Iron
+ * 8  Titanium
+ * 9  Naonite
+ * 10 Trinium
+ * 11 Xanian
+ * 12 Ogonite
+ * 13 Avorion
+ * 14 Player Name
+**/
+var rePlayerData = regexp.MustCompile(
+	`^\s*player: ([0-9]+) (-?[0-9]{1,3}):(-?[0-9]{1,3}) ([0-9]+) ([0-9]+) ` +
+		`credits:([0-9]+) iron:([0-9]+) titanium:([0-9]+) naonite:([0-9]+) ` +
+		`trinium:([0-9]+) xanian:([0-9]+) ogonite:([0-9]+) avorion:([0-9]+) (.*)$`)
 
 /**
  * Substring Match Indexes:
- * 1	Steam64 ID
- * 2  Player Index
- * 3 	Player name
- * 4 	Credits
- * 5	Iron
- * 6	Titanium
- * 7	Naonite
+ * 0  Entire string
+ * 1  Alliance index
+ * 2  Ship Count
+ * 3  Station Count
+ * 4  Money
+ * 5  Iron
+ * 6  Titanium
+ * 7  Naonite
  * 8  Trinium
- * 9	Xanium
- * 10	Ogonite
- * 11	Avorion
- * 12	Ships
- * 13 Stations
- **/
-var rePlayerDataOffline = regexp.MustCompile(
-	"^\\s*([0-9]+) ([0-9]+) (.+?) last online: (.+?), playtime: (.+?) " +
-		"([0-9\\.]+) Credits, ([0-9\\.]+) Iron, ([0-9\\.]+) Titanium, " +
-		"([0-9\\.]+) Naonite, ([0-9\\.]+) Trinium, ([0-9\\.]+) Xanion, " +
-		"([0-9\\.]+) Ogonite, ([0-9\\.]+) Avorion, " +
-		"([0-9\\.]+) Ships, ([0-9\\.]+) Stations\\.?\\s*$")
-
-/**
- * Substring Match Indexes:
- * 1 	Steam64 ID
- * 2 	Player Index
- * 3 	Player name
- * 4 	Last Online Time
- * 5 	Playtime
+ * 9  Xanian
+ * 10 Ogonite
+ * 11 Avorion
+ * 12 Alliance Name
 **/
-var rePlayerDataOfflineSteamIndex = regexp.MustCompile(
-	"^\\s*([0-9]+) ([0-9]+) (.+?) last online: (.+?), playtime: (.+?)\\s*$")
-
-/**
- * Substring Match Indexes:
- * 1 	Steam64 ID
- * 2 	Player Index
- * 3 	Player name
- * 4 	Playtime
-**/
-var rePlayerDataOnlineSteamIndex = regexp.MustCompile(
-	"^\\s*([0-9]+) ([0-9]+) (.+?) currently logged in, playtime: (.+?)\\s*$")
-
-/**
- * Substring Match Indexes:
- * 1 	Player Name
- * 2 	Alliance Index
- * 3 	Alliance Name
- * 4 	Credits
- * 5	Iron
- * 6	Titanium
- * 7	Naonite
- * 8  Trinium
- * 9	Xanium
- * 10	Ogonite
- * 11	Avorion
- * 12	Ships
- * 13 Stations
- * 14 Member Player Indexes
-**/
-var rePlayerAlliance = regexp.MustCompile(
-	"^\\s*(.+?)'s Alliance: ([0-9]+) (.+?) ([0-9\\.]+) Credits, ([0-9\\.]+) Iron, " +
-		"([0-9\\.]+) Titanium, ([0-9\\.]+) Naonite, ([0-9\\.]+) Trinium, " +
-		"([0-9\\.]+) Xanion, ([0-9\\.]+) Ogonite, ([0-9\\.]+) Avorion, " +
-		"([0-9\\.]+) Ships, ([0-9\\.]+) Stations\\.? *([0-9\\.]+) " +
-		"Members: \\(([0-9,]+)\\)\\s*$")
+var reAllianceData = regexp.MustCompile(`^\s*alliance: ([0-9]+) ([0-9]+) ([0-9]+) ` +
+	`credits:([0-9]+) iron:([0-9]+) titanium:([0-9]+) naonite:([0-9]+) ` +
+	`trinium:([0-9]+) xanian:([0-9]+) ogonite:([0-9]+) avorion:([0-9]+) (.*)$`)

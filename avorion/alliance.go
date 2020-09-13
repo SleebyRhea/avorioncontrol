@@ -14,6 +14,7 @@ type Alliance struct {
 	leader   *Player
 	members  []*Player
 	loglevel int
+	server   *Server
 
 	// alliance data
 	resources   map[string]int64
@@ -40,6 +41,13 @@ func (a *Alliance) UpdateCoords(ifaces.ShipCoordData) {
 
 // Update updates the Alliance internal data
 func (a *Alliance) Update() error {
+	return nil
+}
+
+// UpdateFromData updates the alliances information using the data from
+//	a successful reAllianceData match
+func (a *Alliance) UpdateFromData(d []string) error {
+	logger.LogInfo(a, "Updated database")
 	return nil
 }
 
