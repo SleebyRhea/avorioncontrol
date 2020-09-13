@@ -16,6 +16,5 @@ type ITrackedAlliance interface {
 	Index() string
 	Update() error
 	Message(string)
-	UpdateCoords(ShipCoordData)
 	AddJump(ShipCoordData)
 }

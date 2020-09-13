@@ -79,9 +79,9 @@ func handleEventShipJump(srv ifaces.IGameServer, e *Event, in string,
 	data := ifaces.ShipCoordData{X: x, Y: y, Name: n}
 
 	if p := srv.Player(m[1]); p != nil {
-		p.UpdateCoords(data)
+		p.AddJump(data)
 	} else if a := srv.Alliance(m[1]); a != nil {
-		a.UpdateCoords(data)
+		a.AddJump(data)
 	}
 }
 
