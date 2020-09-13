@@ -140,8 +140,8 @@ do
     if not ok then
       return 1, err, ""
     end
-
-    return self.execute(user, cmnd)
+    
+    return self.execute(user)
   end
 
 

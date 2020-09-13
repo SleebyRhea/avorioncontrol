@@ -18,11 +18,14 @@ local command       = include("avocontrol-command")
 command.name        = "getplayerdata"
 command.description = "Returns data on all players and player alliances"
 
-local restypes  = {
-  [1] = "iron",    [2] = "titanium", 
-  [3] = "naonite", [4] = "trinium",
-  [5] = "xanian",  [6] = "ogonite", 
-  [7] = "avorion"}
+local restypes  = {}
+table.insert(restypes, "iron")
+table.insert(restypes, "titanium")
+table.insert(restypes, "naonite")
+table.insert(restypes, "trinium")
+table.insert(restypes, "xanian")
+table.insert(restypes, "ogonite")
+table.insert(restypes, "avorion")
 
 command:SetExecute(function ()
   local alliances = {}
