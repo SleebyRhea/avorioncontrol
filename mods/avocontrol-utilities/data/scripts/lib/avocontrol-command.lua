@@ -178,6 +178,8 @@ do
 
   local command = setmetatable({}, Command)
 
+  -- Set the global functions that Avorion looks for. Doing this here means that
+  --  simply sourcing our library creates a usable command.
   function _G.getHelp()
     return command:GetHelp()
   end
