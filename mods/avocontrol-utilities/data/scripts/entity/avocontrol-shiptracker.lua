@@ -32,12 +32,3 @@ function AvorionControlShipTracker.onSectorChanged()
   print("shipJumpEvent: ${oi} ${x}:${y} ${sn}"%_T % {
     oi=ship.factionIndex, x=x, y=y, sn=ship.name})
 end
-
-function AvorionControlShipTracker.onDestroyed(destroyedId, destroyerId)
-  entity = Entity()
-  print("shipDestroyedEvent: "..index)
-end
-
-function AvorionControlShipTracker.onDelete()
-  print("shipDeletedEvent: "..index)
-end
