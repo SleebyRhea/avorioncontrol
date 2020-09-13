@@ -20,6 +20,7 @@ type ITrackedPlayer interface {
 	Index() string
 	Update() error
 	Message(string)
+	UpdateCoords(int, int, string)
 }
 
 // INetPlayer describes a an interface to a player that can connect
