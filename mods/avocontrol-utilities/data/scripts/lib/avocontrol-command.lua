@@ -72,7 +72,7 @@ do
       usage   = d.usage,
       short   = d.short})
     
-    print("Added flag: "..d.long)
+    -- print("Added flag: "..d.long)
     return true
   end
 
@@ -97,9 +97,8 @@ do
     for _, v in ipairs(input) do
       local flag, arg = validFlag(self, v)
 
-      -- Debug output. TODO: Remove this when this is done
-      print((type(flag)~="nil" and flag or "nil") .. ":"
-        .. (type(arg) ~= "nil" and arg or "nil"))
+      -- print((type(flag)~="nil" and flag or "nil") .. ":"
+      --   .. (type(arg) ~= "nil" and arg or "nil"))
 
       -- If flag is set, and its data is present, then it's been handled before
       --  and we should specify this.
@@ -117,7 +116,7 @@ do
       -- Assign any arguments that do not have a given flag to the extra table.
       --  These will be unpacked into the command.execute function
       if not cur and arg then
-        print("Adding argument to extra: "..arg)
+        -- print("Adding argument to extra: "..arg)
         table.insert(extra, arg)
         goto continue
       end
@@ -130,7 +129,7 @@ do
       -- If the current argument has already input, process its data and set its
       --  handled value to false and reset the flag data table
       if handled[cur] then
-        print("Running flag: "..self.flags[cur].long)
+        -- print("Running flag: "..self.flags[cur].long)
         local err = self.flags[cur].execute(unpack(self.flags[cur].data))
         self.flags[cur].data = nil
         if err then
@@ -139,7 +138,7 @@ do
       end
 
       -- Add our argument data and set the to false to complete the input
-      print("Adding \""..arg.."\" to flag: "..self.flags[cur].long)
+      -- print("Adding \""..arg.."\" to flag: "..self.flags[cur].long)
       self.flags[cur].data = {}
       table.insert(self.flags[cur].data, arg)
       cur = false
