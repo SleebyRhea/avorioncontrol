@@ -25,7 +25,7 @@ do
     flags       = {},
     description = "No description defined",
     execute     = function ()
-      print(trace.." Attempted to run command without running SetExecute")
+      return 1, "Command does not have execute set", ""
     end}
   
   Command.__index = Command
@@ -87,6 +87,7 @@ do
     local input = {...}
 
     if #self.flags < 1 then
+      self.data.extra = input
       return true
     end
    
@@ -186,6 +187,8 @@ do
       return 1, err, ""
     end
     
+    self.data.extra = (type(self.data.extra) == "table" and self.data.extra or {})
+
     return self.execute(user, unpack(self.data.extra))
   end
 
