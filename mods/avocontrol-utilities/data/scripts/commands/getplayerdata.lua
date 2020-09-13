@@ -74,7 +74,12 @@ command:SetExecute(function ()
   --  behaviour of processing all player data here if this is processed
   if type(command.data.players) ~= "nil" and #command.data.players > 0 then
     for _, index in ipairs(command.data.players) do
+      if type(tonumber(index)) ~= "number" then
+        return 1, "Index must be a number", ""
+      end
+
       local p = Player(index)
+      
       if p == nil then
         return 1, "Failed to acquire data for index: "..index, ""
       end
@@ -89,7 +94,12 @@ command:SetExecute(function ()
   --  behaviour of processing all alliance data here if this is processed
   if type(command.data.alliances) ~= "nil" and #command.data.alliances > 0 then
     for _, index in ipairs(command.data.alliances) do
+      if type(tonumber(index)) ~= "number" then
+        return 1, "Index must be a number", ""
+      end
+
       local a = Alliance(index)
+
       if a == nil then
         return 1, "Failed to acquire data for index: "..index, ""
       end
