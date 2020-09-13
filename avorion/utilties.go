@@ -26,11 +26,11 @@ import "regexp"
  * 16 Stations
  **/
 var rePlayerDataFull = regexp.MustCompile(
-	"^([0-9]+) ([0-9]+) \\((-?[0-9]{1,3}:-?[0-9]{1,3})\\) (.+?) currently logged in, " +
+	"^\\s*([0-9]+) ([0-9]+) \\((-?[0-9]{1,3}:-?[0-9]{1,3})\\) (.+?) currently logged in, " +
 		"playtime: (.+?) (" + ipv4re + "):[0-9]+ ([0-9\\.]+) Credits, " +
 		"([0-9\\.]+) Iron, ([0-9\\.]+) Titanium, ([0-9\\.]+) Naonite, " +
 		"([0-9\\.]+) Trinium, ([0-9\\.]+) Xanion, ([0-9\\.]+) Ogonite, " +
-		"([0-9\\.]+) Avorion, ([0-9\\.]+) Ships, ([0-9\\.]+) Stations\\.?$")
+		"([0-9\\.]+) Avorion, ([0-9\\.]+) Ships, ([0-9\\.]+) Stations\\.?\\s*$")
 
 /**
  * Substring Match Indexes:
@@ -49,11 +49,11 @@ var rePlayerDataFull = regexp.MustCompile(
  * 13 Stations
  **/
 var rePlayerDataOffline = regexp.MustCompile(
-	"^([0-9]+) ([0-9]+) (.+?) last online: (.+?), playtime: (.+?) " +
+	"^\\s*([0-9]+) ([0-9]+) (.+?) last online: (.+?), playtime: (.+?) " +
 		"([0-9\\.]+) Credits, ([0-9\\.]+) Iron, ([0-9\\.]+) Titanium, " +
 		"([0-9\\.]+) Naonite, ([0-9\\.]+) Trinium, ([0-9\\.]+) Xanion, " +
 		"([0-9\\.]+) Ogonite, ([0-9\\.]+) Avorion, " +
-		"([0-9\\.]+) Ships, ([0-9\\.]+) Stations\\.?$")
+		"([0-9\\.]+) Ships, ([0-9\\.]+) Stations\\.?\\s*$")
 
 /**
  * Substring Match Indexes:
@@ -64,7 +64,7 @@ var rePlayerDataOffline = regexp.MustCompile(
  * 5 	Playtime
 **/
 var rePlayerDataOfflineSteamIndex = regexp.MustCompile(
-	"^([0-9]+) ([0-9]+) (.+?) last online: (.+?), playtime: (.+?)$")
+	"^\\s*([0-9]+) ([0-9]+) (.+?) last online: (.+?), playtime: (.+?)\\s*$")
 
 /**
  * Substring Match Indexes:
@@ -74,7 +74,7 @@ var rePlayerDataOfflineSteamIndex = regexp.MustCompile(
  * 4 	Playtime
 **/
 var rePlayerDataOnlineSteamIndex = regexp.MustCompile(
-	"^([0-9]+) ([0-9]+) (.+?) currently logged in, playtime: (.+?)$")
+	"^\\s*([0-9]+) ([0-9]+) (.+?) currently logged in, playtime: (.+?)\\s*$")
 
 /**
  * Substring Match Indexes:
@@ -94,8 +94,8 @@ var rePlayerDataOnlineSteamIndex = regexp.MustCompile(
  * 14 Member Player Indexes
 **/
 var rePlayerAlliance = regexp.MustCompile(
-	"^(.+?) Alliance: ([0-9]+) (.+?) ([0-9\\.]+) Credits, ([0-9\\.]+) Iron, " +
+	"^\\s*(.+?)'s Alliance: ([0-9]+) (.+?) ([0-9\\.]+) Credits, ([0-9\\.]+) Iron, " +
 		"([0-9\\.]+) Titanium, ([0-9\\.]+) Naonite, ([0-9\\.]+) Trinium, " +
 		"([0-9\\.]+) Xanion, ([0-9\\.]+) Ogonite, ([0-9\\.]+) Avorion, " +
-		"([0-9\\.]+) Ships, ([0-9\\.]+) Stations\\.? ([0-9\\.]+) " +
-		"Members: \\(([0-9,]+)\\)$")
+		"([0-9\\.]+) Ships, ([0-9\\.]+) Stations\\.? *([0-9\\.]+) " +
+		"Members: \\(([0-9,]+)\\)\\s*$")
