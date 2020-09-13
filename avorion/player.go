@@ -7,6 +7,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var resourceMap map[string]int
@@ -31,7 +32,8 @@ type Player struct {
 	loglevel int
 
 	// playerdata
-	resources map[string]int64
+	resources   map[string]int64
+	jumphistory []ifaces.ShipCoordData
 }
 
 // Update updates our tracked data for the player
@@ -168,9 +170,18 @@ func (p *Player) UpdateCoords(sc ifaces.ShipCoordData) {
 	p.coords = [2]int{sc.X, sc.Y}
 }
 
-/*********************/
+// AddJump registers a jump that a player took into a system
+func (p *Player) AddJump(sc ifaces.ShipCoordData) {
+	sc.Time = time.Now()
+	p.jumphistory = append(p.jumphistory, sc)
+	if len(p.jumphistory) > 1000 {
+		p.jumphistory = p.jumphistory[1:]
+	}
+}
+
+/*****************/
 /* ifaces.Player */
-/*********************/
+/*****************/
 
 // IP returns the IP address that the player used to connect this session
 func (p *Player) IP() net.IP {

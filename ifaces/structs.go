@@ -1,5 +1,7 @@
 package ifaces
 
+import "time"
+
 // ChatData describes datapassed between Discord and the Server
 type ChatData struct {
 	Name string
@@ -12,4 +14,5 @@ type ShipCoordData struct {
 	X    int
 	Y    int
 	Name string
+	Time time.Time
 }

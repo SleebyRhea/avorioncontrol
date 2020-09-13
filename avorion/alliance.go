@@ -3,6 +3,7 @@ package avorion
 import (
 	"AvorionControl/ifaces"
 	"fmt"
+	"time"
 )
 
 // Alliance defines a player alliance in Avorion
@@ -14,7 +15,8 @@ type Alliance struct {
 	loglevel int
 
 	// alliance data
-	resources map[string]int64
+	resources   map[string]int64
+	jumphistory []ifaces.ShipCoordData
 }
 
 // Message sends an in-game message to all members of an alliance
@@ -38,6 +40,15 @@ func (a *Alliance) UpdateCoords(ifaces.ShipCoordData) {
 // Update updates the Alliance internal data
 func (a *Alliance) Update() error {
 	return nil
+}
+
+// AddJump registers a jump that a player took into a system
+func (a *Alliance) AddJump(sc ifaces.ShipCoordData) {
+	sc.Time = time.Now()
+	a.jumphistory = append(a.jumphistory, sc)
+	if len(a.jumphistory) > 1000 {
+		a.jumphistory = a.jumphistory[1:]
+	}
 }
 
 /************************/
