@@ -21,7 +21,6 @@ type Player struct {
 	steam64   int64
 	coords    [2]int
 	oldcoords [][2]int
-	resources map[string]int64
 	discordid string
 
 	// ifaces.Player
@@ -30,6 +29,9 @@ type Player struct {
 	online   bool
 	server   *Server
 	loglevel int
+
+	// playerdata
+	resources map[string]int64
 }
 
 // Update updates our tracked data for the player
@@ -91,7 +93,7 @@ func (p *Player) Update() error {
 					m[3])
 			}
 
-			p.UpdateCoords(x, y)
+			p.UpdateCoords(x, y, "")
 			p.name = m[4]
 			if p.ip = net.ParseIP(m[6]); p.ip == nil {
 				return fmt.Errorf("Failed to parse player IP address: (%s)", m[4])
@@ -160,7 +162,7 @@ func (p *Player) Steam64() int64 {
 
 // UpdateCoords saves the previous coordinates that the player was in, and sets
 // their current position. Saves up to 100 previous coordinate locations
-func (p *Player) UpdateCoords(x, y int) {
+func (p *Player) UpdateCoords(x, y int, s string) {
 	p.oldcoords = append(p.oldcoords, p.coords)
 	p.oldcoords = p.oldcoords[1:]
 	p.coords = [2]int{x, y}
