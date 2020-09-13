@@ -176,5 +176,19 @@ do
     return "avocontrol: command: "..self.name..": "
   end
 
-  return setmetatable({}, Command)
+  local command = setmetatable({}, Command)
+
+  function _G.getHelp()
+    return command:GetHelp()
+  end
+  
+  function _G.getDescription()
+    return command:GetDescription()
+  end
+  
+  function _G.execute(...)
+    return command:Execute(...)
+  end
+
+  return command
 end

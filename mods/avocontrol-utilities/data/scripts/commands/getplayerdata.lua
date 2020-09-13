@@ -73,16 +73,3 @@ command:SetExecute(function ()
 
   return 0, output, ""
 end)
-
-
-function getHelp()
-  return command:GetHelp()
-end
-
-function getDescription()
-  return command:GetDescription()
-end
-
-function execute(...)
-  return command:Execute(...)
-end
