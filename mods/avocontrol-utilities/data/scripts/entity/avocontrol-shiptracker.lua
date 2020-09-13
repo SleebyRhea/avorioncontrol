@@ -22,15 +22,15 @@ function AvorionControlShipTracker.initialize()
   local x, y = Sector():getCoordinates()
   index = Uuid(ship.index).number
   ship:registerCallback("onDestroyed", "onDestroyed")
-  print("shipTrackInitEvent: ${oi} ${si} ${x}:${y} ${sn}"%_T % {
-    oi=ship.factionIndex, si=index, x=x, y=y, sn=ship.name})
+  print("shipTrackInitEvent: ${oi} ${x}:${y} ${sn}"%_T % {
+    oi=ship.factionIndex, x=x, y=y, sn=ship.name})
 end
 
 function AvorionControlShipTracker.onSectorChanged()
   local ship  = Entity()
   local x, y  = Sector():getCoordinates()
-  print("shipJumpEvent: ${oi} ${si} ${x}:${y} ${sn}"%_T % {
-    oi=ship.factionIndex, si=index, x=x, y=y, sn=ship.name})
+  print("shipJumpEvent: ${oi} ${x}:${y} ${sn}"%_T % {
+    oi=ship.factionIndex, x=x, y=y, sn=ship.name})
 end
 
 function AvorionControlShipTracker.onDestroyed(destroyedId, destroyerId)
