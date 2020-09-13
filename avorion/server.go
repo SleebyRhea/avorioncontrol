@@ -65,8 +65,8 @@ type Server struct {
 	rconport int
 
 	// PlayerInfo
-	players  []*Player
-	messages [][2]string
+	players   []*Player
+	alliances []*Alliance
 
 	// Config
 	configfile string
@@ -505,9 +505,40 @@ func (s *Server) ChatMessages() [][2]string {
 	return s.messages
 }
 
-// NewChatMessage logs the existence of a new message
-func (s *Server) NewChatMessage(msg, name string) {
-	s.messages = append(s.messages, [2]string{name, msg})
+// Alliance returns a reference to the given alliance
+func (s *Server) Alliance(index string) ifaces.IAlliance {
+	for _, a := range s.alliances {
+		if a.Index() == index {
+			return a
+		}
+	}
+	return nil
+}
+
+// NewAlliance adds a new alliance to the list of alliances if it isn't already
+//	present
+func (s *Server) NewAlliance(index, in string) ifaces.IAlliance {
+	if _, err := strconv.Atoi(index); err != nil {
+		log.Fatal(errors.New("Invalid alliance index provided: " + index))
+	}
+
+	if p := s.Alliance(index); p != nil {
+		p.Update()
+		return p
+	}
+
+	a := &Alliance{
+		index:     index,
+		server:    s,
+		oldcoords: make([][2]int, 0)}
+
+	if err := a.Update(); err != nil {
+		logger.LogError(s, err.Error())
+	}
+
+	a.alliances = append(s.alliances, a)
+	logger.LogDebug(s, "Registering alliance index "+index)
+	return p
 }
 
 /*********************************************/

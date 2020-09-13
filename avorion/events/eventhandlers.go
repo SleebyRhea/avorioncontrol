@@ -4,11 +4,12 @@ import (
 	"AvorionControl/ifaces"
 	"AvorionControl/logger"
 	"fmt"
+	"strconv"
 )
 
 func initB() {
 	New("EventShipTrackInit",
-		"^\\s*shipTrackInitEvent: (-?[0-9]+) (-?[0-9]+) (-?[0-9]+):(-?[0-9]+) (.*)$",
+		"^\\s*shipTrackInitEvent: (-?[0-9]+) (-?[0-9]+):(-?[0-9]+) (.*)$",
 		handleEventShipTrackInit)
 
 	New("EventPlayerChat",
@@ -16,16 +17,8 @@ func initB() {
 		handlePlayerChat)
 
 	New("EventShipJump",
-		"^\\s*shipJumpEvent: (-?[0-9]+) (-?[0-9]+) (-?[0-9]+):(-?[0-9]+) (.*)$",
+		"^\\s*shipJumpEvent: (-?[0-9]+) (-?[0-9]+):(-?[0-9]+) (.*)$",
 		handleEventShipJump)
-
-	New("EventShipDestroyed",
-		"^\\s*shipDestroyedEvent: (-?[0-9]+)$",
-		handleEventShipDestroyed)
-
-	New("EventShipDeleted",
-		"^\\s*shipDeletedEvent: (-?[0-9]+)$",
-		handleEventShipDeleted)
 
 	New("EventPlayerJoin",
 		"^\\s*Player logged in: (.+?), index: ([0-9]+)\\s*$",
@@ -70,20 +63,26 @@ func handleEventPlayerJoin(srv ifaces.IGameServer, e *Event, in string,
 		Name: "Server"})
 }
 
-func handleEventShipJump(srv ifaces.IGameServer, e *Event, in string,
-	oc chan string) {
-}
-
 func handleEventShipTrackInit(srv ifaces.IGameServer, e *Event, in string,
 	oc chan string) {
 }
 
-func handleEventShipDestroyed(srv ifaces.IGameServer, e *Event, in string,
+func handleEventShipJump(srv ifaces.IGameServer, e *Event, in string,
 	oc chan string) {
-}
+	m := e.Capture.FindStringSubmatch(in)
 
-func handleEventShipDeleted(srv ifaces.IGameServer, e *Event, in string,
-	oc chan string) {
+	// We already use a regex to make sure we capture the correct values
+	x, _ := strconv.Atoi(m[2])
+	y, _ := strconv.Atoi(m[3])
+	n := m[4]
+
+	data := ifaces.ShipCoordData{X: x, Y: y, Name: n}
+
+	if p := srv.Player(m[1]); p != nil {
+		p.UpdateCoords(data)
+	} else if a := srv.Alliance(m[1]); a != nil {
+		a.UpdateCoords(data)
+	}
 }
 
 func handleEventPlayerLeft(srv ifaces.IGameServer, e *Event, in string,

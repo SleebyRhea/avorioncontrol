@@ -37,6 +37,9 @@ type IPlayableServer interface {
 	Player(string) IPlayer
 	PlayerFromName(string) IPlayer
 	PlayerFromIndex(string) IPlayer
+
+	Alliance(string) IAlliance
+	NewAlliance(string, string) IAlliance
 }
 
 // IVersionedServer describes an interface to an IGameserver's version information

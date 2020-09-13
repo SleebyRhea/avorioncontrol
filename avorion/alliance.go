@@ -14,6 +14,11 @@ type Alliance struct {
 	resources map[string]int64
 }
 
+// Index returns the faction index of an alliance
+func (a *Alliance) Index() string {
+	return a.index
+}
+
 /************************/
 /* IFace logger.ILogger */
 /************************/
