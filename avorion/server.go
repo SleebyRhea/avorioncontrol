@@ -500,11 +500,6 @@ func (s *Server) RemovePlayer(n string) {
 	return
 }
 
-// ChatMessages returns the total number of messages that are logged
-func (s *Server) ChatMessages() [][2]string {
-	return s.messages
-}
-
 // Alliance returns a reference to the given alliance
 func (s *Server) Alliance(index string) ifaces.IAlliance {
 	for _, a := range s.alliances {
@@ -528,17 +523,11 @@ func (s *Server) NewAlliance(index, in string) ifaces.IAlliance {
 	}
 
 	a := &Alliance{
-		index:     index,
-		server:    s,
-		oldcoords: make([][2]int, 0)}
+		index: index}
 
-	if err := a.Update(); err != nil {
-		logger.LogError(s, err.Error())
-	}
-
-	a.alliances = append(s.alliances, a)
+	s.alliances = append(s.alliances, a)
 	logger.LogDebug(s, "Registering alliance index "+index)
-	return p
+	return a
 }
 
 /*********************************************/

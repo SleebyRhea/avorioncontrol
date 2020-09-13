@@ -1,6 +1,9 @@
 package avorion
 
-import "fmt"
+import (
+	"AvorionControl/ifaces"
+	"fmt"
+)
 
 // Alliance defines a player alliance in Avorion
 type Alliance struct {
@@ -14,9 +17,27 @@ type Alliance struct {
 	resources map[string]int64
 }
 
+// Message sends an in-game message to all members of an alliance
+func (a *Alliance) Message(string) {
+}
+
 // Index returns the faction index of an alliance
 func (a *Alliance) Index() string {
 	return a.index
+}
+
+// Name returns the name of the Alliance
+func (a *Alliance) Name() string {
+	return a.name
+}
+
+// UpdateCoords updates the coordinate DB of the Alliance
+func (a *Alliance) UpdateCoords(ifaces.ShipCoordData) {
+}
+
+// Update updates the Alliance internal data
+func (a *Alliance) Update() error {
+	return nil
 }
 
 /************************/

@@ -93,7 +93,7 @@ func (p *Player) Update() error {
 					m[3])
 			}
 
-			p.UpdateCoords(x, y, "")
+			p.UpdateCoords(ifaces.ShipCoordData{X: x, Y: y, Name: ""})
 			p.name = m[4]
 			if p.ip = net.ParseIP(m[6]); p.ip == nil {
 				return fmt.Errorf("Failed to parse player IP address: (%s)", m[4])
@@ -162,10 +162,10 @@ func (p *Player) Steam64() int64 {
 
 // UpdateCoords saves the previous coordinates that the player was in, and sets
 // their current position. Saves up to 100 previous coordinate locations
-func (p *Player) UpdateCoords(x, y int, s string) {
+func (p *Player) UpdateCoords(sc ifaces.ShipCoordData) {
 	p.oldcoords = append(p.oldcoords, p.coords)
 	p.oldcoords = p.oldcoords[1:]
-	p.coords = [2]int{x, y}
+	p.coords = [2]int{sc.X, sc.Y}
 }
 
 /*********************/
