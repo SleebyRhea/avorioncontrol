@@ -20,7 +20,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/otiai10/copy"
+	cp "github.com/otiai10/copy"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -140,7 +140,7 @@ func (s *Server) NotifyServer(in string) error {
 func (s *Server) Start() error {
 	var err error
 	logger.LogInfo(s, "Syncing mods to data directory")
-	copy.Copy("./mods", s.config.DataPath()+"/mods")
+	cp.Copy("./mods", s.config.DataPath()+"/mods")
 
 	s.Cmd = exec.Command(
 		s.serverpath+"/bin/"+s.executable,
@@ -298,7 +298,9 @@ func (s *Server) UpdatePlayerDatabase(notify bool) error {
 		if strings.HasPrefix(info, "player:") {
 			if m = rePlayerData.FindStringSubmatch(info); m != nil {
 				if p := s.Player(m[1]); p != nil {
-					if err := p.UpdateFromData(m); err != nil {
+					var arr [15]string
+					copy(arr[:], m)
+					if err := p.UpdateFromData(arr); err != nil {
 						logger.LogError(s, fmt.Sprintf(
 							"Failed to update player from data (%s)", err.Error()))
 					}
@@ -313,7 +315,9 @@ func (s *Server) UpdatePlayerDatabase(notify bool) error {
 		} else if strings.HasPrefix(info, "alliance:") {
 			if m = reAllianceData.FindStringSubmatch(info); m != nil {
 				if a := s.Alliance(m[1]); a != nil {
-					if err := a.UpdateFromData(m); err != nil {
+					var arr [13]string
+					copy(arr[:], m)
+					if err := a.UpdateFromData(arr); err != nil {
 						logger.LogError(s, fmt.Sprintf(
 							"Failed to update player from data (%s)", err.Error()))
 					}
@@ -527,7 +531,10 @@ func (s *Server) NewPlayer(index string, d []string) ifaces.IPlayer {
 		jumphistory: make([]ifaces.ShipCoordData, 0),
 		loglevel:    s.Loglevel()}
 
-	p.UpdateFromData(d)
+	// Convert our string into an array for safety
+	var darr [15]string
+	copy(darr[:], d)
+	p.UpdateFromData(darr)
 	s.players = append(s.players, p)
 	logger.LogInfo(p, "Registered player")
 	return p

@@ -22,7 +22,7 @@ type ITrackedPlayer interface {
 	AddJump(ShipCoordData)
 
 	Update() error
-	UpdateFromData([]string) error
+	UpdateFromData([15]string) error
 }
 
 // INetPlayer describes a an interface to a player that can connect

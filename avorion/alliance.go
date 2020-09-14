@@ -35,10 +35,6 @@ func (a *Alliance) Name() string {
 	return a.name
 }
 
-// UpdateCoords updates the coordinate DB of the Alliance
-func (a *Alliance) UpdateCoords(ifaces.ShipCoordData) {
-}
-
 // Update updates the Alliance internal data
 func (a *Alliance) Update() error {
 	return nil
@@ -46,8 +42,7 @@ func (a *Alliance) Update() error {
 
 // UpdateFromData updates the alliances information using the data from
 //	a successful reAllianceData match
-func (a *Alliance) UpdateFromData(d []string) error {
-	logger.LogInfo(a, "Updated database")
+func (a *Alliance) UpdateFromData(d [13]string) error {
 	return nil
 }
 

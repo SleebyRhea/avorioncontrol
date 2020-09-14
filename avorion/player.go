@@ -54,7 +54,7 @@ func (p *Player) Update() error {
 
 // UpdateFromData updates the players information using the data from
 //	a successful rePlayerData match
-func (p *Player) UpdateFromData(d []string) error {
+func (p *Player) UpdateFromData(d [15]string) error {
 	logger.LogInfo(p, "Updated database")
 	return nil
 }
