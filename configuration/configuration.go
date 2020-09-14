@@ -5,6 +5,7 @@ import (
 	"AvorionControl/logger"
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"time"
 )
@@ -31,6 +32,10 @@ const (
 )
 
 var sprintf = fmt.Sprintf
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 // Conf is a struct representing a server configuration
 type Conf struct {
