@@ -29,6 +29,10 @@ type Bot struct {
 	session  *discordgo.Session
 	chatpipe chan ifaces.ChatData
 	loglevel int
+
+	// Close goroutines
+	close chan struct{}
+	stop  chan struct{}
 }
 
 /************************/
