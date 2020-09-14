@@ -13,9 +13,6 @@
 
 ]]
 
-if not onServer() then
-end
-
 mod = {
   name        = "linkdiscordacct",
   description = "Generate a PIN to link your discord account with Avorion"
