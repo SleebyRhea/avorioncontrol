@@ -21,7 +21,6 @@ const (
 	defaultRconPort           = 27015
 	defaultRconBin            = "/usr/local/bin/rcon"
 	defaultRconAddress        = "127.0.0.1"
-	defaultRconPassword       = "123123"
 	defaultGalaxyName         = "Galaxy"
 	defaultDataDirectory      = "/srv/avorion/"
 	defaultServerLogDirectory = "/srv/avorion/logs"
@@ -77,7 +76,7 @@ func New() *Conf {
 		logdir:     defaultServerLogDirectory,
 
 		rconbin:     defaultRconBin,
-		rconpass:    defaultRconPassword,
+		rconpass:    makePass(),
 		rconaddr:    defaultRconAddress,
 		discordLink: defaultDiscordLink,
 
