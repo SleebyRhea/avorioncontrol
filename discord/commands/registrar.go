@@ -15,6 +15,10 @@ import (
 
 var registrars map[string]*CommandRegistrar
 
+func init() {
+	registrars = make(map[string]*CommandRegistrar)
+}
+
 // CommandRegistrar - Guild specific container for commands and authorization
 // level settings
 //  TODO: Move away from separate structs for role authorization. Consider moving
@@ -48,6 +52,30 @@ func (reg *CommandRegistrar) SetLoglevel(l int) {
 // UUID - Return a commands name.
 func (reg *CommandRegistrar) UUID() string {
 	return "CommandRegistrar:" + reg.GuildID
+}
+
+// NewRegistrar - Create and return a new instance of CommandRegistrar
+//  @gid string    ID string of the guild the CommandRegistrar belongs to
+func NewRegistrar(gid string, gs ifaces.IGameServer) *CommandRegistrar {
+	registrars[gid] = &CommandRegistrar{
+		GuildID:    gid,
+		commands:   make(map[string]*CommandRegistrant, 10),
+		adminroles: make([]string, 0),
+		modroles:   make([]string, 0),
+		admincmds:  make([]string, 0),
+		modcmds:    make([]string, 0),
+		server:     gs,
+		loglevel:   1}
+
+	return registrars[gid]
+}
+
+// Registrar - Return the Registrar that is associated with a specific guild
+func Registrar(gid string) (r *CommandRegistrar, err error) {
+	if r = registrars[gid]; r == nil {
+		return nil, errors.New("no registrar exists for that guild")
+	}
+	return r, nil
 }
 
 // Loglevel - Return the current loglevel for the CommandRegistrant
@@ -252,32 +280,4 @@ func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
 	}
 
 	return err
-}
-
-// Registrar - Return the Registrar that is associated with a specific guild
-func Registrar(gid string) (r *CommandRegistrar, err error) {
-	if r = registrars[gid]; r == nil {
-		return nil, errors.New("no registrar exists for that guild")
-	}
-	return r, nil
-}
-
-// NewRegistrar - Create and return a new instance of CommandRegistrar
-//  @gid string    ID string of the guild the CommandRegistrar belongs to
-func NewRegistrar(gid string, gs ifaces.IGameServer) *CommandRegistrar {
-	registrars[gid] = &CommandRegistrar{
-		GuildID:    gid,
-		commands:   make(map[string]*CommandRegistrant, 10),
-		adminroles: make([]string, 0),
-		modroles:   make([]string, 0),
-		admincmds:  make([]string, 0),
-		modcmds:    make([]string, 0),
-		server:     gs,
-		loglevel:   1}
-
-	return registrars[gid]
-}
-
-func init() {
-	registrars = make(map[string]*CommandRegistrar)
 }
