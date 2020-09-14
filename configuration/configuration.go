@@ -27,7 +27,7 @@ const (
 	defaultServerInstallation = "/srv/avorion/server_files/"
 	defaultTimeDatabaseUpdate = time.Minute * 60
 	defaultTimeHangCheck      = time.Minute * 5
-	defaultCommandPrefix      = "!!"
+	defaultCommandPrefix      = "mention"
 )
 
 var sprintf = fmt.Sprintf
