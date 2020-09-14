@@ -71,7 +71,7 @@ command:SetExecute(function ()
   local output     = ""
 
   -- Process our provided players if they were given. We also disable the default
-  --  behaviour of processing all player data here if this is processed
+  --  behaviour of processing all data here if this is processed
   if type(command.data.players) ~= "nil" and #command.data.players > 0 then
     for _, index in ipairs(command.data.players) do
       if type(tonumber(index)) ~= "number" then
@@ -91,7 +91,7 @@ command:SetExecute(function ()
   end
 
   -- Process our provided alliances if they were given. We also disable the default
-  --  behaviour of processing all alliance data here if this is processed
+  --  behaviour of processing all data here if this is processed
   if type(command.data.alliances) ~= "nil" and #command.data.alliances > 0 then
     for _, index in ipairs(command.data.alliances) do
       if type(tonumber(index)) ~= "number" then
