@@ -13,7 +13,7 @@ const (
 	// Discord
 	defaultDiscordLink = "https://discord.gg/b5sqfy"
 	defaultBotsAllowed = false
-	defaultChatChannel = ""
+	defaultChatChannel = "752162610350129222"
 	defaultLoglevel    = 1
 
 	// Avorion
@@ -70,7 +70,7 @@ type Conf struct {
 
 // New returns a new object representing our program configuration
 func New() *Conf {
-	return &Conf{
+	c := &Conf{
 		galaxyname: defaultGalaxyName,
 
 		installdir: defaultServerInstallation,
@@ -87,6 +87,9 @@ func New() *Conf {
 		pingport: defaultGamePingPort,
 
 		aliasedCommands: make(map[string][]string)}
+
+	c.SetChatChannel(defaultChatChannel)
+	return c
 }
 
 /************************/
