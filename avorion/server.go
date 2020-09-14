@@ -583,10 +583,12 @@ func (s *Server) DCOutput() chan ifaces.ChatData {
 }
 
 // AddIntegrationRequest registers a request by a player for Discord integration
+// TODO: Move this to sqlite3
 func (s *Server) AddIntegrationRequest(index, pin string) {
 	s.requests[index] = pin
 	path := fmt.Sprintf("%s/%s/discordrequests", s.config.DataPath(),
 		s.config.Galaxy())
+
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		os.Mkdir(path, 0)
 	}
@@ -600,6 +602,7 @@ func (s *Server) AddIntegrationRequest(index, pin string) {
 
 // ValidateIntegrationPin confirms that a given pin was indeed a valid request
 //	and registers the integration
+//  TODO: Move this to sqlite3
 func (s *Server) ValidateIntegrationPin(in, discordID string) bool {
 	m := regexp.MustCompile("^([0-9]+):([0-9]{6})$").FindStringSubmatch(in)
 	if val, ok := s.requests[m[1]]; ok {
