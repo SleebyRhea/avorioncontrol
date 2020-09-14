@@ -151,6 +151,12 @@ func (s *Server) Start() error {
 		Name: "Avorion",
 		Msg:  "Server startup failed"}
 
+	rconhost := fmt.Sprintf("[%s]\nhostname = %s\nport = %d\npassword = %s\n",
+		s.config.Galaxy(), s.config.RCONAddr(), s.config.RCONPort(), s.config.RCONPass())
+
+	ioutil.WriteFile(fmt.Sprintf("%s/rconhost.conf", s.config.DataPath()),
+		[]byte(rconhost), 0644)
+
 	s.SendChat(startupmsg)
 	logger.LogInfo(s, "Syncing mods to data directory")
 	cp.Copy("./mods", s.config.DataPath()+"/mods")
