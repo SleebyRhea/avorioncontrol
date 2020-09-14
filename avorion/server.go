@@ -75,6 +75,10 @@ type Server struct {
 	// Close goroutines
 	close chan struct{}
 	stop  chan struct{}
+
+	isrestarting bool
+	isstopping   bool
+	isstarting   bool
 }
 
 /********/
@@ -105,7 +109,12 @@ func New(c ifaces.IConfigurator, args ...string) ifaces.IGameServer {
 		rconpass:   c.RCONPass(),
 		rconaddr:   c.RCONAddr(),
 		rconport:   c.RCONPort(),
-		requests:   make(map[string]string)}
+		requests:   make(map[string]string),
+
+		// State tracking
+		isstarting:   false,
+		isstopping:   false,
+		isrestarting: false}
 
 	s.SetLoglevel(3)
 	return s
@@ -127,6 +136,22 @@ func (s *Server) NotifyServer(in string) error {
 // Start starts the Avorion server process
 func (s *Server) Start() error {
 	var err error
+	defer func() { s.isstarting = false }()
+	s.isstarting = true
+
+	startupmsg := ifaces.ChatData{
+		Name: "Avorion",
+		Msg:  "Starting server"}
+
+	startupdone := ifaces.ChatData{
+		Name: "Avorion",
+		Msg:  "Server is online"}
+
+	startupfailed := ifaces.ChatData{
+		Name: "Avorion",
+		Msg:  "Server startup failed"}
+
+	s.SendChat(startupmsg)
 	logger.LogInfo(s, "Syncing mods to data directory")
 	cp.Copy("./mods", s.config.DataPath()+"/mods")
 
@@ -193,15 +218,18 @@ func (s *Server) Start() error {
 		case <-ready:
 			logger.LogInit(s, "Server is online")
 			s.UpdatePlayerDatabase(false)
+			s.SendChat(startupdone)
 			return nil
 
 		case <-s.close:
 			close(ready)
+			s.SendChat(startupfailed)
 			return errors.New("Avorion died before initialization could complete")
 
 		case <-time.After(5 * time.Minute):
 			close(ready)
 			s.Cmd.Process.Kill()
+			s.SendChat(startupfailed)
 			return errors.New("Avorion took over 5 minutes to start")
 		}
 	}
@@ -209,6 +237,12 @@ func (s *Server) Start() error {
 
 // Stop gracefully stops the Avorion process
 func (s *Server) Stop() error {
+	defer func() { s.isstopping = false }()
+	s.isstopping = true
+
+	defer s.SendChat(ifaces.ChatData{Msg: "Server is offline", Name: "Avorion"})
+	s.SendChat(ifaces.ChatData{Msg: "Stopping server", Name: "Avorion"})
+
 	if s.IsUp() != true {
 		logger.LogOutput(s, "Server is already offline")
 		return nil
@@ -234,6 +268,9 @@ func (s *Server) Stop() error {
 
 // Restart restarts the Avorion server
 func (s *Server) Restart() error {
+	defer func() { s.isrestarting = true }()
+	s.isrestarting = true
+
 	if err := s.Stop(); err != nil {
 		return err
 	}
@@ -668,6 +705,10 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 
 		// Check the server status every 5 minutes
 		case <-time.After(time.Second * 30):
+			if s.isrestarting || s.isstopping || s.isstarting {
+				continue
+			}
+
 			done := make(chan error)
 
 			go func() {
@@ -682,11 +723,11 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 				if err := s.Restart(); err == nil {
 					s.SendChat(ifaces.ChatData{
 						Msg:  "Complete.",
-						Name: "Server"})
+						Name: "Avorion"})
 				} else {
 					s.SendChat(ifaces.ChatData{
 						Msg:  "Failed to restart Avorion",
-						Name: "Server"})
+						Name: "Avorion"})
 				}
 
 			// If rcon couldn't connect, restart.
@@ -695,15 +736,15 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 					logger.LogError(s, err.Error())
 					s.SendChat(ifaces.ChatData{
 						Msg:  "Avorion crashed, restarting...",
-						Name: "Server"})
+						Name: "Avorion"})
 					if err := s.Restart(); err == nil {
 						s.SendChat(ifaces.ChatData{
 							Msg:  "Complete.",
-							Name: "Server"})
+							Name: "Avorion"})
 					} else {
 						s.SendChat(ifaces.ChatData{
 							Msg:  "Failed to restart Avorion",
-							Name: "Server"})
+							Name: "Avorion"})
 					}
 				}
 

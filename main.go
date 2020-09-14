@@ -76,6 +76,8 @@ func main() {
 		switch sig {
 		case os.Interrupt, syscall.SIGTERM:
 			log.Output(1, "Caught termination signal. Gracefully stopping")
+			server.SendChat(ifaces.ChatData{Msg: "Shutting down server",
+				Name: "Avorion"})
 			if server.IsUp() {
 				if err := server.Stop(); err != nil {
 					log.Fatal(err)
