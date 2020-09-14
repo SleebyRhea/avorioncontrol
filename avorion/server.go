@@ -24,11 +24,6 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-const (
-	coordsre = "\\(-?[0-9]+:-?[0-9]+\\)"
-	ipv4re   = "[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}"
-)
-
 // Server - Avorion server definition
 type Server struct {
 	ifaces.IGameServer
