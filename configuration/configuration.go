@@ -13,7 +13,6 @@ const (
 	// Discord
 	defaultDiscordLink = "https://discord.gg/b5sqfy"
 	defaultBotsAllowed = false
-	defaultChatChannel = "752162610350129222"
 	defaultLoglevel    = 1
 
 	// Avorion
@@ -87,8 +86,6 @@ func New() *Conf {
 		pingport: defaultGamePingPort,
 
 		aliasedCommands: make(map[string][]string)}
-
-	c.SetChatChannel(defaultChatChannel)
 	return c
 }
 
