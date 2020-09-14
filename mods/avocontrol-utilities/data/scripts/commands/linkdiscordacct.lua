@@ -77,6 +77,6 @@ function execute(user, cmnd, ...)
   mail.header = "Discord Integration Request"
   player:addMail(mail)
 
-  print("DiscordIntegrationRequest: ${i} ${c}"%_T % {i=player.index, c=pin})
+  print("discordIntegrationRequestEvent: ${i} ${c}"%_T % {i=player.index, c=pin})
   return 1, "Code sent (check your mail for instructions)", ""
 end

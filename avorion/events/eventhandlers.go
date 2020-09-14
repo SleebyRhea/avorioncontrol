@@ -9,28 +9,32 @@ import (
 
 func initB() {
 	New("EventShipTrackInit",
-		"^\\s*shipTrackInitEvent: (-?[0-9]+) (-?[0-9]+):(-?[0-9]+) (.*)$",
+		`^\s*shipTrackInitEvent: (-?[0-9]+) (-?[0-9]+):(-?[0-9]+) (.*)$`,
 		handleEventShipTrackInit)
 
 	New("EventPlayerChat",
-		"^\\s*<(.+?)> (.*)",
+		`^\s*<(.+?)> (.*)`,
 		handlePlayerChat)
 
 	New("EventShipJump",
-		"^\\s*shipJumpEvent: (-?[0-9]+) (-?[0-9]+):(-?[0-9]+) (.*)$",
+		`^\s*shipJumpEvent: (-?[0-9]+) (-?[0-9]+):(-?[0-9]+) (.*)$`,
 		handleEventShipJump)
 
 	New("EventPlayerJoin",
-		"^\\s*Player logged in: (.+?), index: ([0-9]+)\\s*$",
+		`^\s*Player logged in: (.+?), index: ([0-9]+)\s*$`,
 		handleEventPlayerJoin)
 
 	New("EventPlayerLeft",
-		"^\\s*Player logged off: (.+?), index: ([0-9]+):?\\s*$",
+		`^\s*Player logged off: (.+?), index: ([0-9]+):?\s*$`,
 		handleEventPlayerLeft)
 
 	New("EventServerLag",
-		"^\\s*Server frame took over [0-9]+ seconds?\\.?\\s*$",
+		`^\s*Server frame took over [0-9]+ seconds?\.?\s*$`,
 		handleEventServerLag)
+
+	New("EventDiscordIntegrationRequest",
+		`^\s*discordIntegrationRequestEvent: ([0-9]+) ([0-9]+)`,
+		handleDiscordIntegrationRequest)
 
 	New("NilCommandEvent",
 		"^\\s*nilCommandEvent: (.*)$",
@@ -129,6 +133,12 @@ func handleNilCommand(srv ifaces.IGameServer, e *Event, in string,
 func handleEventServerLag(srv ifaces.IGameServer, e *Event, in string,
 	oc chan string) {
 	logger.LogWarning(srv, in)
+}
+
+func handleDiscordIntegrationRequest(srv ifaces.IGameServer, e *Event, in string,
+	oc chan string) {
+	m := e.Capture.FindStringSubmatch(in)
+	srv.AddIntegrationRequest(m[1], m[2])
 }
 
 func defaultEventHandler(srv ifaces.IGameServer, e *Event, in string,
