@@ -78,7 +78,7 @@ do
 
 
   -- Command.ParseFlags parses the arguments provided to the command using the
-  --  functions defined in the Command.argumnts list via Command.AddArgument
+  --  functions defined in the Command.argumnts list via Command.AddFlag
   --
   -- Returns:
   --  @1    Boolean (return status)
