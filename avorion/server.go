@@ -20,6 +20,7 @@ import (
 	"syscall"
 	"time"
 
+	// This import overrides the copy function which is undesirable
 	cp "github.com/otiai10/copy"
 	"golang.org/x/crypto/ssh/terminal"
 )
