@@ -12,14 +12,14 @@ import (
 
 const (
 	// Discord
-	defaultDiscordLink = "https://discord.gg/b5sqfy"
-	defaultBotsAllowed = false
 	defaultLoglevel    = 1
+	defaultBotsAllowed = false
+	defaultDiscordLink = "https://discord.gg/b5sqfy"
 
 	// Avorion
 	defaultGamePort           = 27000
-	defaultGamePingPort       = 27020
 	defaultRconPort           = 27015
+	defaultGamePingPort       = 27020
 	defaultRconBin            = "/usr/local/bin/rcon"
 	defaultRconAddress        = "127.0.0.1"
 	defaultGalaxyName         = "Galaxy"
