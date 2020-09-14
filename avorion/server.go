@@ -29,14 +29,6 @@ const (
 	ipv4re   = "[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}"
 )
 
-var (
-	reUsersOnline = regexp.MustCompile(
-		"^([0-9]{18}) ([0-9]+) (" + coordsre + ") (.*) (" + ipv4re + "):[0-9]+$")
-
-	reUsersOffline = regexp.MustCompile(
-		"^([0-9]{18}) ([0-9]+) (.*)$")
-)
-
 // Server - Avorion server definition
 type Server struct {
 	ifaces.IGameServer
