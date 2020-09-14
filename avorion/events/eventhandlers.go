@@ -37,7 +37,7 @@ func initB() {
 		handleDiscordIntegrationRequest)
 
 	New("NilCommandEvent",
-		"^\\s*nilCommandEvent: (.*)$",
+		`^\s*nilCommandEvent: (.*)$`,
 		handleNilCommand)
 
 	New("EventNone",
