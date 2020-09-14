@@ -109,7 +109,7 @@ do
   --  @1    Number
   local function __check_coord(number)
     local n = math.abs(number)
-    return (n < 0 or n > 999) and nil or number
+    return (n < 0 or n > 999) and 999 or number
   end
 
 
@@ -138,8 +138,8 @@ do
       Ogonite  = "number",
       Avorion  = "number"})
 
-    -- Fetch our turret from the server. Closures here are so that we dont need
-    -- to loop this table again.
+    -- Fetch our turret from the server. Anonymous functions used here so that 
+    --  we dont need to loop this table again.
     local turretdata = FetchConfigData("Wturret", {
       count    = "number",
       offset   = "number",
