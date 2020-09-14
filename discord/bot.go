@@ -50,6 +50,10 @@ func (b *Bot) UUID() string {
 	return "Bot"
 }
 
+/****************************/
+/* IFace ifaces.IBotChatter */
+/****************************/
+
 // SetChatPipe sets the current channel to pipe chats into
 func (b *Bot) SetChatPipe(cd chan ifaces.ChatData) {
 	b.chatpipe = cd
@@ -67,6 +71,10 @@ func New(c ifaces.IConfigurator) *Bot {
 	b.SetLoglevel(c.Loglevel())
 	return b
 }
+
+/****************************/
+/* IFace ifaces.IBotStarter */
+/****************************/
 
 // Start initializes the discordgo backend
 func (b *Bot) Start(gs ifaces.IGameServer) {
@@ -178,6 +186,10 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 	logger.LogInit(b, "DISCORD USER:   "+dg.State.User.String())
 	logger.LogInit(b, "DISCORD PREFIX: "+b.config.Prefix())
 }
+
+/******************************/
+/* IFace ifaces.IBotMentioner */
+/******************************/
 
 // Mention returns the sesions bot mention
 func (b *Bot) Mention() string {
