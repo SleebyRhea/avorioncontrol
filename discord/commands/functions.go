@@ -149,7 +149,7 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 		"getcoordhistory <x:y> <x:y> ...",
 		[]CommandArgument{
 			arg("x", "x coordinate for a Sector"),
-			arg("y", "y coordinatefor a sector")},
+			arg("y", "y coordinate for a sector")},
 		getCoordHistoryCmnd)
 
 	r.Register("getplayers",
