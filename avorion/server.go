@@ -659,7 +659,7 @@ func (s *Server) AddIntegrationRequest(index, pin string) {
 		s.config.Galaxy())
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		os.Mkdir(path, 0)
+		os.Mkdir(path, 0755)
 	}
 
 	// For tracking when the server goes down and needs this rebuilt
