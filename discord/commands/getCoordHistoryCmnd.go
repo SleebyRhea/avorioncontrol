@@ -10,12 +10,6 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-type jumpInfo struct {
-	Jump ifaces.ShipCoordData
-	Name string
-	Kind string
-}
-
 func getCoordHistoryCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	c ifaces.IConfigurator) (string, error) {
 	var (
@@ -39,7 +33,7 @@ func getCoordHistoryCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 		return "", err
 	}
 
-	jumps := make([]jumpInfo, 0)
+	jumps := make([]ifaces.JumpInfo, 0)
 	coords := make([][2]int, 0)
 	coordRe := regexp.MustCompile(`^(-?[0-9]{1,3}):(-?[0-9]{1,3})$`)
 
@@ -55,41 +49,34 @@ func getCoordHistoryCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 
 		x, _ := strconv.Atoi(match[1])
 		y, _ := strconv.Atoi(match[2])
+
+		// Make sure our coordinates are actually between -500 and 500
+		if x > 500 || x < -500 {
+			s.ChannelMessageSend(m.ChannelID, sprintf("Coordinate **x** is out of range: `%d`",
+				x))
+			return "", nil
+		}
+
+		// Make sure our coordinates are actually between -500 and 500
+		if y > 500 || y < -500 {
+			s.ChannelMessageSend(m.ChannelID, sprintf("Coordinate **y** is out of range: `%d`",
+				y))
+			return "", nil
+		}
+
 		coords = append(coords, [2]int{x, y})
 	}
 
-	// TODO: Track individual sector history to make this kind of thing unneeded
-	for _, p := range reg.server.Players() {
-		for _, j := range p.GetLastJumps(-1) {
-			logger.LogDebug(cmd, "Processing player: "+p.Name())
-			for _, c := range coords {
-				logger.LogDebug(cmd, sprintf("Checking jump to coord: (%d:%d)",
-					j.X, j.Y))
-				if j.X == c[0] && j.Y == c[1] {
-					logger.LogDebug(cmd, "Found match")
-					jumps = append(jumps, jumpInfo{
-						Name: p.Name(),
-						Jump: j,
-						Kind: "player"})
-				}
-			}
-		}
-	}
-
-	// TODO: Track individual sector history to make this kind of thing unneeded
-	for _, a := range reg.server.Alliances() {
-		logger.LogDebug(cmd, "Processing alliance: "+a.Name())
-		for _, j := range a.GetLastJumps(-1) {
-			logger.LogDebug(cmd, sprintf("Checking jump to coord: (%d:%d)",
-				j.X, j.Y))
-			for _, c := range coords {
-				if j.X == c[0] && j.Y == c[1] {
-					logger.LogDebug(cmd, "Found match")
-					jumps = append(jumps, jumpInfo{
-						Name: a.Name(),
-						Jump: j,
-						Kind: "alliance"})
-				}
+	// Migrate this to a method call on sectors or a utility function
+	for _, c := range coords {
+		logger.LogDebug(cmd, sprintf("Checking for jumps to sector: (%d:%d)", c[0], c[1]))
+		sector := reg.server.Sector(c[0], c[1])
+		if len(sector.Jumphistory) > 0 {
+			orderedjumps := reverseJumps(sector.Jumphistory)
+			for _, j := range orderedjumps {
+				// Sectors have jumps saved as a pointer to the player jump for both easy
+				// clearing, and for efficiency
+				jumps = append(jumps, *j)
 			}
 		}
 	}
@@ -108,8 +95,13 @@ func getCoordHistoryCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 		tl := j.Jump.Time.In(loc)
 		t := sprintf("%d/%02d/%02d %02d:%02d:%02d", tl.Year(), tl.Month(), tl.Day(),
 			tl.Hour(), tl.Minute(), tl.Second())
-		msg = sprintf("%s\n%s (%d:%d) %s/%s \"%s\"",
-			msg, t, j.Jump.X, j.Jump.Y, j.Name, j.Kind, j.Jump.Name)
+		suffix := sprintf("\n%s (%d:%d) %s/%s \"%s\"",
+			t, j.Jump.X, j.Jump.Y, j.Name, j.Kind, j.Jump.Name)
+		if len(suffix+msg) > 1900 {
+			msg = msg + "\n(truncated)"
+		} else {
+			msg = msg + suffix
+		}
 	}
 
 	msg = msg + "\n```"

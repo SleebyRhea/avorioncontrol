@@ -9,6 +9,7 @@ type IGameServer interface {
 	IServer
 	IMOTDServer
 	ISeededServer
+	IGalaxyServer
 	ILockableServer
 	IPlayableServer
 	IVersionedServer
@@ -26,6 +27,11 @@ type IServer interface {
 	Config() IConfigurator
 
 	logger.ILogger
+}
+
+// IGalaxyServer describes an interface to a server with a sectored galaxy
+type IGalaxyServer interface {
+	Sector(int, int) *Sector
 }
 
 // IPlayableServer defines an object that can track the players that have joined

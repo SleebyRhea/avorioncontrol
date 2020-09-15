@@ -125,7 +125,7 @@ do
     local mail   = Mail()
 
     -- Fetch our mail configuration from the server
-    local maildata = FetchConfigData("Wemail", {
+    local maildata = FetchConfigData("welcomeemail", {
       text     = "string",
       sender   = "string",
       header   = "string",
@@ -140,7 +140,7 @@ do
 
     -- Fetch our turret from the server. Anonymous functions used here so that 
     --  we dont need to loop this table again.
-    local turretdata = FetchConfigData("Wturret", {
+    local turretdata = FetchConfigData("welcometurret", {
       count    = "number",
       offset   = "number",
       material = __check_material,

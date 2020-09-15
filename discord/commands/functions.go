@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"AvorionControl/ifaces"
 	"log"
 	"time"
 )
@@ -35,6 +36,28 @@ func HasNumArgs(a BotArgs, min, max int) bool {
 	}
 
 	return true
+}
+
+// reverseSlice reverse an arbtrary slice
+func reverseJumps(j []*ifaces.JumpInfo) []*ifaces.JumpInfo {
+	var jumps []*ifaces.JumpInfo
+
+	var l = len(j)
+	var i = l - 1
+
+	if l == 0 {
+		return jumps
+	}
+
+	for {
+		if 0 > i {
+			break
+		}
+		jumps = append(jumps, j[i])
+		i--
+	}
+
+	return jumps
 }
 
 func newArgument(a, b string) CommandArgument {

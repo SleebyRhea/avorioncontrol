@@ -102,13 +102,14 @@ func main() {
 		switch sig {
 		case os.Interrupt, syscall.SIGTERM:
 			logger.LogInfo(core, "Caught termination signal. Gracefully stopping")
-			server.SendChat(ifaces.ChatData{Msg: "Shutting down server",
-				Name: "Avorion"})
+			server.SendChat(ifaces.ChatData{Msg: "Shutting down server"})
 			if server.IsUp() {
-				if err := server.Stop(true); err != nil {
+				if err := server.Stop(false); err != nil {
+					server.SendChat(ifaces.ChatData{Msg: "Server ran into an issue shutting down"})
 					log.Fatal(err)
 				}
 			}
+			server.SendChat(ifaces.ChatData{Msg: "Server is off"})
 			os.Exit(0)
 
 		case syscall.SIGUSR1:

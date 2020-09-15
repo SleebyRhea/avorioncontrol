@@ -81,6 +81,17 @@ func (p *Player) AddJump(sc ifaces.ShipCoordData) {
 		p.jumphistory = p.jumphistory[1:]
 	}
 
+	sector := p.server.Sector(sc.X, sc.Y)
+
+	// Add a pointer to the players jump to the sector history for our usage
+	//	later on
+	jump := &ifaces.JumpInfo{
+		Name: p.Name(),
+		Kind: "player",
+		Jump: &sc}
+
+	sector.Jumphistory = append(sector.Jumphistory, jump)
+
 	logger.LogDebug(p, "Updated jumphistory")
 }
 

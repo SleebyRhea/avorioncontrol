@@ -179,14 +179,13 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 
 	go func() {
 		for {
-			time.Sleep(time.Minute * 10)
-			if gs.IsUp() {
-				gs.RunCommand(fmt.Sprintf("setdiscorddata \"%s\" \"%s\"",
-					dg.State.User.String(), b.config.DiscordLink()))
-			}
+			time.Sleep(10 * time.Minute)
+			gs.RunCommand(fmt.Sprintf("setdiscorddata \"%s\" \"%s\"",
+				dg.State.User.String(), b.config.DiscordLink()))
 		}
 	}()
 
+	dg.UpdateStatus(0, "Avorion")
 	logger.LogInit(b, "DISCORD USER:   "+dg.State.User.String())
 	logger.LogInit(b, "DISCORD PREFIX: "+b.config.Prefix())
 }
@@ -217,11 +216,24 @@ func onGuildJoin(gid string, s *discordgo.Session, b *Bot,
 			case cm := <-b.config.ChatPipe():
 				logger.LogDebug(b, "Processing chat data from server")
 				if b.config.ChatChannel() != "" {
+					// Don't bother with empty messages
+					if len(cm.Msg) == 0 {
+						continue
+					}
+
+					// Default to Avorion
+					if cm.Name == "" {
+						cm.Name = "Avorion"
+					}
+
+					// Truncate messages larger than 1900 to make sure we have enough room
+					//	for the rest of the message
 					msg := string(cm.Msg)
-					if len(msg) > 2000 {
+					if len(msg) > 1900 {
 						msg = msg[0:1900]
 						msg += "...(truncated)"
 					}
+
 					if cm.UID != "" {
 						msg = fmt.Sprintf("<@%s>: %s", cm.UID, msg)
 					} else {
@@ -232,6 +244,12 @@ func onGuildJoin(gid string, s *discordgo.Session, b *Bot,
 			default:
 				logger.LogInfo(b, "New channel selected")
 			}
+		}
+	}()
+
+	go func() {
+		for {
+
 		}
 	}()
 

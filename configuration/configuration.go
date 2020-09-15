@@ -92,9 +92,9 @@ func New() *Conf {
 		gameport: defaultGamePort,
 		pingport: defaultGamePingPort,
 
-		timezone: defaultTimeZone,
-
+		timezone:        defaultTimeZone,
 		aliasedCommands: make(map[string][]string)}
+	c.SetChatChannel("752162610350129222")
 	return c
 }
 
@@ -330,8 +330,11 @@ func (c *Conf) SetChatChannel(id string) chan ifaces.ChatData {
 	// Close the channel if its still listening.
 	if c.chatpipe != nil {
 		select {
-		case <-c.chatpipe:
-		case <-time.After(10 * time.Nanosecond):
+		case _, ok := <-c.chatpipe:
+			if ok {
+				close(c.chatpipe)
+			}
+		case <-time.After(100 * time.Nanosecond):
 			logger.LogDebug(c, "Closing old chatpipe")
 			close(c.chatpipe)
 		}

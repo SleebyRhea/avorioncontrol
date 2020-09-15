@@ -52,33 +52,32 @@ type Server struct {
 	rconaddr string
 	rconport int
 
-	// PlayerInfo
+	// Game Data
 	players   []*Player
 	alliances []*Alliance
+	sectors   map[int]map[int]*ifaces.Sector
 
 	// Config
 	configfile string
 	config     ifaces.IConfigurator
 
 	// Game State
-	password string
-	version  string
-	seed     string
-	motd     string
-	time     string
+	isrestarting bool
+	isstopping   bool
+	isstarting   bool
+	password     string
+	version      string
+	seed         string
+	motd         string
+	time         string
 
 	// Discord
 	bot      *discord.Bot
 	requests map[string]string
-	chatpipe chan ifaces.ChatData
 
 	// Close goroutines
 	close chan struct{}
 	stop  chan struct{}
-
-	isrestarting bool
-	isstopping   bool
-	isstarting   bool
 }
 
 /********/
@@ -110,6 +109,7 @@ func New(c ifaces.IConfigurator, args ...string) ifaces.IGameServer {
 		rconaddr:   c.RCONAddr(),
 		rconport:   c.RCONPort(),
 		requests:   make(map[string]string),
+		sectors:    make(map[int]map[int]*ifaces.Sector), // =0~0=
 
 		// State tracking
 		isstarting:   false,
@@ -692,6 +692,27 @@ func (s *Server) ValidateIntegrationPin(in, discordID string) bool {
 	}
 
 	return false
+}
+
+/******************************/
+/* IFace ifaces.IGalaxyServer */
+/******************************/
+
+// Sector returns a pointer to a sector object (new or prexisting)
+func (s *Server) Sector(x, y int) *ifaces.Sector {
+	// Make sure we have an X
+	if _, ok := s.sectors[x]; !ok {
+		s.sectors[x] = make(map[int]*ifaces.Sector, 0)
+	}
+
+	if _, ok := s.sectors[x][y]; !ok {
+		s.sectors[x][y] = &ifaces.Sector{
+			X: x, Y: y, Jumphistory: make([]*ifaces.JumpInfo, 0)}
+		logger.LogInfo(s, fmt.Sprintf("Tracking new sector: (%d:%d)",
+			x, y))
+	}
+
+	return s.sectors[x][y]
 }
 
 // SendChat sends an ifaces.ChatData object to the discord bot if chatting is

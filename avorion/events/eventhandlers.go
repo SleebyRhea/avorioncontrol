@@ -4,8 +4,11 @@ import (
 	"AvorionControl/ifaces"
 	"AvorionControl/logger"
 	"fmt"
+	"regexp"
 	"strconv"
 )
+
+var discChatRe = regexp.MustCompile(`^\s*<D> <.*?#[0-9]{4}> (.*)$`)
 
 func initB() {
 	New("EventShipTrackInit",
@@ -109,8 +112,13 @@ func handleEventPlayerLeft(srv ifaces.IGameServer, e *Event, in string,
 func handlePlayerChat(srv ifaces.IGameServer, e *Event, in string,
 	oc chan string) {
 	logger.LogOutput(srv, in)
+	// Catch our own discord messages
+	if discChatRe.MatchString(in) {
+		return
+	}
+
 	m := e.Capture.FindStringSubmatch(in)
-	if m[1] != "Server" && m[1] != "D" {
+	if m[1] != "Server" {
 		out := m[2]
 		if len(out) >= 2000 {
 			logger.LogInfo(srv, "Truncated player message for sending")
