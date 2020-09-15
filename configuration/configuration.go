@@ -29,6 +29,8 @@ const (
 	defaultTimeDatabaseUpdate = time.Minute * 60
 	defaultTimeHangCheck      = time.Minute * 5
 	defaultCommandPrefix      = "mention"
+
+	defaultTimeZone = "America/New_York"
 )
 
 var sprintf = fmt.Sprintf
@@ -43,6 +45,7 @@ type Conf struct {
 
 	// Logging
 	loglevel int
+	timezone string
 
 	// Avorion
 	galaxyname string
@@ -89,6 +92,8 @@ func New() *Conf {
 		gameport: defaultGamePort,
 		pingport: defaultGamePingPort,
 
+		timezone: defaultTimeZone,
+
 		aliasedCommands: make(map[string][]string)}
 	return c
 }
@@ -115,6 +120,17 @@ func (c *Conf) SetLoglevel(l int) {
 /********/
 /* Main */
 /********/
+
+// TimeZone -
+func (c *Conf) TimeZone() string {
+	return c.timezone
+}
+
+// SetTimeZone -
+func (c *Conf) SetTimeZone(tz string) error {
+	c.timezone = tz
+	return nil
+}
 
 // Validate confirms that the configuration object in its current state is a
 // working configuration

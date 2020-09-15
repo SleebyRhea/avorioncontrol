@@ -23,18 +23,43 @@ var (
 	config *configuration.Conf
 	server ifaces.IGameServer
 	disbot ifaces.IDiscordBot
+	core   *Core
 )
 
 func init() {
-	config = configuration.New()
 	flag.StringVar(&token, "t", "", "Bot token")
 	flag.StringVar(&prefix, "P", "", "Command prefix")
 	flag.BoolVar(&showhelp, "h", false, "Help text")
 	flag.IntVar(&loglevel, "l", 0, "Log level")
 	flag.Parse()
 
+	config = configuration.New()
 	config.SetToken(token)
 	config.SetPrefix(prefix)
+}
+
+// Core only exists for logging purposes, and contains no other state
+type Core struct {
+	loglevel int
+}
+
+/************************/
+/* IFace logger.ILogger */
+/************************/
+
+// UUID returns the UUID of an alliance
+func (c *Core) UUID() string {
+	return fmt.Sprintf("Core")
+}
+
+// Loglevel returns the loglevel of an alliance
+func (c *Core) Loglevel() int {
+	return c.loglevel
+}
+
+// SetLoglevel sets the loglevel of an alliance
+func (c *Core) SetLoglevel(l int) {
+	c.loglevel = l
 }
 
 func main() {
@@ -54,6 +79,7 @@ func main() {
 
 	sc := make(chan os.Signal, 1)
 
+	core = &Core{loglevel: config.Loglevel()}
 	server = avorion.New(config)
 	disbot = discord.New(config)
 
@@ -66,8 +92,8 @@ func main() {
 	signal.Notify(sc)
 	disbot.Start(server)
 
-	if err := server.Start(); err != nil {
-		log.Output(1, err.Error())
+	if err := server.Start(true); err != nil {
+		logger.LogError(core, "Avorion: "+err.Error())
 		os.Exit(1)
 	}
 
@@ -75,18 +101,18 @@ func main() {
 	for sig := range sc {
 		switch sig {
 		case os.Interrupt, syscall.SIGTERM:
-			log.Output(1, "Caught termination signal. Gracefully stopping")
+			logger.LogInfo(core, "Caught termination signal. Gracefully stopping")
 			server.SendChat(ifaces.ChatData{Msg: "Shutting down server",
 				Name: "Avorion"})
 			if server.IsUp() {
-				if err := server.Stop(); err != nil {
+				if err := server.Stop(true); err != nil {
 					log.Fatal(err)
 				}
 			}
 			os.Exit(0)
 
 		case syscall.SIGUSR1:
-			log.Output(1, "Caught SIGUSR1, performing server restart")
+			logger.LogInfo(core, "Caught SIGUSR1, performing server restart")
 			server.Restart()
 		}
 	}

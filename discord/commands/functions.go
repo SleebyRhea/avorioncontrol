@@ -1,6 +1,13 @@
 package commands
 
-import "log"
+import (
+	"log"
+	"time"
+)
+
+func init() {
+	time.LoadLocation("America/New_York")
+}
 
 // HasNumArgs - Determine if a set of command arguments is between min and max
 //  @a BotArgs    Argument set to process
@@ -105,12 +112,34 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 			arg("...", "The commands arguments")},
 		rconCmnd)
 
+	r.Register("getjumps",
+		"Get the last n jumps for a player or alliance",
+		"getjumps <type> <max> <name>",
+		[]CommandArgument{
+			arg("type", "player or alliance type"),
+			arg("max", "Max jumps to list"),
+			arg("name", "Name of the object to check")},
+		getJumpsCmnd)
+
+	r.Register("getplayers",
+		"List the tracked players",
+		"getplayers",
+		make([]CommandArgument, 0),
+		getPlayersCmnd)
+
 	r.Register("setchatchannel",
 		"Sets the channel to output server chat into",
 		"setchatchannel channelid",
 		[]CommandArgument{
 			arg("channelid", "UID of the channel to send server chat messages to")},
 		setChatChannelCmnd)
+
+	r.Register("settimezone",
+		"Sets the channel to output server chat into",
+		"settimezone timezone",
+		[]CommandArgument{
+			arg("timezone", "Timezone to set (reference: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)")},
+		setTimezoneCmnd)
 
 	r.Register("server",
 		"Control the state of the Avorion server",

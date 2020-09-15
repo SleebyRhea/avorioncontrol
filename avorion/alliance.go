@@ -75,3 +75,33 @@ func (a *Alliance) Loglevel() int {
 func (a *Alliance) SetLoglevel(l int) {
 	a.loglevel = l
 }
+
+/***************************/
+/* IFace ifaces.IHaveShips */
+/***************************/
+
+// GetLastJumps returns up to (max) jumps that this player has performed recently
+// TODO: This should return both the jumps and how many were found
+func (p *Player) GetLastJumps(limit int) []ifaces.ShipCoordData {
+	var jumps []ifaces.ShipCoordData
+
+	var l = len(p.jumphistory)
+	var i = l - 1
+	var n = 0
+
+	if l == 0 {
+		return jumps
+	}
+
+	for n < limit {
+		if 0 > i {
+			break
+		}
+		jumps = append(jumps, p.jumphistory[i])
+		n++
+		i--
+	}
+	print("End of loop\n")
+
+	return jumps
+}

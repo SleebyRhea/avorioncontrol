@@ -20,8 +20,8 @@ type IGameServer interface {
 //	of and log
 type IServer interface {
 	IsUp() bool
-	Stop() error
-	Start() error
+	Stop(bool) error
+	Start(bool) error
 	Restart() error
 	Config() IConfigurator
 
@@ -36,7 +36,7 @@ type IPlayableServer interface {
 
 	Player(string) IPlayer
 	PlayerFromName(string) IPlayer
-	PlayerFromIndex(string) IPlayer
+	PlayerFromDiscord(string) IPlayer
 
 	Alliance(string) IAlliance
 	NewAlliance(string, []string) IAlliance

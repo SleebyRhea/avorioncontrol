@@ -10,13 +10,14 @@ type IPlayer interface {
 	IDiscordIntegratedPlayer
 	IModeratablePlayer
 	ITrackedPlayer
+
 	INetPlayer
 }
 
 // ITrackedPlayer defines an interface to an a player that has tracking
 type ITrackedPlayer interface {
 	logger.ILogger
-	Name() string
+	IHaveShips
 	Index() string
 	Message(string)
 	AddJump(ShipCoordData)

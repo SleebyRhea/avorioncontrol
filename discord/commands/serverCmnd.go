@@ -51,7 +51,7 @@ func stopServerCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	}
 
 	if reg.server.IsUp() {
-		if err = reg.server.Stop(); err != nil {
+		if err = reg.server.Stop(true); err != nil {
 			s.MessageReactionAdd(m.ChannelID, m.ID, "🚫")
 			s.ChannelMessageSend(m.ChannelID, "Encountered an error stopping the server")
 			logger.LogError(cmd, err.Error())
@@ -80,7 +80,7 @@ func startServerCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs
 	}
 
 	if !reg.server.IsUp() {
-		if err = reg.server.Start(); err != nil {
+		if err = reg.server.Start(true); err != nil {
 			s.MessageReactionAdd(m.ChannelID, m.ID, "🚫")
 			s.ChannelMessageSend(m.ChannelID, sprintf(
 				"Encountered an error starting the server:\n```%s\n```\n", err.Error()))

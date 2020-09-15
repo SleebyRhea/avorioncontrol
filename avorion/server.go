@@ -134,7 +134,7 @@ func (s *Server) NotifyServer(in string) error {
 /********************************/
 
 // Start starts the Avorion server process
-func (s *Server) Start() error {
+func (s *Server) Start(sendchat bool) error {
 	var err error
 	defer func() { s.isstarting = false }()
 	s.isstarting = true
@@ -157,7 +157,10 @@ func (s *Server) Start() error {
 	ioutil.WriteFile(fmt.Sprintf("%s/rconhost.conf", s.config.DataPath()),
 		[]byte(rconhost), 0644)
 
-	s.SendChat(startupmsg)
+	if sendchat {
+		s.SendChat(startupmsg)
+	}
+
 	logger.LogInfo(s, "Syncing mods to data directory")
 	cp.Copy("./mods", s.config.DataPath()+"/mods")
 
@@ -224,30 +227,38 @@ func (s *Server) Start() error {
 		case <-ready:
 			logger.LogInit(s, "Server is online")
 			s.UpdatePlayerDatabase(false)
-			s.SendChat(startupdone)
+			if sendchat {
+				s.SendChat(startupdone)
+			}
 			return nil
 
 		case <-s.close:
 			close(ready)
-			s.SendChat(startupfailed)
+			if sendchat {
+				s.SendChat(startupfailed)
+			}
 			return errors.New("Avorion died before initialization could complete")
 
 		case <-time.After(5 * time.Minute):
 			close(ready)
 			s.Cmd.Process.Kill()
-			s.SendChat(startupfailed)
+			if sendchat {
+				s.SendChat(startupfailed)
+			}
 			return errors.New("Avorion took over 5 minutes to start")
 		}
 	}
 }
 
 // Stop gracefully stops the Avorion process
-func (s *Server) Stop() error {
+func (s *Server) Stop(sendchat bool) error {
 	defer func() { s.isstopping = false }()
 	s.isstopping = true
 
-	defer s.SendChat(ifaces.ChatData{Msg: "Server is offline", Name: "Avorion"})
-	s.SendChat(ifaces.ChatData{Msg: "Stopping server", Name: "Avorion"})
+	if sendchat {
+		defer s.SendChat(ifaces.ChatData{Msg: "Server is offline", Name: "Avorion"})
+		s.SendChat(ifaces.ChatData{Msg: "Stopping server", Name: "Avorion"})
+	}
 
 	if s.IsUp() != true {
 		logger.LogOutput(s, "Server is already offline")
@@ -276,15 +287,22 @@ func (s *Server) Stop() error {
 func (s *Server) Restart() error {
 	defer func() { s.isrestarting = true }()
 	s.isrestarting = true
+	restartmsg := ifaces.ChatData{Name: "Avorion", Msg: "Restarting server"}
+	restartdone := ifaces.ChatData{Name: "Avorion", Msg: "Server is online"}
+	restartfailed := ifaces.ChatData{Name: "Avorion", Msg: "Failed to restart server"}
 
-	if err := s.Stop(); err != nil {
+	s.SendChat(restartmsg)
+	if err := s.Stop(false); err != nil {
+		s.SendChat(restartfailed)
 		return err
 	}
 
-	if err := s.Start(); err != nil {
+	if err := s.Start(false); err != nil {
+		s.SendChat(restartfailed)
 		return err
 	}
 
+	s.SendChat(restartdone)
 	logger.LogInfo(s, "Restarted Avorion")
 	return nil
 }
@@ -507,6 +525,14 @@ func (s *Server) PlayerFromName(name string) ifaces.IPlayer {
 	return nil
 }
 
+// PlayerFromDiscord return a player object that has been assigned the given
+//	Discord user
+//
+// TODO: Complete this stub
+func (s *Server) PlayerFromDiscord(name string) ifaces.IPlayer {
+	return nil
+}
+
 // Players returns a slice of all of the  players that are known
 func (s *Server) Players() []ifaces.IPlayer {
 	v := make([]ifaces.IPlayer, 0)
@@ -548,7 +574,7 @@ func (s *Server) NewPlayer(index string, d []string) ifaces.IPlayer {
 			if d = rePlayerData.FindStringSubmatch(data); d != nil {
 				logger.LogError(s,
 					fmt.Sprintf("Failed to parse player string, gracefully stopping: (%s)", data))
-				s.Stop()
+				s.Stop(true)
 				<-s.close
 				panic("Failed to parse data string")
 			}
@@ -592,7 +618,7 @@ func (s *Server) NewAlliance(index string, d []string) ifaces.IAlliance {
 			if d = rePlayerData.FindStringSubmatch(data); d != nil {
 				logger.LogError(s,
 					fmt.Sprintf("Failed to parse alliance string, gracefully stopping: (%s)", data))
-				s.Stop()
+				s.Stop(true)
 				<-s.close
 				panic("Failed to parse alliance data string")
 			}

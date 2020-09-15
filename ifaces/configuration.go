@@ -12,6 +12,7 @@ type IConfigurator interface {
 	ICommandConfigurator
 	IGalaxyConfigurator
 	IGameConfigurator
+	ITimeConfigurator
 	IChatConfigurator
 	logger.ILogger
 }
@@ -65,4 +66,10 @@ type IChatConfigurator interface {
 	ChatPipe() chan ChatData
 	SetChatChannel(string) chan ChatData
 	ChatChannel() string
+}
+
+// ITimeConfigurator describes an interface to the configured timezone
+type ITimeConfigurator interface {
+	TimeZone() string
+	SetTimeZone(string) error
 }
