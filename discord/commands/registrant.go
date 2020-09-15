@@ -29,7 +29,7 @@ func (c *CommandRegistrant) SetLoglevel(l int) {
 
 // UUID - Return a commands name and guild information
 func (c *CommandRegistrant) UUID() string {
-	return c.name + "Cmd:" + c.registrar.GuildID
+	return c.name + "Cmnd:" + c.registrar.GuildID
 }
 
 // Loglevel - Return the current loglevel for the CommandRegistrant
