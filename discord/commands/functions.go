@@ -121,6 +121,14 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 			arg("name", "Name of the object to check")},
 		getJumpsCmnd)
 
+	r.Register("getcoordhistory",
+		"Get all of the logged jumps made to a sector (IN DEV)",
+		"getcoordhistory <x:y> <x:y> ...",
+		[]CommandArgument{
+			arg("x", "x coordinate for a Sector"),
+			arg("y", "y coordinatefor a sector")},
+		getCoordHistoryCmnd)
+
 	r.Register("getplayers",
 		"List the tracked players",
 		"getplayers",

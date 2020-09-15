@@ -20,7 +20,8 @@ func getJumpsCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 		cnt int
 	)
 
-	if !HasNumArgs(a, 1, -1) {
+	// Make sure we have the args we need
+	if !HasNumArgs(a, 3, -1) {
 		return wrongArgsCmd(s, m, a, c)
 	}
 
@@ -62,7 +63,7 @@ func getJumpsCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	}
 
 	if obj == nil {
-		msg := sprintf("`%s` is not a valid %s reference: ", kind, ref)
+		msg := sprintf("`%s` is not a valid player or alliance reference", ref)
 		s.ChannelMessageSend(m.ChannelID, msg)
 		return "", err
 	}
@@ -79,9 +80,9 @@ func getJumpsCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 		msg := sprintf("**Jumps for %s**:```", obj.Name())
 		for _, j := range jumps {
 			t := j.Time.In(loc)
-			msg = sprintf("%s\n%d/%02d/%02d %02d:%02d - (%d:%d) %s", msg,
+			msg = sprintf("%s\n%d/%02d/%02d %02d:%02d:%02d - (%d:%d) %s", msg,
 				t.Year(), t.Month(), t.Day(),
-				t.Hour(), t.Minute(), j.X, j.Y, j.Name)
+				t.Hour(), t.Minute(), t.Second(), j.X, j.Y, j.Name)
 		}
 		msg = msg + "```"
 		s.ChannelMessageSend(m.ChannelID, msg)

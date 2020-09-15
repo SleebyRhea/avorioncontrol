@@ -7,6 +7,7 @@ import (
 // IAlliance describes a an IServer player alliance
 type IAlliance interface {
 	ITrackedAlliance
+	IHaveShips
 }
 
 // ITrackedAlliance defines an interface to an an alliance that has tracking

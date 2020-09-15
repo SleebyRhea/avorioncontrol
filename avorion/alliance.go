@@ -93,6 +93,11 @@ func (a *Alliance) GetLastJumps(limit int) []ifaces.ShipCoordData {
 		return jumps
 	}
 
+	// If -1 is used just return the entire history, but in reverse (for easy search)
+	if limit < 0 {
+		limit = l
+	}
+
 	for n < limit {
 		if 0 > i {
 			break
@@ -101,7 +106,6 @@ func (a *Alliance) GetLastJumps(limit int) []ifaces.ShipCoordData {
 		n++
 		i--
 	}
-	print("End of loop\n")
 
 	return jumps
 }
