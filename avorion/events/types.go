@@ -1,7 +1,7 @@
 package events
 
 import (
-	"AvorionControl/ifaces"
+	"avorioncontrol/ifaces"
 	"regexp"
 )
 

@@ -1,7 +1,7 @@
 package ifaces
 
 import (
-	"AvorionControl/logger"
+	"avorioncontrol/logger"
 	"net"
 )
 

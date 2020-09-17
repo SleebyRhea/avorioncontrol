@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"AvorionControl/ifaces"
+	"avorioncontrol/ifaces"
 	"regexp"
 
 	"github.com/bwmarrin/discordgo"

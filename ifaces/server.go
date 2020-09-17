@@ -1,7 +1,7 @@
 package ifaces
 
 import (
-	"AvorionControl/logger"
+	"avorioncontrol/logger"
 )
 
 // IGameServer describes an interface to a server with full capability

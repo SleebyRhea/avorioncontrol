@@ -1,7 +1,7 @@
 package ifaces
 
 import (
-	"AvorionControl/logger"
+	"avorioncontrol/logger"
 )
 
 // IConfigurator describes an interface to our configuration backend

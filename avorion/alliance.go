@@ -1,8 +1,8 @@
 package avorion
 
 import (
-	"AvorionControl/ifaces"
-	"AvorionControl/logger"
+	"avorioncontrol/ifaces"
+	"avorioncontrol/logger"
 	"fmt"
 	"time"
 )

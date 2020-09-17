@@ -1,11 +1,11 @@
 package main
 
 import (
-	"AvorionControl/avorion"
-	"AvorionControl/configuration"
-	"AvorionControl/discord"
-	"AvorionControl/ifaces"
-	"AvorionControl/logger"
+	"avorioncontrol/avorion"
+	"avorioncontrol/configuration"
+	"avorioncontrol/discord"
+	"avorioncontrol/ifaces"
+	"avorioncontrol/logger"
 	"flag"
 	"fmt"
 	"log"

@@ -1,8 +1,8 @@
 package configuration
 
 import (
-	"AvorionControl/ifaces"
-	"AvorionControl/logger"
+	"avorioncontrol/ifaces"
+	"avorioncontrol/logger"
 	"errors"
 	"fmt"
 	"math/rand"

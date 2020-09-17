@@ -1,10 +1,10 @@
 package avorion
 
 import (
-	"AvorionControl/avorion/events"
-	"AvorionControl/discord"
-	"AvorionControl/ifaces"
-	"AvorionControl/logger"
+	"avorioncontrol/avorion/events"
+	"avorioncontrol/discord"
+	"avorioncontrol/ifaces"
+	"avorioncontrol/logger"
 	"bufio"
 	"errors"
 	"fmt"

@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"AvorionControl/ifaces"
+	"avorioncontrol/ifaces"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"

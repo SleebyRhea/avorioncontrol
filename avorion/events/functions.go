@@ -1,6 +1,6 @@
 package events
 
-import "AvorionControl/ifaces"
+import "avorioncontrol/ifaces"
 
 // GetFromString returns a reference to a game event given a matching string
 func GetFromString(in string) *Event {

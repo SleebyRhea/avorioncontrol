@@ -1,7 +1,7 @@
 package ifaces
 
 import (
-	"AvorionControl/logger"
+	"avorioncontrol/logger"
 )
 
 // IAlliance describes a an IServer player alliance

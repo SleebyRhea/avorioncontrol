@@ -8,7 +8,7 @@
 package discord
 
 import (
-	"AvorionControl/ifaces"
+	"avorioncontrol/ifaces"
 	"fmt"
 	"log"
 	"regexp"
@@ -17,8 +17,8 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 
-	"AvorionControl/discord/commands"
-	"AvorionControl/logger"
+	"avorioncontrol/discord/commands"
+	"avorioncontrol/logger"
 )
 
 // Bot is an object representing a Discord bot

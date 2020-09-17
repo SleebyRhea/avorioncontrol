@@ -1,8 +1,8 @@
 package commands
 
 import (
-	"AvorionControl/ifaces"
-	"AvorionControl/logger"
+	"avorioncontrol/ifaces"
+	"avorioncontrol/logger"
 	"regexp"
 	"strconv"
 	"time"

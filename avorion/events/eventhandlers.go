@@ -1,8 +1,8 @@
 package events
 
 import (
-	"AvorionControl/ifaces"
-	"AvorionControl/logger"
+	"avorioncontrol/ifaces"
+	"avorioncontrol/logger"
 	"fmt"
 	"regexp"
 	"strconv"

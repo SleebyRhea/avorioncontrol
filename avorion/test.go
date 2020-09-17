@@ -1,6 +1,6 @@
 package avorion
 
-import "AvorionControl/ifaces"
+import "avorioncontrol/ifaces"
 
 func init() {
 	var _ ifaces.IPlayer = (*Player)(nil)
