@@ -5,8 +5,8 @@
 
   Emit ship jump and deletion events to stdout for players and alliances
 
-  License: WTFPL
-  Info: https://en.wikipedia.org/wiki/WTFPL
+  License: BSD-3-Clause
+  https://opensource.org/licenses/BSD-3-Clause
 
 ]]
 

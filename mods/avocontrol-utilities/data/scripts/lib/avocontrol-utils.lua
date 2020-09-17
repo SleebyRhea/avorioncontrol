@@ -7,8 +7,8 @@
   bot. Includes a number of helper functions including (most importantly) the 
   function used to grab and verify data from the Server() object.
 
-  License: WTFPL
-  Info: https://en.wikipedia.org/wiki/WTFPL
+  License: BSD-3-Clause
+  https://opensource.org/licenses/BSD-3-Clause
 
 ]]
 

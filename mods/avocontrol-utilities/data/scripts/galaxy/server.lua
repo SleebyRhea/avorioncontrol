@@ -8,8 +8,8 @@
   root directory. Also optionally (and by default) adds one or more
   turrets of your spefication to the email as an attachment.
 
-  License: WTFPL
-  Info: https://en.wikipedia.org/wiki/WTFPL
+  License: BSD-3-Clause
+  https://opensource.org/licenses/BSD-3-Clause
 
 ]]
 

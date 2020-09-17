@@ -5,8 +5,8 @@
   This lua script outputs information on the player and their
   current sector on login
 
-  License: WTFPL
-  Info: https://en.wikipedia.org/wiki/WTFPL
+  License: BSD-3-Clause
+  https://opensource.org/licenses/BSD-3-Clause
 
 ]]
 

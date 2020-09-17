@@ -5,8 +5,8 @@
 
   Sends a player, a list of players, or all players an email.
 
-  License: WTFPL
-  Info: https://en.wikipedia.org/wiki/WTFPL
+  License: BSD-3-Clause
+  https://opensource.org/licenses/BSD-3-Clause
 
 ]]
 

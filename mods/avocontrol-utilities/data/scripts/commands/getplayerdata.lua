@@ -17,8 +17,8 @@
   output differs from the bots regex definitions, player and alliance tracking
   will no longer function and will likely break other functionality.
 
-  License: WTFPL
-  Info: https://en.wikipedia.org/wiki/WTFPL
+  License: BSD-3-Clause
+  https://opensource.org/licenses/BSD-3-Clause
 
 ]]
 

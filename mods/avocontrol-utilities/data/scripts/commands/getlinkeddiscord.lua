@@ -7,8 +7,8 @@
   been linked. Otherwise, an empty string is returned. This command is for use
   by Admins and (more importantly) RCON.
 
-  License: WTFPL
-  Info: https://en.wikipedia.org/wiki/WTFPL
+  License: BSD-3-Clause
+  https://opensource.org/licenses/BSD-3-Clause
 
 ]]
 

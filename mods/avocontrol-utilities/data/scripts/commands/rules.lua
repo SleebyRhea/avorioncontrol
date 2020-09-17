@@ -5,8 +5,8 @@
   output the text found therein. Each newline corresponds to a *new* rule, so
   lines can be as long as you like.
 
-  License: WTFPL
-  Info: https://en.wikipedia.org/wiki/WTFPL
+  License: BSD-3-Clause
+  https://opensource.org/licenses/BSD-3-Clause
 ]]
 
 do

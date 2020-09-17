@@ -8,8 +8,8 @@
   their discord user to their Avorion user. If used by RCON, this command can
   be used to generate an Integration request for a given user.
 
-  License: WTFPL
-  Info: https://en.wikipedia.org/wiki/WTFPL
+  License: BSD-3-Clause
+  https://opensource.org/licenses/BSD-3-Clause
 
 ]]
 

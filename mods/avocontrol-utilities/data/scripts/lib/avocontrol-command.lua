@@ -6,8 +6,8 @@
   Library file for the command mods that AvorionControl utilizes. Adds a simple
   interface for creating a command, and parsing it's arguments.
 
-  License: WTFPL
-  Info: https://en.wikipedia.org/wiki/WTFPL
+  License: BSD-3-Clause
+  https://opensource.org/licenses/BSD-3-Clause
 
 ]]
 
