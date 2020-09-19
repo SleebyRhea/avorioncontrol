@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -27,14 +26,6 @@ type CommandRegistrar struct {
 	GuildID string
 
 	commands map[string]*CommandRegistrant
-
-	// Roles that are tied to specific levels of authorization
-	adminroles []string
-	modroles   []string
-
-	// The commands that are tied to specific levels of authorization
-	admincmds []string
-	modcmds   []string
 
 	// Implents logger.Loggable
 	loglevel int
@@ -137,34 +128,6 @@ func (reg *CommandRegistrar) Register(n, d, u string, a []CommandArgument,
 	return nil
 }
 
-// SetRoleAuth - Sets a given role to have a given authorization level
-//  @id string    The role ID to be set
-//  @lvl int      The authorization level to be used
-func (reg *CommandRegistrar) SetRoleAuth(id string, lvl int) error {
-	var roles *[]string
-
-	switch lvl {
-	case 0:
-		roles = &reg.adminroles
-	case 1:
-		roles = &reg.modroles
-	default:
-		return errors.New("Invalid authorization level supplied: " +
-			strconv.Itoa(lvl))
-	}
-
-	for _, r := range *roles {
-		if r == id {
-			return errors.New(
-				"Role ID was already added to that authorization level")
-		}
-	}
-
-	*roles = append(*roles, id)
-
-	return nil
-}
-
 // IsRegistered - Return true if the command is registered, false if its not
 //  @n string    Name of a command
 func (reg *CommandRegistrar) IsRegistered(n string) bool {
@@ -198,9 +161,6 @@ func (reg *CommandRegistrar) AllCommands() (_ int, cs []string) {
 //  @cmd string             Name of the command being checked
 //  @m *discordgo.Member    Pointer to the guild member that ran the command
 func (reg *CommandRegistrar) UserAuthorized(cmd string, m *discordgo.Member) bool {
-	if n := (len(reg.admincmds) + len(reg.modcmds)); n < 1 {
-		return true
-	}
 	return true
 }
 
