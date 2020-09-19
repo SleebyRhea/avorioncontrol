@@ -410,9 +410,9 @@ func (s *Server) SetLoglevel(l int) {
 	s.loglevel = l
 }
 
-/***************/
-/* Commandable */
-/***************/
+/***********************************/
+/* IFace ifaces.ICommandableServer */
+/***********************************/
 
 // RunCommand runs a command via rcon and returns the output
 //	TODO 1: Modify this to use the games rcon websocket interface or an rcon lib
