@@ -58,14 +58,10 @@ func (reg *CommandRegistrar) UUID() string {
 //  @gid string    ID string of the guild the CommandRegistrar belongs to
 func NewRegistrar(gid string, gs ifaces.IGameServer) *CommandRegistrar {
 	registrars[gid] = &CommandRegistrar{
-		GuildID:    gid,
-		commands:   make(map[string]*CommandRegistrant, 10),
-		adminroles: make([]string, 0),
-		modroles:   make([]string, 0),
-		admincmds:  make([]string, 0),
-		modcmds:    make([]string, 0),
-		server:     gs,
-		loglevel:   1}
+		GuildID:  gid,
+		commands: make(map[string]*CommandRegistrant, 10),
+		server:   gs,
+		loglevel: 1}
 
 	return registrars[gid]
 }
