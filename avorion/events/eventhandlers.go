@@ -67,7 +67,7 @@ func handleEventPlayerJoin(srv ifaces.IGameServer, e *Event, in string,
 
 	srv.SendChat(ifaces.ChatData{
 		Msg:  fmt.Sprintf("Player %s has logged in", m[1]),
-		Name: "Server"})
+		Name: "Avorion"})
 }
 
 func handleEventShipTrackInit(srv ifaces.IGameServer, e *Event, in string,
@@ -99,7 +99,7 @@ func handleEventPlayerLeft(srv ifaces.IGameServer, e *Event, in string,
 
 	srv.SendChat(ifaces.ChatData{
 		Msg:  fmt.Sprintf("Player %s has logged off", m[1]),
-		Name: "Server"})
+		Name: "Avorion"})
 
 	if p := srv.Player(m[2]); p != nil {
 		p.SetOnline(false)
