@@ -353,3 +353,29 @@ func (c *Conf) ChatChannel() string {
 func (c *Conf) ChatPipe() chan ifaces.ChatData {
 	return c.chatpipe
 }
+
+/**************************************/
+/* IFace ifaces.ICommandAuthenticator */
+/**************************************/
+
+// AddRoleAuth sets the role to have a given command authorization level
+func (c *Conf) AddRoleAuth(rID string, l int) {
+}
+
+// RemoveRoleAuth removes authorization for a role
+func (c *Conf) RemoveRoleAuth(rID string) error {
+	return nil
+}
+
+// AddCmndAuth sets the authorization level required for a given command
+func (c *Conf) AddCmndAuth(cmd string, l int) {
+}
+
+// GetCmndAuth gets the roles that are authorized to run the given command
+func (c *Conf) GetCmndAuth(rID string, l int) {
+}
+
+// RemoveCmndAuth removes a commands authorization requirements
+func (c *Conf) RemoveCmndAuth(rID string) error {
+	return nil
+}

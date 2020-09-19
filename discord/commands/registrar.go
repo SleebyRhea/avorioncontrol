@@ -23,15 +23,10 @@ func init() {
 //  TODO: Move away from separate structs for role authorization. Consider moving
 //  towards an int or int64 based approach
 type CommandRegistrar struct {
-	GuildID string
-
+	GuildID  string
 	commands map[string]*CommandRegistrant
-
-	// Implents logger.Loggable
 	loglevel int
-
-	// Gameserver
-	server ifaces.IGameServer
+	server   ifaces.IGameServer
 }
 
 // SetLoglevel - Set the current loglevel
@@ -102,8 +97,8 @@ func (reg *CommandRegistrar) Register(n, d, u string, a []CommandArgument,
 		exec:        f,
 		args:        a,
 		usage:       u,
-		registrar:   reg,
-		loglevel:    3}
+		loglevel:    3,
+		registrar:   reg}
 
 	// Add cmdlets to owners if strings containing command names are both
 	// supplied and valid

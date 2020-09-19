@@ -11,6 +11,7 @@ type IConfigurator interface {
 	IDiscordConfigurator
 	ICommandConfigurator
 	IGalaxyConfigurator
+	IAuthConfigurator
 	IGameConfigurator
 	ITimeConfigurator
 	IChatConfigurator
@@ -72,4 +73,14 @@ type IChatConfigurator interface {
 type ITimeConfigurator interface {
 	TimeZone() string
 	SetTimeZone(string) error
+}
+
+// IAuthConfigurator describes an interface to an authorization object
+type IAuthConfigurator interface {
+	AddRoleAuth(string, int)
+	RemoveRoleAuth(string) error
+
+	GetCmndAuth(string, int)
+	AddCmndAuth(string, int)
+	RemoveCmndAuth(string) error
 }
