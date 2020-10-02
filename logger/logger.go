@@ -25,7 +25,12 @@ const (
 	warnLevel    = 0
 )
 
+// var logger log.Logger
 var spf = fmt.Sprintf
+
+// func init() {
+// 	log.SetOutput(ioutil.Discard)
+// }
 
 // formatResponseCode return string formatting for the given response code
 func formatResponseHeader(r int, m string) string {
