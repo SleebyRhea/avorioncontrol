@@ -38,6 +38,7 @@ const (
 	defaultCommandPrefix      = "mention"
 
 	defaultTimeZone = "America/New_York"
+	defaultDBName   = "data.db"
 )
 
 var sprintf = fmt.Sprintf
@@ -56,6 +57,7 @@ type Conf struct {
 	// Logging
 	loglevel int
 	timezone string
+	dbname   string
 
 	// Avorion
 	galaxyname string
@@ -88,6 +90,7 @@ type Conf struct {
 func New() *Conf {
 	c := &Conf{
 		ConfigFile: defaultFile,
+		dbname:     defaultDBName,
 		galaxyname: defaultGalaxyName,
 
 		installdir: defaultServerInstallation,
@@ -337,7 +340,8 @@ func (c *Conf) SaveConfiguration() {
 		Core: yamlDataCore{
 			TimeZone: c.timezone,
 			LogLevel: c.loglevel,
-			LogDir:   c.logdir},
+			LogDir:   c.logdir,
+			DBName:   c.dbname},
 
 		Game: yamlDataGame{
 			GalaxyName: c.galaxyname,

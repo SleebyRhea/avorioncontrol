@@ -4,6 +4,7 @@ type yamlDataCore struct {
 	TimeZone string `yaml:"time_zone"`
 	LogLevel int    `yaml:"log_level"`
 	LogDir   string `yaml:"log_directory"`
+	DBName   string `yaml:"db_filename"`
 }
 
 type yamlDataGame struct {
