@@ -163,6 +163,14 @@ func (s *Server) Start(sendchat bool) error {
 		s.SendChat(startupmsg)
 	}
 
+	s.tracking, err = gamedb.OpenTrackingDB(fmt.Sprintf("%s/%s",
+		s.config.DataPath(), s.config.DBName()))
+	if err != nil {
+		return err
+	}
+
+	s.tracking.SetLoglevel(s.loglevel)
+
 	logger.LogInfo(s, "Syncing mods to data directory")
 	cp.Copy("./mods", s.config.DataPath()+"/mods")
 
@@ -195,12 +203,6 @@ func (s *Server) Start(sendchat bool) error {
 
 	logger.LogDebug(s, "Getting Stdout Pipe")
 	if s.stdout, err = s.Cmd.StdoutPipe(); err != nil {
-		return err
-	}
-
-	s.tracking, err = gamedb.OpenTrackingDB(fmt.Sprintf("%s/%s",
-		s.config.DataPath(), s.config.DBName()))
-	if err != nil {
 		return err
 	}
 
