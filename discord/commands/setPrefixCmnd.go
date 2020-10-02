@@ -38,6 +38,7 @@ func setprefixCmd(s *discordgo.Session, m *discordgo.MessageCreate,
 		msg = sprintf("Setting prefix to `%s`", a[1])
 	}
 
+	c.SaveConfiguration()
 	err := s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
 	return out, err
 }

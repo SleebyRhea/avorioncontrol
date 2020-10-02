@@ -44,6 +44,7 @@ func setaliasCmd(s *discordgo.Session, m *discordgo.MessageCreate,
 		return out, err
 	}
 
+	c.SaveConfiguration()
 	err = s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
 	return out, err
 }

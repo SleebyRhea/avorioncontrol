@@ -9,6 +9,7 @@ type ChatData struct {
 	Msg  string
 }
 
+// JumpInfo describes a ship jump
 type JumpInfo struct {
 	Jump *ShipCoordData
 	Name string

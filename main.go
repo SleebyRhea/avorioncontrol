@@ -30,15 +30,22 @@ var (
 )
 
 func init() {
-	flag.StringVar(&token, "t", "", "Bot token")
-	flag.StringVar(&prefix, "P", "", "Command prefix")
-	flag.BoolVar(&showhelp, "h", false, "Help text")
+	var configFile string
+	config = configuration.New()
+
 	flag.IntVar(&loglevel, "l", 0, "Log level")
+	flag.BoolVar(&showhelp, "h", false, "Show help text")
+	flag.StringVar(&token, "t", "", "Bot token")
+	flag.StringVar(&configFile, "c", "", "Configuration file")
 	flag.Parse()
 
-	config = configuration.New()
-	config.SetToken(token)
-	config.SetPrefix(prefix)
+	if configFile != "" {
+		config.ConfigFile = configFile
+	}
+
+	flag.Usage = func() {
+		flag.PrintDefaults()
+	}
 }
 
 // Core only exists for logging purposes, and contains no other state
@@ -67,16 +74,18 @@ func (c *Core) SetLoglevel(l int) {
 
 func main() {
 	if showhelp {
+		flag.Usage()
 		os.Exit(0)
 	}
 
+	config.LoadConfiguration()
+
+	if token != "" {
+		config.SetToken(token)
+	}
+
 	if config.Token() == "" {
-		fmt.Printf("%s. %s:\n1. %s\n2. %s\n3. %s\n",
-			"Please supply a token",
-			"You can use one of the following methods",
-			"Store the token in the environment variable [TOKEN]",
-			"Use the -t command switch",
-			"Supply a configuration file with said token")
+		fmt.Print("Please supply a token (see -h)\n")
 		os.Exit(1)
 	}
 
@@ -123,6 +132,7 @@ func main() {
 				}
 			}
 			server.SendChat(ifaces.ChatData{Msg: "Server is off"})
+			config.SaveConfiguration()
 			os.Exit(0)
 
 		case syscall.SIGUSR1:

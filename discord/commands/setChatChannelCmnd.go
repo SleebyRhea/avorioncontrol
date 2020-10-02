@@ -37,6 +37,7 @@ func setChatChannelCmnd(s *discordgo.Session, m *discordgo.MessageCreate,
 		logger.LogDebug(cmd, sprintf("Checking channel ID %s against %s", dch.ID, a[1]))
 		if dch.ID == a[1] && dch.Type == discordgo.ChannelTypeGuildText {
 			c.SetChatChannel(a[1])
+			c.SaveConfiguration()
 			err = s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
 			return "", err
 		}

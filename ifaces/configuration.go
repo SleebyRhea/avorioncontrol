@@ -15,6 +15,7 @@ type IConfigurator interface {
 	IGameConfigurator
 	ITimeConfigurator
 	IChatConfigurator
+	IConfigSaveLoader
 	logger.ILogger
 }
 
@@ -83,4 +84,11 @@ type IAuthConfigurator interface {
 	GetCmndAuth(string, int)
 	AddCmndAuth(string, int)
 	RemoveCmndAuth(string) error
+}
+
+// IConfigSaveLoader describes an interface to a an object that saves
+// and loads configuration
+type IConfigSaveLoader interface {
+	LoadConfiguration()
+	SaveConfiguration()
 }

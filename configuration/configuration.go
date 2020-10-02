@@ -5,16 +5,23 @@ import (
 	"avorioncontrol/logger"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
+
+	"gopkg.in/yaml.v2"
 )
 
 const (
+	// Conf
+	defaultFile = "config.yaml"
+
 	// Discord
 	defaultLoglevel    = 1
 	defaultBotsAllowed = false
-	defaultDiscordLink = "https://discord.gg/b5sqfy"
+	defaultDiscordLink = ""
 
 	// Avorion
 	defaultGamePort           = 27000
@@ -42,6 +49,9 @@ func init() {
 // Conf is a struct representing a server configuration
 type Conf struct {
 	BotMention func() string
+
+	// Conf
+	ConfigFile string
 
 	// Logging
 	loglevel int
@@ -77,6 +87,7 @@ type Conf struct {
 // New returns a new object representing our program configuration
 func New() *Conf {
 	c := &Conf{
+		ConfigFile: defaultFile,
 		galaxyname: defaultGalaxyName,
 
 		installdir: defaultServerInstallation,
@@ -94,7 +105,6 @@ func New() *Conf {
 
 		timezone:        defaultTimeZone,
 		aliasedCommands: make(map[string][]string)}
-	c.SetChatChannel("752162610350129222")
 	return c
 }
 
@@ -218,12 +228,149 @@ func (c *Conf) SetAliasCommand(r string, a string) error {
 	}
 
 	if c.aliasedCommands[r] == nil {
-		c.aliasedCommands[r] = make([]string, 10)
+		c.aliasedCommands[r] = make([]string, 0)
 	}
 
 	c.aliasedCommands[r] = append(c.aliasedCommands[r], a)
 	logger.LogInfo(c, sprintf("Added command alias: %s -> %s", a, r))
 	return nil
+}
+
+// LoadConfiguration loads the given configuration file
+func (c *Conf) LoadConfiguration() {
+	if _, err := os.Stat(c.ConfigFile); err != nil {
+		if os.IsNotExist(err) {
+			return
+		}
+
+		fmt.Printf("Configuration file %s cannot be read (%s)",
+			c.ConfigFile, err.Error())
+		fmt.Printf("Proceeding with defaults\n")
+		return
+	}
+
+	in, _ := ioutil.ReadFile(c.ConfigFile)
+	out := &yamlData{}
+	if err := yaml.Unmarshal(in, out); err != nil {
+		fmt.Printf("Configuration file %s is invalid:\n%s\n", c.ConfigFile,
+			err.Error())
+		os.Exit(1)
+	}
+
+	//TODO: Make this not a bunch of if statements
+	//TODO: Add configuration validation
+
+	if out.Core.LogDir != "" {
+		c.logdir = out.Core.LogDir
+	}
+
+	if out.Core.LogLevel != 0 {
+		c.SetLoglevel(out.Core.LogLevel)
+	}
+
+	if out.Core.TimeZone != "" {
+		c.SetTimeZone(out.Core.TimeZone)
+	}
+
+	if out.Game.DataDir != "" {
+		c.datadir = out.Game.DataDir
+	}
+
+	if out.Game.GalaxyName != "" {
+		c.galaxyname = out.Game.GalaxyName
+	}
+
+	if out.Game.GamePort != 0 {
+		c.gameport = out.Game.GamePort
+	}
+
+	if out.Game.InstallDir != "" {
+		c.installdir = out.Game.InstallDir
+	}
+
+	if out.Game.PingPort != 0 {
+		c.pingport = out.Game.PingPort
+	}
+
+	if out.RCON.Address != "" {
+		c.rconaddr = out.RCON.Address
+	}
+
+	if out.RCON.Binary != "" {
+		c.rconbin = out.RCON.Binary
+	}
+
+	if out.Discord.ChatChannel != "" {
+		logger.LogInfo(c, sprintf("Setting chat channel to: %s",
+			out.Discord.ChatChannel))
+		c.SetChatChannel(out.Discord.ChatChannel)
+	}
+
+	if len(out.Discord.AliasedCommands) > 0 {
+		c.aliasedCommands = out.Discord.AliasedCommands
+	}
+
+	if len(out.Discord.DisabledCommands) > 0 {
+		c.disabledCommands = out.Discord.DisabledCommands
+	}
+
+	if out.Discord.DiscordLink != "" {
+		c.discordLink = out.Discord.DiscordLink
+	}
+
+	if out.Discord.Prefix != "" {
+		c.SetPrefix(out.Discord.Prefix)
+	}
+
+	if out.Discord.Token != "" {
+		c.SetToken(out.Discord.Token)
+	}
+}
+
+// SaveConfiguration saves our current configuration to a yaml file
+func (c *Conf) SaveConfiguration() {
+	y := &yamlData{
+		Core: yamlDataCore{
+			TimeZone: c.timezone,
+			LogLevel: c.loglevel,
+			LogDir:   c.logdir},
+
+		Game: yamlDataGame{
+			GalaxyName: c.galaxyname,
+			InstallDir: c.installdir,
+			DataDir:    c.datadir,
+			GamePort:   c.gameport,
+			PingPort:   c.pingport},
+
+		RCON: yamlDataRCON{
+			Address: c.rconaddr,
+			Binary:  c.rconbin},
+
+		Discord: yamlDataDiscord{
+			ChatChannel:      c.chatchannel,
+			BotsAllowed:      c.botsallowed,
+			DiscordLink:      c.discordLink,
+			Prefix:           c.prefix,
+			Token:            c.token,
+			AliasedCommands:  c.aliasedCommands,
+			DisabledCommands: c.disabledCommands}}
+
+	if strings.HasPrefix(y.Discord.Prefix, "<@!") {
+		y.Discord.Prefix = "mention"
+	}
+
+	out, err := yaml.Marshal(y)
+	if err != nil {
+		logger.LogError(c, err.Error())
+		os.Exit(1)
+	}
+
+	if err := ioutil.WriteFile(c.ConfigFile, out, 0644); err != nil {
+		logger.LogError(c, err.Error())
+		os.Exit(1)
+	}
+
+	logger.LogInfo(c, "Saved configuration")
 }
 
 /*************************************/
@@ -341,6 +488,7 @@ func (c *Conf) SetChatChannel(id string) chan ifaces.ChatData {
 	}
 
 	c.chatpipe = make(chan ifaces.ChatData)
+	c.SaveConfiguration()
 	return c.chatpipe
 }
 

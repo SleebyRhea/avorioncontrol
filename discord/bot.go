@@ -96,7 +96,7 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 	}
 
 	// Default to a user mention as the prefix
-	if b.config.Prefix() == "" {
+	if b.config.Prefix() == "" || b.config.Prefix() == "mention" {
 		b.config.SetPrefix(fmt.Sprintf("<@!%s>", dg.State.User.ID))
 	}
 
@@ -242,7 +242,7 @@ func onGuildJoin(gid string, s *discordgo.Session, b *Bot,
 					s.ChannelMessageSend(b.config.ChatChannel(), msg)
 				}
 			default:
-				logger.LogInfo(b, "New channel selected")
+				time.Sleep(time.Second)
 			}
 		}
 	}()
