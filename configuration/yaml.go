@@ -27,6 +27,7 @@ type yamlDataDiscord struct {
 type yamlDataRCON struct {
 	Address string `yaml:"address"`
 	Binary  string `yaml:"binary"`
+	Port    int    `yaml:"port"`
 }
 
 type yamlData struct {

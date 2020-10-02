@@ -300,6 +300,10 @@ func (c *Conf) LoadConfiguration() {
 		c.rconbin = out.RCON.Binary
 	}
 
+	if out.RCON.Port != 0 {
+		c.rconport = out.RCON.Port
+	}
+
 	if out.Discord.ChatChannel != "" {
 		logger.LogInfo(c, sprintf("Setting chat channel to: %s",
 			out.Discord.ChatChannel))
@@ -344,7 +348,8 @@ func (c *Conf) SaveConfiguration() {
 
 		RCON: yamlDataRCON{
 			Address: c.rconaddr,
-			Binary:  c.rconbin},
+			Binary:  c.rconbin,
+			Port:    c.rconport},
 
 		Discord: yamlDataDiscord{
 			ChatChannel:      c.chatchannel,
