@@ -1,6 +1,7 @@
 package avorion
 
 import (
+	gamedb "avorioncontrol/avorion/database"
 	"avorioncontrol/avorion/events"
 	"avorioncontrol/discord"
 	"avorioncontrol/ifaces"
@@ -56,6 +57,7 @@ type Server struct {
 	players   []*Player
 	alliances []*Alliance
 	sectors   map[int]map[int]*ifaces.Sector
+	tracking  *gamedb.TrackingDB
 
 	// Config
 	configfile string
@@ -193,6 +195,12 @@ func (s *Server) Start(sendchat bool) error {
 
 	logger.LogDebug(s, "Getting Stdout Pipe")
 	if s.stdout, err = s.Cmd.StdoutPipe(); err != nil {
+		return err
+	}
+
+	s.tracking, err = gamedb.OpenTrackingDB(fmt.Sprintf("%s/%s",
+		s.config.DataPath(), s.config.DBName()))
+	if err != nil {
 		return err
 	}
 
@@ -710,6 +718,10 @@ func (s *Server) Sector(x, y int) *ifaces.Sector {
 			X: x, Y: y, Jumphistory: make([]*ifaces.JumpInfo, 0)}
 		logger.LogInfo(s, fmt.Sprintf("Tracking new sector: (%d:%d)",
 			x, y))
+
+		// TODO: This performs unnecessarily expensive DB calls here. Granted,
+		// that ONLY affects initilization, but it should still be optimized
+		s.tracking.TrackSector(s.sectors[x][y])
 	}
 
 	return s.sectors[x][y]

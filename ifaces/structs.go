@@ -33,5 +33,5 @@ type Sector struct {
 	Jumphistory []*JumpInfo
 
 	// database index
-	Index int
+	Index int64
 }

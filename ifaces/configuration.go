@@ -8,6 +8,7 @@ import (
 type IConfigurator interface {
 	Validate() error
 
+	IDatabaseConfigurator
 	IDiscordConfigurator
 	ICommandConfigurator
 	IGalaxyConfigurator
@@ -91,4 +92,9 @@ type IAuthConfigurator interface {
 type IConfigSaveLoader interface {
 	LoadConfiguration()
 	SaveConfiguration()
+}
+
+// IDatabaseConfigurator describes an interface to a db configurator
+type IDatabaseConfigurator interface {
+	DBName() string
 }

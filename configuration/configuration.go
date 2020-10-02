@@ -506,7 +506,6 @@ func (c *Conf) SetChatChannel(id string) chan ifaces.ChatData {
 	}
 
 	c.chatpipe = make(chan ifaces.ChatData)
-	c.SaveConfiguration()
 	return c.chatpipe
 }
 
@@ -544,4 +543,14 @@ func (c *Conf) GetCmndAuth(rID string, l int) {
 // RemoveCmndAuth removes a commands authorization requirements
 func (c *Conf) RemoveCmndAuth(rID string) error {
 	return nil
+}
+
+/**************************************/
+/* IFace ifaces.IDatabaseConfigurator */
+/**************************************/
+
+// DBName returns a string containing the filename of the DB that we
+// are using
+func (c *Conf) DBName() string {
+	return c.dbname
 }
