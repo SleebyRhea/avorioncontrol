@@ -3,19 +3,24 @@
   AvorionControl - data/scripts/commands/getplayerdata.lua
   -----------------------------
 
-  IMPORTANT: Bug reports with cases where this script was modified will be closed.
+  A reimplementation of the playerinfo command. While this does not
+  provide data on the players Steam64ID nor their IP address, this
+  command does have the ability to output data on every player and
+  alliance that currently exists in the game.
 
-  A reimplementation of the playerinfo command. While this does not provide data
-  on the players Steam64ID nor their IP address, this command does have the ability
-  to output data on every player and alliance that currently exists in the game.
+  More importantly than that though, this command exists primarily for
+  use by the manager object to have a command with a controllable regex
+  for matching against.
 
-  More importantly than that though, this command exists primarily for use by the
-  manager object to have a command with a controllable regex for matching against.
+  For users of this bot, do NOT modify this command unless you are 100%
+  sure that the output will not differ. If you do so, and this either
+  breaks or it's return output differs from the bots regex definitions,
+  player and alliance tracking will no longer function and will likely
+  break other functionality.
 
-  For users of this bot, do NOT modify this command unless you are 100% sure that
-  the output will not differ. If you do so, and this either breaks or it's return
-  output differs from the bots regex definitions, player and alliance tracking
-  will no longer function and will likely break other functionality.
+  IMPORTANT: As this script is critical to some of the functions of this
+  bot. As such, bug reports with cases where this script was modified
+  will be closed.
 
   License: BSD-3-Clause
   https://opensource.org/licenses/BSD-3-Clause
