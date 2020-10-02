@@ -206,6 +206,11 @@ func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
 		}
 	}
 
+	if c.CommandDisabled(cmd.Name()) {
+		_, err = invalidCmd(s, m, args, c)
+		return err
+	}
+
 	if cmd.exec == nil {
 		logger.LogWarning(cmd, "Can't execute (missing exec field)")
 		_, err = invalidCmd(s, m, args, c)
