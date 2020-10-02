@@ -207,7 +207,7 @@ func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
 	}
 
 	if c.CommandDisabled(cmd.Name()) {
-		_, err = invalidCmd(s, m, args, c)
+		_, err = disabledCmnd(s, m, args, c)
 		return err
 	}
 

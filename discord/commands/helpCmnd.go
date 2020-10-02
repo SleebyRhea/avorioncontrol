@@ -30,6 +30,12 @@ func helpCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 		return "", err
 	}
 
+	if c.CommandDisabled(maincmd.Name()) {
+		msg := sprintf("Command `%s` is not enabled", a[1])
+		_, err = s.ChannelMessageSend(m.ChannelID, msg)
+		return "", err
+	}
+
 	if c, cmdlets := maincmd.Subcommands(); c > 0 {
 		for _, cmd := range a[2:] {
 		cmdletloop:

@@ -21,6 +21,9 @@ func listCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	_, cmnds := reg.AllCommands()
 	for _, n := range cmnds {
 		cmd, _ := reg.Command(n)
+		if c.CommandDisabled(cmd.Name()) {
+			continue
+		}
 		msg = sprintf("%s\n%s - %s", msg, cmd.Name(), cmd.description)
 	}
 

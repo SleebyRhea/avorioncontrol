@@ -56,6 +56,15 @@ func unauthorizedCmd(s *discordgo.Session, m *discordgo.MessageCreate,
 	return out, err
 }
 
+// Default command used in cases where a command has been disabled
+func disabledCmnd(s *discordgo.Session, m *discordgo.MessageCreate,
+	a BotArgs, c ifaces.IConfigurator) (string, error) {
+	msg := sprintf("Command `%s` is not enabled", a[0])
+	out := sprintf("Unauthorized attempt to run command: ", a[0])
+	_, err := s.ChannelMessageSend(m.ChannelID, msg)
+	return out, err
+}
+
 // Command to be used when the command being created is intended to be used with
 // subcommands
 func proxySubCmnd(s *discordgo.Session, m *discordgo.MessageCreate,
