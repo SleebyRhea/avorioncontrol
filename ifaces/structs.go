@@ -31,4 +31,7 @@ type Sector struct {
 
 	// slice of pointers to player jumpdata structs
 	Jumphistory []*JumpInfo
+
+	// database index
+	Index int
 }
