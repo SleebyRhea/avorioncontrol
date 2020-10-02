@@ -275,6 +275,15 @@ func (c *Conf) LoadConfiguration() {
 		c.SetTimeZone(out.Core.TimeZone)
 	}
 
+	if out.Core.DBName != "" {
+		if strings.Contains(out.Core.DBName, "/") {
+			fmt.Printf("Invalid DBName %s (must be a string not a path)\n",
+				out.Core.DBName)
+			os.Exit(1)
+		}
+		c.dbname = out.Core.DBName
+	}
+
 	if out.Game.DataDir != "" {
 		c.datadir = out.Game.DataDir
 	}
