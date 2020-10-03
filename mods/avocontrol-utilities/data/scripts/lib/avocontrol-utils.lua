@@ -76,6 +76,12 @@ function FetchConfigData(prefix, wants)
     serverkey = "avorioncontrol:"..prefix..":"..k
     servervalue = server:getValue(serverkey)
 
+    if t == "boolean" then
+      if type(servervalue) == "number" then
+        servervalue = (servervalue > 0 and true or false)
+      end
+    end
+
     if type(t) == "function" then
       serverkey = t(serverkey)
     elseif type(servervalue) == t then
