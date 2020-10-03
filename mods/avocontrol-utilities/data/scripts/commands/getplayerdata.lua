@@ -46,7 +46,7 @@ table.insert(restypes, "avorion")
 command:AddFlag({
   short = "p",
   long  = "player",
-  usage = "[-p|--player] playerindex",
+  usage = "playerindex",
   help  = "Return data on specified player index",
   func  = function(arg)
     if type(command.data.players) == "nil" then
@@ -58,7 +58,7 @@ command:AddFlag({
 command:AddFlag({
   short = "a",
   long  = "alliance",
-  usage = "[-a|--alliance] allianceindex",
+  usage = "allianceindex",
   help  = "Return data on specified Alliance index",
   func  = function(arg)
     if type(command.data.alliances) == "nil" then

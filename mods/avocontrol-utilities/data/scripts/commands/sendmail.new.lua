@@ -38,7 +38,7 @@ local maildef = {
 
 
 command:AddFlag({
-  usage = "[-s|--sender]",
+  usage = "sender",
   short = "s",
   long  = "sender",
   help  = "Set the sender name for the mail",
@@ -48,7 +48,7 @@ command:AddFlag({
 
 
 command:AddFlag({
-  usage = "[-h|--header] header",
+  usage = "header",
   short = "i",
   long  = "player-index",
   help  = "Set the header to use for the mail",
@@ -58,7 +58,7 @@ command:AddFlag({
 
 
 command:AddFlag({
-  usage = "[-p|--player-name] name",
+  usage = "name",
   short = "p",
   long  = "player-name",
   help  = "Add a player to the list of recipients based on the name",
@@ -70,7 +70,7 @@ command:AddFlag({
 
 
 command:AddFlag({
-  usage = "[-p|--player-index] index",
+  usage = "index",
   short = "i",
   long  = "player-index",    
   help  = "Add a player to the list of recipients based on the index",
@@ -82,7 +82,7 @@ command:AddFlag({
 
 
 command:AddFlag({
-  usage = "[-b|--broadcast]",
+  usage = "",
   short = "b",
   long  = "broadcast",
   help  = "Send the email to all players",
@@ -91,7 +91,7 @@ command:AddFlag({
 
 
 command:AddFlag({
-  usage = "[-f|--file] filename",
+  usage = "filename",
   short = "f",
   long  = "file",
   help  = "Specify the file to use for the mail",
@@ -106,7 +106,7 @@ command:AddFlag({
 
 
 command:AddFlag({
-  usage = "[-r|--resource]",
+  usage = "name count",
   short = "r",
   long  = "resource",
   help  = "Set a resource to add to the mail",
