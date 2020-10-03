@@ -67,6 +67,7 @@ do
 
     table.insert(self.flags, {
       execute = d.func,
+      passed  = false,
       help    = d.help,
       long    = d.long,
       usage   = d.usage,
@@ -76,9 +77,26 @@ do
     return true
   end
 
+  -- Command.FlagPassed returns a boolean designating whether or not
+  --  a flag was passed to the command. The flag given must be a string
+  --  and can refer to either the long or shart version of the flag
+  --
+  -- Returns:
+  --  @1    Boolean
+  --  @2    Error
+  function Command.FlagPassed(self, flag)
+    for _, def in ipairs(self.flags) do
+      if def.short == flag then
+        return def.passed
+      end
+    end
 
-  -- Command.ParseFlags parses the arguments provided to the command using the
-  --  functions defined in the Command.argumnts list via Command.AddFlag
+    return false
+  end
+
+
+  -- Command.ParseFlags parses the arguments provided to the command 
+  --  using the functions defined in the Command.flags list via AddFlag
   --
   -- Returns:
   --  @1    Boolean (return status)
@@ -92,6 +110,7 @@ do
     end
    
     local cur     = false
+    local dump    = false
     local extra   = {}
     local handled = {}
 
@@ -101,16 +120,30 @@ do
       -- print((type(flag)~="nil" and flag or "nil") .. ":"
       --   .. (type(arg) ~= "nil" and arg or "nil"))
 
-      -- If flag is set, and its data is present, then it's been handled before
-      --  and we should specify this.
+      -- If flag is set, and its data is present, then it's been handled
+      --  before and we should specify this.
       if flag then
         if type(self.flags[flag].data) == "table" then
+          self.flags[flag].passed = true
           handled[flag] = true
         else
           handled[flag] = false
         end
 
         cur = flag
+        goto continue
+      end
+
+      -- If the -- switch is passed, then we stop processing arguments
+      --  and dump everything into the extra table. This also clears
+      --  said table to prepare for dumping 
+      if arg == "--" then
+        extra, dump = {}, true
+        goto continue
+      end
+
+      if dump then
+        table.insert(extra, arg)
         goto continue
       end
 

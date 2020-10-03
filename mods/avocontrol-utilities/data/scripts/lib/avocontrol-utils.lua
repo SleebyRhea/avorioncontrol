@@ -126,3 +126,18 @@ function FileSlurp(f)
   FILE = nil
   return d
 end
+
+
+-- FindPlayerByName returns a reference to a player given their username
+--
+-- Returns:
+--  @1    Player
+function FindPlayerByName(request_name, index)
+  for _, p in ipairs({Server():getPlayers()}) do
+    print("Found "..p.baseName)
+    if p.baseName == request_name then
+      return p
+    end
+  end
+  return nil
+end

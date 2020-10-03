@@ -1,0 +1,215 @@
+--[[
+
+  AvorionControl - data/scripts/commands/sendmail.lua
+  -----------------------------
+
+  Sends a player, a list of players, or all players an email.
+
+  License: BSD-3-Clause
+  https://opensource.org/licenses/BSD-3-Clause
+
+]]
+
+package.path = package.path .. ";data/scripts/lib/?.lua"
+include("stringutility")
+include("avocontrol-utils")
+
+local command           = include("avocontrol-command")
+command.name            = "sendmail"
+command.description     = "Send mail to a player, or set of players"
+
+local restypes   = {}
+table.insert(restypes, "iron")
+table.insert(restypes, "titanium")
+table.insert(restypes, "naonite")
+table.insert(restypes, "trinium")
+table.insert(restypes, "xanian")
+table.insert(restypes, "ogonite")
+table.insert(restypes, "avorion")
+
+local maildef = {
+  sender    = "Server",
+  header    = "",
+  rcpt      = {},
+  text      = "",
+  credits   = 0,
+  resources = {},
+}
+
+
+command:AddFlag({
+  usage = "[-s|--sender]",
+  short = "s",
+  long  = "sender",
+  help  = "Set the sender name for the mail",
+  func  = function(arg)
+    maildef.sender = arg
+  end})
+
+
+command:AddFlag({
+  usage = "[-h|--header] header",
+  short = "i",
+  long  = "player-index",
+  help  = "Set the header to use for the mail",
+  func  = function(arg)
+    maildef.header = arg
+  end})
+
+
+command:AddFlag({
+  usage = "[-p|--player-name] name",
+  short = "p",
+  long  = "player-name",
+  help  = "Add a player to the list of recipients based on the name",
+  func  = function(...)
+    for _, n in ipairs({...}) do
+      table.insert(maildef.rcpt, n)
+    end
+  end})
+
+
+command:AddFlag({
+  usage = "[-p|--player-index] index",
+  short = "i",
+  long  = "player-index",    
+  help  = "Add a player to the list of recipients based on the index",
+  func  = function(...)
+    for _, i in ipairs({...}) do
+      table.insert(maildef.rcpt, i)
+    end
+  end})
+
+
+command:AddFlag({
+  usage = "[-b|--broadcast]",
+  short = "b",
+  long  = "broadcast",
+  help  = "Send the email to all players",
+  func  = function(arg)
+  end})
+
+
+command:AddFlag({
+  usage = "[-f|--file] filename",
+  short = "f",
+  long  = "file",
+  help  = "Specify the file to use for the mail",
+  func  = function(arg)
+    local file = Server().folder.."/messages/"..arg
+    if FileExists(file) then
+      maildef.text = FileSlurp(file)
+      return
+    end
+    return file.." does not exist"
+  end})
+
+
+command:AddFlag({
+  usage = "[-r|--resource]",
+  short = "r",
+  long  = "resource",
+  help  = "Set a resource to add to the mail",
+  func  = function(res, cnt, ...)
+    if ... then
+      return "Too many inputs given"
+    end
+
+    if not type(res) == "string" then
+      return "Resource name ${r} is invalid"%_T % {r=tostring(res)}
+    end
+
+    res = string.lower(res)
+
+    if not restypes[res] then
+      return "Resource name ${r} is invalid"%_T % {r=tostring(res)}
+    end
+
+    if type(cnt) == "string" then
+      cnt = tonumber(cnt) or nil
+    end
+
+    if not cnt then
+      return "Please provide a valid amount for resource"..res
+    end
+
+    maildef.resources[res] = cnt
+  end})
+
+
+command:SetExecute(function(user, ...)
+  if not command:FlagPassed("file") then
+    maildef.text = table.concat({...}, " ")
+  end
+
+  if maildef.sender == "" or type(maildef.sender) == "nil" then
+    return 1, "", "Please supply a sender (or leave out the argument)"
+  end
+
+  if maildef.header == "" or type(maildef.header) == "nil" then
+    return 1, "", "Please supply a header"
+  end
+
+  if maildef.text == "" or type(maildef.text) == "nil" then
+    return 1, "", "Please supply a message body"
+  end
+
+  local out   = ""
+  local sent  = 0
+  local fail  = 0
+  local mail  = Mail()
+  local res   = maildef.resources
+  mail.text   = maildef.text
+  mail.sender = maildef.sender
+  mail.header = maildef.header
+  mail.money  = maildef.money
+
+  mail:setResources(
+    (res.iron     or 0),
+    (res.titanium or 0),
+    (res.naonite  or 0),
+    (res.trinium  or 0),
+    (res.xanion   or 0),
+    (res.ogonite  or 0),
+    (res.avorion  or 0))
+
+  -- If we're broadcasting, then we don't need to do anything else here
+  --  just send the email to all players.
+  if command:FlagPassed("broadcast") then
+    maildef.rcpt = {}
+    for _, p in ipairs({Server():getPlayers()}) do
+      p:addMail(mail)
+      sent = sent + 1
+    end
+    return 0, "Sent email ${n} players."%_T % {n=sent} , ""
+  end
+
+  -- If we aren't broadcasting, then we need to process the recipients
+  --  and map them to player objects
+  for _, p in ipairs(maildef.rcpt) do
+    if type(p) == "number" then
+      p = Player(p)
+    end
+
+    if type(p) ~= "userdata" then
+      p = FindPlayerByName(p)
+    end
+
+    if type(p) ~= "userdata" then
+      failed = failed + 1
+    else
+      p:addMail(mail)
+      sent = sent + 1
+    end
+  end
+
+  if sent > 0 then
+    out = out .. "Sent email ${n} players."%_T % {n=sent}
+  end
+
+  if fail > 0 then
+    out = out .. " Failed to send ${n} emails."%_T % {n=fail}
+  end
+
+  return 0, out , ""
+end)
