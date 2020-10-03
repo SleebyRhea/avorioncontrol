@@ -16,9 +16,8 @@ do
   include("avocontrol-utils")
 
   local unpack = (type(table.unpack) == "function" and table.unpack or _G.unpack)
-
-  local debug = (FetchConfigData("AvoDebug", {debug = "boolean"}).debug
-    or false)
+  local debug = (FetchConfigData("DEBUGMODE", {debug = "boolean"}).debug
+    or false)    
 
   local Command = {
     name        = "UnsetName",
@@ -45,6 +44,16 @@ do
 
     -- If no matches were found, return the argument but not the index
     return nil, arg
+  end
+
+  local function dbg(self, ...)
+    for _, s in ipairs({...}) do
+      print(self:Trace()..tostring(s))
+    end
+  end
+
+  if not debug then
+    dbg = function() end
   end
 
   -- Command.AddFlag adds an argument definition to the argument definition
@@ -87,7 +96,7 @@ do
   function Command.FlagPassed(self, flag)
     for _, def in ipairs(self.flags) do
       if def.short == flag or def.long == flag then
-        -- print("Found: "..flag.."("..tostring(def.passed)..")")
+        dbg(self, "Found: "..flag.."("..tostring(def.passed)..")")
         return def.passed
       end
     end
@@ -118,23 +127,20 @@ do
     for _, v in ipairs(input) do
       local flag, arg = validFlag(self, v)
 
-      -- print((type(flag)~="nil" and flag or "nil") .. ":"
-      --   .. (type(arg) ~= "nil" and arg or "nil"))
-
       -- If flag is set, and its data is present, then it's been handled
       --  before and we should specify this.
       if flag then
         self.flags[flag].passed = true
-        -- print("Flag passed: "..self.flags[flag].long)
+        dbg(self, "Flag passed: "..self.flags[flag].long)
 
         -- If the current argument is a flag, and that flag has already
         --  been handled, run our handler function for that flag and 
         --  flush the data
         if type(self.flags[flag].data) == "table" then
-          -- print(handled[flag])
-          -- print(cur.." "..flag)
+          dbg(self, "Handled?",handled[flag])
+          dbg(self, cur.." "..flag)
           if handled[flag] and flag == cur then
-            -- print("Running flag (extra passed): "..self.flags[flag].long)
+            dbg(self, "Running flag (extra passed): "..self.flags[flag].long)
             local err = self.flags[cur].execute(unpack(self.flags[cur].data))
             self.flags[cur].data = nil
             if err then
@@ -158,7 +164,7 @@ do
             unpack(self.flags[cur].data or {}))
           self.flags[cur].data = nil
           if err then
-            -- print(err)
+            dbg(self, err)
             return false, err
           end
           cur = false
@@ -175,7 +181,7 @@ do
       -- Assign any arguments that do not have a given flag to the extra table.
       --  These will be unpacked into the command.execute function
       if not cur and arg then
-        -- print("Adding argument to extra: "..arg)
+        dbg("Adding argument to extra: "..arg)
         table.insert(extra, arg)
         goto continue
       end
@@ -186,22 +192,23 @@ do
       end
 
       -- Add our argument data and set the to false to complete the input
-      -- print("Adding \""..arg.."\" to flag: "..self.flags[cur].long)
       if type(self.flags[cur].data) ~= "table" then
         self.flags[cur].data = {}
       end
 
       table.insert(self.flags[cur].data, arg)      
       handled[cur] = true
-      -- print("Added ${d} to flag ${f}"%_T % {
-      --   d=arg, f=self.flags[cur].long})
+
+      dbg(self, "Added ${d} to flag ${f}"%_T % {
+        d=arg,
+        f=self.flags[cur].long})
 
       ::continue::
     end
 
     for i, _ in ipairs(self.flags) do
       if type(self.flags[i].data) == "table" then
-        -- print("Running flag: "..self.flags[i].long)
+        dbg(self, "Running flag: "..self.flags[i].long)
         local err = self.flags[i].execute(unpack(self.flags[i].data))
         if type(err) ~= "nil" then
           return false, err
@@ -285,7 +292,7 @@ do
   -- Return:
   --  @1    String
   function Command.Trace(self)
-    return "avocontrol: command: "..self.name..": "
+    return "avocontrol-command: "..self.name..": "
   end
 
   local command = setmetatable({data = {}}, Command)
