@@ -18,8 +18,8 @@
   player and alliance tracking will no longer function and will likely
   break other functionality.
 
-  IMPORTANT: As this script is critical to some of the functions of this
-  bot. As such, bug reports with cases where this script was modified
+  IMPORTANT: This script is critical to some of the functions of this
+  bot bug reports, and as such cases where this script was modified
   will be closed.
 
   License: BSD-3-Clause
