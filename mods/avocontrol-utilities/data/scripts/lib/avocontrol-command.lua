@@ -11,6 +11,11 @@
   but for larger commands with multiple flags/switches it keeps command
   creation quite simple.
 
+  In addition to supporting flags (both short and long), this library
+  also provides support for a shell-like -- syntax, which forces all 
+  arguments given to a command *after* it is given to be passed directly
+  to the commands execute function (as defined by SetExecute).
+
   License: BSD-3-Clause
   https://opensource.org/licenses/BSD-3-Clause
 
