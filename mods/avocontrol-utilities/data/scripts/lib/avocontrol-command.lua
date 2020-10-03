@@ -27,7 +27,7 @@ do
 
   local unpack = (type(table.unpack) == "function" and table.unpack or _G.unpack)
   local debug = (FetchConfigData("DEBUGMODE", {debug = "boolean"}).debug
-    or false)    
+    or false)
 
   local Command = {
     name        = "UnsetName",
@@ -56,14 +56,20 @@ do
     return nil, arg
   end
 
-  local function dbg(self, ...)
+  -- Command.Debug prints the values passed to it when debug mode is
+  --  enabled. This method is an empty function when debug mode is
+  --  disabled.
+  --
+  -- Returns:
+  --  None
+  function Command.Debug(self, ...)
     for _, s in ipairs({...}) do
       print(self:Trace()..tostring(s))
     end
   end
 
   if not debug then
-    dbg = function() end
+    Command.Debug = function() end
   end
 
   -- Command.AddFlag adds an argument definition to the argument definition
@@ -106,7 +112,7 @@ do
   function Command.FlagPassed(self, flag)
     for _, def in ipairs(self.flags) do
       if def.short == flag or def.long == flag then
-        dbg(self, "Found: "..flag.."("..tostring(def.passed)..")")
+        self:Debug("Found: "..flag.."("..tostring(def.passed)..")")
         return def.passed
       end
     end
@@ -141,16 +147,16 @@ do
       --  before and we should specify this.
       if flag then
         self.flags[flag].passed = true
-        dbg(self, "Flag passed: "..self.flags[flag].long)
+        self:Debug("Flag passed: "..self.flags[flag].long)
 
         -- If the current argument is a flag, and that flag has already
         --  been handled, run our handler function for that flag and 
         --  flush the data
         if type(self.flags[flag].data) == "table" then
-          dbg(self, "Handled?",handled[flag])
-          dbg(self, cur.." "..flag)
+          self:Debug("Handled?",handled[flag])
+          self:Debug(cur.." "..flag)
           if handled[flag] and flag == cur then
-            dbg(self, "Running flag (extra passed): "..self.flags[flag].long)
+            self:Debug("Running flag (extra passed): "..self.flags[flag].long)
             local err = self.flags[cur].execute(unpack(self.flags[cur].data))
             self.flags[cur].data = nil
             if err then
@@ -174,7 +180,7 @@ do
             unpack(self.flags[cur].data or {}))
           self.flags[cur].data = nil
           if err then
-            dbg(self, err)
+            self:Debug(err)
             return false, err
           end
           cur = false
@@ -209,7 +215,7 @@ do
       table.insert(self.flags[cur].data, arg)      
       handled[cur] = true
 
-      dbg(self, "Added ${d} to flag ${f}"%_T % {
+      self:Debug("Added ${d} to flag ${f}"%_T % {
         d=arg,
         f=self.flags[cur].long})
 
@@ -218,7 +224,7 @@ do
 
     for i, _ in ipairs(self.flags) do
       if type(self.flags[i].data) == "table" then
-        dbg(self, "Running flag: "..self.flags[i].long)
+        self:Debug("Running flag: "..self.flags[i].long)
         local err = self.flags[i].execute(unpack(self.flags[i].data))
         if type(err) ~= "nil" then
           return false, err
