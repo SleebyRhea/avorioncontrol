@@ -76,7 +76,8 @@ command:AddFlag({
   short = "i",
   long  = "player-index",    
   help  = "Add a player to the list of recipients based on the index",
-  func  = function(arg)
+  func  = function(...)
+    local arg = table.concat({...}, ",")
     for m in string.gmatch(arg, "[^, ]+") do
       table.insert(maildef.ircpt, m)
     end
