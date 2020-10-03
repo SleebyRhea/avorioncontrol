@@ -242,10 +242,15 @@ do
   --  @1    String
   function Command.GetHelp(self)
     if #self.flags > 0 then
-      -- local output = "Example: /"..self.name.." [--parameter|-p] argument\n"
-      -- for i, v in self.flags do
-      --   output = 
-      -- end
+      local output = "Example: /"..self.name.." [--option|-o] <argument>\n\n"
+        .. "Options"
+      for i, f in ipairs(self.flags) do
+        output = "${o}\n  -${s} --${l}\n    ${h}"%_T % {
+          o=output,s=f.short,l=f.long,h=f.help}
+        output = "${o}\n    /${n} [-${s}|--${l}] ${u}\n"%_T % {
+          o=output,s=f.short,l=f.long,u=f.usage,n=self.name}
+      end
+      return output
     else
       return "Example: /"..self.name
     end
