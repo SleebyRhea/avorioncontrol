@@ -153,8 +153,7 @@ do
         --  been handled, run our handler function for that flag and 
         --  flush the data
         if type(self.flags[flag].data) == "table" then
-          self:Debug("Handled?",handled[flag])
-          self:Debug(cur.." "..flag)
+          self:Debug("Handled?",handled[flag], cur.." "..flag)
           if handled[flag] and flag == cur then
             self:Debug("Running flag (extra passed): "..self.flags[flag].long)
             local err = self.flags[cur].execute(unpack(self.flags[cur].data))
