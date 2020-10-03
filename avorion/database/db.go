@@ -5,6 +5,7 @@ import (
 	"avorioncontrol/logger"
 	"database/sql"
 	"fmt"
+	"strconv"
 	"time"
 
 	// Load sqlite3 driver
@@ -59,6 +60,7 @@ func (t *TrackingDB) Init() ([]*ifaces.Sector, error) {
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS "factions" (
 		"ID"     INTEGER PRIMARY KEY AUTOINCREMENT,
 		"NAME"   TEXT,
+		"KIND"	 INTEGER,
 		"GAMEID" INTEGER);`)
 	if err != nil {
 		return nil, err
@@ -86,7 +88,21 @@ func (t *TrackingDB) Init() ([]*ifaces.Sector, error) {
 
 	// Get all of the sectors that have been tracked
 	sectors := make([]*ifaces.Sector, 0)
+
+	// TODO: This is only here until the major server refactor is begun.
+	factions := make([]struct {
+		Index int64
+		Name  string
+		ID    int64
+		Kind  int
+	}, 0)
+
 	srows, err := db.Query(`select * from sectors;`)
+	if err != nil {
+		return nil, err
+	}
+
+	frows, err := db.Query(`select * from factions;`)
 	if err != nil {
 		return nil, err
 	}
@@ -98,13 +114,26 @@ func (t *TrackingDB) Init() ([]*ifaces.Sector, error) {
 		sectors = append(sectors, sec)
 	}
 
+	for frows.Next() {
+		f := struct {
+			Index int64
+			Name  string
+			ID    int64
+			Kind  int
+		}{}
+
+		frows.Scan(&f.Index, &f.Name, &f.Kind, &f.ID)
+		factions = append(factions, f)
+	}
+
 	srows.Close()
+	frows.Close()
 
 	var (
 		jumpid    int64
 		sectorid  int
 		factionid int
-		jumptime  int64
+		jumptime  float64
 		kind      int
 		name      string
 		count     int64
@@ -135,7 +164,7 @@ func (t *TrackingDB) Init() ([]*ifaces.Sector, error) {
 			}
 
 			j := &ifaces.JumpInfo{
-				Time: time.Unix(jumptime, 0),
+				Time: time.Unix(int64(jumptime), 0),
 				Name: name,
 				FID:  factionid,
 				X:    sec.X,
@@ -212,10 +241,7 @@ func (t *TrackingDB) TrackSector(sec *ifaces.Sector) error {
 
 	defer db.Close()
 
-	db.QueryRow(`SELECT ID
-		FROM	sectors
-		WHERE	"X" = "?"
-		AND		"Y" = "?"
+	db.QueryRow(`SELECT ID FROM sectors WHERE	"X" = "?" AND "Y" = "?"
 		LIMIT	1`, sec.X, sec.Y).Scan(&id)
 
 	if id != 0 {
@@ -241,6 +267,78 @@ func (t *TrackingDB) TrackSector(sec *ifaces.Sector) error {
 	row.Scan(&id)
 	sec.Index = id
 	logger.LogDebug(t, "TrackSector: Added sector to DB")
+
+	return nil
+}
+
+// TrackPlayer adds a player to the tracking DB
+func (t *TrackingDB) TrackPlayer(p ifaces.IPlayer) error {
+	db, err := sql.Open("sqlite3", t.dbpath)
+	if err != nil {
+		return err
+	}
+
+	defer db.Close()
+
+	var (
+		fid int64
+		tid int64
+
+		addQ = `INSERT INTO factions (NAME,KIND,GAMEID) VALUES (?,?,?);`
+		selQ = `SELECT ID FROM factions WHERE GAMEID=? LIMIT 1;`
+	)
+
+	fid, err = strconv.ParseInt(p.Index(), 10, 64)
+	if err != nil {
+		return err
+	}
+
+	row := db.QueryRow(selQ, fid)
+	row.Scan(&tid)
+	if row.Err() == nil {
+		return nil
+	}
+
+	_, err = db.Exec(addQ, p.Name(), 0, fid)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// TrackAlliance adds an alliance to the tracking DB
+func (t *TrackingDB) TrackAlliance(a ifaces.IAlliance) error {
+	db, err := sql.Open("sqlite3", t.dbpath)
+	if err != nil {
+		return err
+	}
+
+	defer db.Close()
+
+	var (
+		fid int64
+		tid int64
+
+		addQ = `INSERT INTO factions (NAME,KIND,GAMEID) VALUES (?,?,?);`
+		selQ = `SELECT ID FROM factions WHERE GAMEID=? LIMIT 1;`
+	)
+
+	fid, err = strconv.ParseInt(a.Index(), 10, 64)
+	if err != nil {
+		return err
+	}
+
+	row := db.QueryRow(selQ, fid)
+	row.Scan(&tid)
+	if row.Err() == nil {
+		return nil
+	}
+
+	_, err = db.Exec(addQ, a.Name(), 1, fid)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

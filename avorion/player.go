@@ -83,12 +83,16 @@ func (p *Player) AddJump(sc ifaces.ShipCoordData) {
 		p.jumphistory = p.jumphistory[1:]
 	}
 
+	fid64, _ := strconv.ParseInt(p.index, 10, 32)
+	fid := int(fid64)
+
 	sector := p.server.Sector(sc.X, sc.Y)
 
 	// Add a pointer to the players jump to the sector history for our usage
 	//	later on
 	jump := &ifaces.JumpInfo{
-		Name: p.Name(),
+		Name: sc.Name,
+		FID:  fid,
 		Kind: "player",
 		Time: sc.Time,
 		X:    sc.X,
@@ -205,4 +209,9 @@ func (p *Player) GetLastJumps(limit int) []ifaces.ShipCoordData {
 	}
 
 	return jumps
+}
+
+// SetJumpHistory sets the jump history for a player
+func (p *Player) SetJumpHistory([]ifaces.ShipCoordData) {
+
 }

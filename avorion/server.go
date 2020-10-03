@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"regexp"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -182,9 +183,6 @@ func (s *Server) Start(sendchat bool) error {
 		if _, ok := s.sectors[sec.X]; !ok {
 			s.sectors[sec.X] = make(map[int]*ifaces.Sector, 0)
 		}
-
-		logger.LogDebug(s, fmt.Sprintf("Loaded sector (%d_%d)",
-			sec.X, sec.Y))
 		s.sectors[sec.X][sec.Y] = sec
 	}
 
@@ -255,6 +253,35 @@ func (s *Server) Start(sendchat bool) error {
 		case <-ready:
 			logger.LogInit(s, "Server is online")
 			s.UpdatePlayerDatabase(false)
+
+			for _, x := range s.sectors {
+				for _, sec := range x {
+					for _, j := range sec.Jumphistory {
+						for _, p := range s.players {
+							if p.Index() == strconv.FormatInt(int64(j.FID), 10) {
+								p.jumphistory = append(p.jumphistory, ifaces.ShipCoordData{
+									X: j.X, Y: j.Y, Name: j.Name, Time: j.Time})
+							}
+						}
+
+						for _, a := range s.alliances {
+							if a.Index() == strconv.FormatInt(int64(j.FID), 10) {
+								a.jumphistory = append(a.jumphistory, ifaces.ShipCoordData{
+									X: j.X, Y: j.Y, Name: j.Name, Time: j.Time})
+							}
+						}
+					}
+				}
+			}
+
+			for _, p := range s.players {
+				sort.Sort(jumpsByTime(p.jumphistory))
+			}
+
+			for _, a := range s.alliances {
+				sort.Sort(jumpsByTime(a.jumphistory))
+			}
+
 			if sendchat {
 				s.SendChat(startupdone)
 			}
@@ -621,6 +648,7 @@ func (s *Server) NewPlayer(index string, d []string) ifaces.IPlayer {
 	copy(darr[:], d)
 	p.UpdateFromData(darr)
 	s.players = append(s.players, p)
+	s.tracking.TrackPlayer(p)
 	logger.LogInfo(p, "Registered player")
 	return p
 }
@@ -666,6 +694,7 @@ func (s *Server) NewAlliance(index string, d []string) ifaces.IAlliance {
 		loglevel:    s.Loglevel()}
 
 	s.alliances = append(s.alliances, a)
+	s.tracking.TrackAlliance(a)
 	logger.LogInfo(a, "Registered alliance")
 	return a
 }
@@ -890,4 +919,18 @@ func superviseAvorionOut(s *Server, ready chan struct{},
 			}
 		}
 	}
+}
+
+type jumpsByTime []ifaces.ShipCoordData
+
+func (t jumpsByTime) Len() int {
+	return len(t)
+}
+
+func (t jumpsByTime) Less(i, j int) bool {
+	return t[i].Time.Unix() < t[j].Time.Unix()
+}
+
+func (t jumpsByTime) Swap(i, j int) {
+	t[i], t[j] = t[j], t[i]
 }

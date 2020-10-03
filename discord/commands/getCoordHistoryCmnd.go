@@ -3,6 +3,7 @@ package commands
 import (
 	"avorioncontrol/ifaces"
 	"avorioncontrol/logger"
+	"errors"
 	"regexp"
 	"strconv"
 	"time"
@@ -92,11 +93,31 @@ func getCoordHistoryCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 	// TODO: This really should use an embed for paginated output
 	msg := "**Jump history search results:**\n```"
 	for _, j := range jumps {
+		var (
+			obj ifaces.IHaveShips
+		)
+
+		fid := strconv.FormatInt(int64(j.FID), 10)
+
 		tl := j.Time.In(loc)
 		t := sprintf("%d/%02d/%02d %02d:%02d:%02d", tl.Year(), tl.Month(), tl.Day(),
 			tl.Hour(), tl.Minute(), tl.Second())
+
+		if j.Kind == "player" {
+			if obj = reg.server.Player(fid); obj == nil {
+				return "", errors.New("Invalid ifaces.IHaveShips object")
+			}
+		} else if j.Kind == "alliance" {
+			if obj = reg.server.Alliance(fid); obj == nil {
+				return "", errors.New("Invalid ifaces.IHaveShips object")
+			}
+			return "", errors.New("Invalid ifaces.IHaveShips object")
+		} else {
+			return "", errors.New("Invalid ifaces.IHaveShips object")
+		}
+
 		suffix := sprintf("\n%s (%d:%d) %s/%s \"%s\"",
-			t, j.X, j.Y, j.Name, j.Kind, j.Name)
+			t, j.X, j.Y, obj.Name(), j.Kind, j.Name)
 		if len(suffix+msg) > 1900 {
 			msg = msg + "\n(truncated)"
 		} else {

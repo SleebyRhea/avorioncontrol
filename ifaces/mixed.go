@@ -4,4 +4,5 @@ package ifaces
 type IHaveShips interface {
 	Name() string
 	GetLastJumps(int) []ShipCoordData
+	SetJumpHistory([]ShipCoordData)
 }
