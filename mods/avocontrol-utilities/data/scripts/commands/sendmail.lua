@@ -36,8 +36,7 @@ local maildef = {
   ircpt     = {},
   nrcpt     = {},
   text      = "",
-  resources = {},
-}
+  resources = {}}
 
 command:AddFlag({
   usage = "sender",
