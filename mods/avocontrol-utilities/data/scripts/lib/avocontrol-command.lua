@@ -272,8 +272,6 @@ do
       for i, f in ipairs(self.flags) do
         output = "${o}\n  -${s} --${l}\n    ${h}"%_T % {
           o=output,s=f.short,l=f.long,h=f.help}
-        output = "${o}\n    /${n} [-${s}|--${l}] ${u}\n"%_T % {
-          o=output,s=f.short,l=f.long,u=f.usage,n=self.name}
       end
       return output
     else
