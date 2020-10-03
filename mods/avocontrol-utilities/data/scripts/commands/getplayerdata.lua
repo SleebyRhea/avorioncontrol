@@ -1,7 +1,7 @@
 --[[
 
   AvorionControl - data/scripts/commands/getplayerdata.lua
-  -----------------------------
+  --------------------------------------------------------
 
   A reimplementation of the playerinfo command. While this does not
   provide data on the players Steam64ID nor their IP address, this

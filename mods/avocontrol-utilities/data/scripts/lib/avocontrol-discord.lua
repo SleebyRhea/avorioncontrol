@@ -1,7 +1,7 @@
 --[[
 
   AvorionControl - data/scripts/lib/avocontrol-discord.lua
-  -----------------------------
+  --------------------------------------------------------
 
   Discord helper functions for Avorion
 

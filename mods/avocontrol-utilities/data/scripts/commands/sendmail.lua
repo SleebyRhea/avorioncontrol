@@ -1,7 +1,7 @@
 --[[
 
   AvorionControl - data/scripts/commands/sendmail.lua
-  -----------------------------
+  ---------------------------------------------------
 
   Sends a player, a list of players, or all players an email.
 
@@ -20,15 +20,15 @@ command.description = "Send mail to a player, or set of players"
 command.help        = "Use -- to signify the beginning of a message"
   .. " body (or just use -f)"
 
-local restypes = {}
-restypes["iron"]=true
-restypes["credits"]=true
-restypes["titanium"]=true
-restypes["naonite"]=true
-restypes["trinium"]=true
-restypes["xanian"]=true
-restypes["ogonite"]=true
-restypes["avorion"]=true
+local restypes       = {}
+restypes["iron"]     = true
+restypes["credits"]  = true
+restypes["titanium"] = true
+restypes["naonite"]  = true
+restypes["trinium"]  = true
+restypes["xanian"]   = true
+restypes["ogonite"]  = true
+restypes["avorion"]  = true
 
 local maildef = {
   sender    = "Server",

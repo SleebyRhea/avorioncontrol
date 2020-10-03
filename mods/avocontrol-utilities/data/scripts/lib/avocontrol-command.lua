@@ -1,7 +1,7 @@
 --[[
 
   AvorionControl - data/scripts/lib/avocontrol-command.lua
-  -----------------------------
+  --------------------------------------------------------
 
   Library file for the command mods that AvorionControl utilizes. Adds
   a simple interface for creating a command, and parsing it's arguments.

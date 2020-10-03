@@ -1,7 +1,7 @@
 --[[
 
   AvorionControl - data/scripts/galaxy/server.lua
-  -----------------------------
+  -----------------------------------------------
 
   Sends off an email to a newly joined player using either the defaults
   provided below, or via a WelcomeEmail.txt file located in the Server

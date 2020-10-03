@@ -1,7 +1,7 @@
 --[[
 
   AvorionControl - data/scripts/entity/avocontrol-shiptracker.lua
-  -----------------------------
+  ---------------------------------------------------------------
 
   Emit ship jump and deletion events to stdout for players and alliances
 

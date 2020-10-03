@@ -1,7 +1,7 @@
 --[[
 
   AvorionControl - data/scripts/commands/rules.lua
-  -----------------------------
+  ------------------------------------------------
 
   When invoked, this command will read from a file named "RulesList.txt"
   placed within the galaxy root (the output of Server().folder). The

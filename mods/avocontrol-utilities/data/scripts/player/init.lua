@@ -1,7 +1,8 @@
 --[[
 
   AvorionControl - data/scripts/player/init.lua
-  ---------------------------------
+  ---------------------------------------------
+
   This lua script outputs information on the player and their
   current sector on login
 
@@ -16,6 +17,8 @@ end
 
 -- This scripts modifies the intialization of a Player(), so we want to avoid
 -- modifying their scope as much as possible.
+--
+-- TODO: This script is quite old and needs a pretty thorough facelift
 do
   local player = Player()
   local sector = Sector()

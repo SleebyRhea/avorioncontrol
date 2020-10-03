@@ -1,7 +1,7 @@
 --[[
 
   AvorionControl - data/scripts/lib/avocontrol.utils.lua
-  -----------------------------
+  ------------------------------------------------------
 
   Library file for the script mods that are provided by the AvorionControl
   bot. Includes a number of helper functions including (most importantly) the 
