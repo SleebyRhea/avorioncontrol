@@ -68,7 +68,8 @@ func (t *TrackingDB) Init() error {
 		"SECTOR"    INTEGER,
 		"FACTION"   INTEGER,
 		"SHIP NAME"	TEXT,
-		"TIME"	    REAL);`)
+		"TIME"	    REAL,
+		"KIND"		  INTEGER);`)
 	if err != nil {
 		return err
 	}

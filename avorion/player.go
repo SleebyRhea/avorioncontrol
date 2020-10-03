@@ -5,6 +5,8 @@ import (
 	"avorioncontrol/logger"
 	"fmt"
 	"net"
+	"strconv"
+
 	"strings"
 	"time"
 )
@@ -92,6 +94,8 @@ func (p *Player) AddJump(sc ifaces.ShipCoordData) {
 
 	sector.Jumphistory = append(sector.Jumphistory, jump)
 
+	id, _ := strconv.Atoi(p.Index())
+	p.server.tracking.AddJump(sector.Index, int64(id), 0, *jump)
 	logger.LogDebug(p, "Updated jumphistory")
 }
 
