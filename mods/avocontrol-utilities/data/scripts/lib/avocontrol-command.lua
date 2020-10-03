@@ -86,7 +86,8 @@ do
   --  @2    Error
   function Command.FlagPassed(self, flag)
     for _, def in ipairs(self.flags) do
-      if def.short == flag then
+      if def.short == flag or def.long == flag then
+        -- print("Found: "..flag.."("..tostring(def.passed)..")")
         return def.passed
       end
     end
@@ -123,9 +124,23 @@ do
       -- If flag is set, and its data is present, then it's been handled
       --  before and we should specify this.
       if flag then
+        self.flags[flag].passed = true
+        print("Flag passed: "..self.flags[flag].long)
+
+        -- If the current argument is a flag, and that flag has already
+        --  been handled, run our handler function for that flag and 
+        --  flush the data
         if type(self.flags[flag].data) == "table" then
-          self.flags[flag].passed = true
-          handled[flag] = true
+          print(handled[flag])
+          print(cur.." "..flag)
+          if handled[flag] and flag == cur then
+            print("Running flag (extra passed): "..self.flags[flag].long)
+            local err = self.flags[cur].execute(unpack(self.flags[cur].data))
+            self.flags[cur].data = nil
+            if err then
+              return false, err
+            end
+          end
         else
           handled[flag] = false
         end
@@ -138,6 +153,16 @@ do
       --  and dump everything into the extra table. This also clears
       --  said table to prepare for dumping 
       if arg == "--" then
+        if cur then
+          local err = self.flags[cur].execute(
+            unpack(self.flags[cur].data or {}))
+          self.flags[cur].data = nil
+          if err then
+            print(err)
+            return false, err
+          end
+          cur = false
+        end
         extra, dump = {}, true
         goto continue
       end
@@ -150,7 +175,7 @@ do
       -- Assign any arguments that do not have a given flag to the extra table.
       --  These will be unpacked into the command.execute function
       if not cur and arg then
-        -- print("Adding argument to extra: "..arg)
+        print("Adding argument to extra: "..arg)
         table.insert(extra, arg)
         goto continue
       end
@@ -160,29 +185,27 @@ do
         return false, "Invalid argument supplied"
       end
 
-      -- If the current argument has already input, process its data and set its
-      --  handled value to false and reset the flag data table
-      if handled[cur] then
-        -- print("Running flag: "..self.flags[cur].long)
-        local err = self.flags[cur].execute(unpack(self.flags[cur].data))
-        self.flags[cur].data = nil
-        if err then
-          return false, err
-        end
-      end
-
       -- Add our argument data and set the to false to complete the input
       -- print("Adding \""..arg.."\" to flag: "..self.flags[cur].long)
-      self.flags[cur].data = {}
-      table.insert(self.flags[cur].data, arg)
-      cur = false
+      if type(self.flags[cur].data) ~= "table" then
+        self.flags[cur].data = {}
+      end
+
+      table.insert(self.flags[cur].data, arg)      
+      handled[cur] = true
+      print("Added ${d} to flag ${f}"%_T % {
+        d=arg, f=self.flags[cur].long})
 
       ::continue::
     end
 
     for i, _ in ipairs(self.flags) do
       if type(self.flags[i].data) == "table" then
-        self.flags[i].execute(unpack(self.flags[i].data))
+        print("Running flag: "..self.flags[i].long)
+        local err = self.flags[i].execute(unpack(self.flags[i].data))
+        if type(err) ~= "nil" then
+          return false, err
+        end
       end
     end
 
@@ -242,8 +265,10 @@ do
   --  @1    String
   function Command.GetHelp(self)
     if #self.flags > 0 then
-      local output = "Example: /"..self.name.." [--option|-o] <argument>\n\n"
-        .. "Options"
+      local output = "Example: /"..self.name.." [--option|-o] <argument>\n"
+        .. (self.description and "  "..self.description.."\n" or "")
+        .. (self.help and "  "..self.help.."\n" or "")
+        .. "\nOptions:"
       for i, f in ipairs(self.flags) do
         output = "${o}\n  -${s} --${l}\n    ${h}"%_T % {
           o=output,s=f.short,l=f.long,h=f.help}
