@@ -3,8 +3,13 @@
   AvorionControl - data/scripts/lib/avocontrol-command.lua
   -----------------------------
 
-  Library file for the command mods that AvorionControl utilizes. Adds a simple
-  interface for creating a command, and parsing it's arguments.
+  Library file for the command mods that AvorionControl utilizes. Adds
+  a simple interface for creating a command, and parsing it's arguments.
+
+  Upon sourcing, a valid Avorion command context is created and can be
+  executed successfully. This isn't really suitable for small commands,
+  but for larger commands with multiple flags/switches it keeps command
+  creation quite simple.
 
   License: BSD-3-Clause
   https://opensource.org/licenses/BSD-3-Clause
