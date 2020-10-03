@@ -125,16 +125,16 @@ do
       --  before and we should specify this.
       if flag then
         self.flags[flag].passed = true
-        print("Flag passed: "..self.flags[flag].long)
+        -- print("Flag passed: "..self.flags[flag].long)
 
         -- If the current argument is a flag, and that flag has already
         --  been handled, run our handler function for that flag and 
         --  flush the data
         if type(self.flags[flag].data) == "table" then
-          print(handled[flag])
-          print(cur.." "..flag)
+          -- print(handled[flag])
+          -- print(cur.." "..flag)
           if handled[flag] and flag == cur then
-            print("Running flag (extra passed): "..self.flags[flag].long)
+            -- print("Running flag (extra passed): "..self.flags[flag].long)
             local err = self.flags[cur].execute(unpack(self.flags[cur].data))
             self.flags[cur].data = nil
             if err then
@@ -158,7 +158,7 @@ do
             unpack(self.flags[cur].data or {}))
           self.flags[cur].data = nil
           if err then
-            print(err)
+            -- print(err)
             return false, err
           end
           cur = false
@@ -175,7 +175,7 @@ do
       -- Assign any arguments that do not have a given flag to the extra table.
       --  These will be unpacked into the command.execute function
       if not cur and arg then
-        print("Adding argument to extra: "..arg)
+        -- print("Adding argument to extra: "..arg)
         table.insert(extra, arg)
         goto continue
       end
@@ -193,15 +193,15 @@ do
 
       table.insert(self.flags[cur].data, arg)      
       handled[cur] = true
-      print("Added ${d} to flag ${f}"%_T % {
-        d=arg, f=self.flags[cur].long})
+      -- print("Added ${d} to flag ${f}"%_T % {
+      --   d=arg, f=self.flags[cur].long})
 
       ::continue::
     end
 
     for i, _ in ipairs(self.flags) do
       if type(self.flags[i].data) == "table" then
-        print("Running flag: "..self.flags[i].long)
+        -- print("Running flag: "..self.flags[i].long)
         local err = self.flags[i].execute(unpack(self.flags[i].data))
         if type(err) ~= "nil" then
           return false, err

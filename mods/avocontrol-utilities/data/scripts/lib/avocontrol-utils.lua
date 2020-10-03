@@ -134,7 +134,6 @@ end
 --  @1    Player
 function FindPlayerByName(request_name, index)
   for _, p in ipairs({Server():getPlayers()}) do
-    print("Found "..p.baseName)
     if p.baseName == request_name then
       return p
     end
