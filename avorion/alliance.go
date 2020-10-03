@@ -62,12 +62,14 @@ func (a *Alliance) AddJump(sc ifaces.ShipCoordData) {
 	jump := &ifaces.JumpInfo{
 		Name: a.Name(),
 		Kind: "alliance",
-		Jump: &sc}
+		Time: sc.Time,
+		X:    sc.X,
+		Y:    sc.Y}
 
 	s.Jumphistory = append(s.Jumphistory, jump)
 
 	id, _ := strconv.Atoi(a.Index())
-	a.server.tracking.AddJump(s.Index, int64(id), 0, *jump)
+	a.server.tracking.AddJump(s.Index, int64(id), 1, *jump)
 
 	logger.LogDebug(a, "Updated jumphistory")
 }

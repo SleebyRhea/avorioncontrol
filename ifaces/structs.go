@@ -11,9 +11,13 @@ type ChatData struct {
 
 // JumpInfo describes a ship jump
 type JumpInfo struct {
-	Jump *ShipCoordData
+	// Jump *ShipCoordData
+	Time time.Time
 	Name string
 	Kind string
+	FID  int
+	X    int
+	Y    int
 }
 
 // ShipCoordData describes a set of coords for a ship
@@ -26,12 +30,9 @@ type ShipCoordData struct {
 
 // Sector defines a sector in an Avorion galaxy
 type Sector struct {
-	X int
-	Y int
-
-	// slice of pointers to player jumpdata structs
-	Jumphistory []*JumpInfo
-
-	// database index
 	Index int64
+	X     int
+	Y     int
+
+	Jumphistory []*JumpInfo
 }

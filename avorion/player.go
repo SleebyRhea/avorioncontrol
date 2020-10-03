@@ -90,7 +90,9 @@ func (p *Player) AddJump(sc ifaces.ShipCoordData) {
 	jump := &ifaces.JumpInfo{
 		Name: p.Name(),
 		Kind: "player",
-		Jump: &sc}
+		Time: sc.Time,
+		X:    sc.X,
+		Y:    sc.Y}
 
 	sector.Jumphistory = append(sector.Jumphistory, jump)
 

@@ -137,7 +137,11 @@ func (s *Server) NotifyServer(in string) error {
 
 // Start starts the Avorion server process
 func (s *Server) Start(sendchat bool) error {
-	var err error
+	var (
+		sectors []*ifaces.Sector
+		err     error
+	)
+
 	defer func() { s.isstarting = false }()
 	s.isstarting = true
 
@@ -163,14 +167,28 @@ func (s *Server) Start(sendchat bool) error {
 		s.SendChat(startupmsg)
 	}
 
-	s.tracking, err = gamedb.OpenTrackingDB(fmt.Sprintf("%s/%s",
+	s.tracking, err = gamedb.New(fmt.Sprintf("%s/%s",
 		s.config.DataPath(), s.config.DBName()))
 	if err != nil {
 		return err
 	}
 
-	s.tracking.SetLoglevel(s.loglevel)
+	sectors, err = s.tracking.Init()
+	if err != nil {
+		return errors.New("GameDB: " + err.Error())
+	}
 
+	for _, sec := range sectors {
+		if _, ok := s.sectors[sec.X]; !ok {
+			s.sectors[sec.X] = make(map[int]*ifaces.Sector, 0)
+		}
+
+		logger.LogDebug(s, fmt.Sprintf("Loaded sector (%d_%d)",
+			sec.X, sec.Y))
+		s.sectors[sec.X][sec.Y] = sec
+	}
+
+	s.tracking.SetLoglevel(s.loglevel)
 	logger.LogInfo(s, "Syncing mods to data directory")
 	cp.Copy("./mods", s.config.DataPath()+"/mods")
 

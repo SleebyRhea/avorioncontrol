@@ -92,11 +92,11 @@ func getCoordHistoryCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 	// TODO: This really should use an embed for paginated output
 	msg := "**Jump history search results:**\n```"
 	for _, j := range jumps {
-		tl := j.Jump.Time.In(loc)
+		tl := j.Time.In(loc)
 		t := sprintf("%d/%02d/%02d %02d:%02d:%02d", tl.Year(), tl.Month(), tl.Day(),
 			tl.Hour(), tl.Minute(), tl.Second())
 		suffix := sprintf("\n%s (%d:%d) %s/%s \"%s\"",
-			t, j.Jump.X, j.Jump.Y, j.Name, j.Kind, j.Jump.Name)
+			t, j.X, j.Y, j.Name, j.Kind, j.Name)
 		if len(suffix+msg) > 1900 {
 			msg = msg + "\n(truncated)"
 		} else {

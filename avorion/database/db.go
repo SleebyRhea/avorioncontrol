@@ -5,9 +5,15 @@ import (
 	"avorioncontrol/logger"
 	"database/sql"
 	"fmt"
+	"time"
 
 	// Load sqlite3 driver
 	_ "github.com/mattn/go-sqlite3"
+)
+
+var (
+	factionKind = [3]string{
+		"player", "alliance", "npc"}
 )
 
 // TrackingDB describes a database of tracked playerdata
@@ -16,10 +22,10 @@ type TrackingDB struct {
 	loglevel int
 }
 
-// OpenTrackingDB returns a reference to a TrackingDB object given a
+// New returns a reference to a TrackingDB object given a
 //	valid path to a sqlite database (or a filepath to a file that doesn't
 //	exist)
-func OpenTrackingDB(file string) (*TrackingDB, error) {
+func New(file string) (*TrackingDB, error) {
 	var (
 		db  *sql.DB
 		err error
@@ -31,18 +37,13 @@ func OpenTrackingDB(file string) (*TrackingDB, error) {
 		return nil, err
 	}
 
-	db.Close()
-	if err = t.Init(); err != nil {
-		return nil, err
-	}
-
-	logger.LogInit(t, "Initialized Database")
+	defer db.Close()
 	return t, nil
 }
 
 // Init initializes a TrackingDB object provided it has been assigned
 //	a database file
-func (t *TrackingDB) Init() error {
+func (t *TrackingDB) Init() ([]*ifaces.Sector, error) {
 	var (
 		db  *sql.DB
 		err error
@@ -50,7 +51,7 @@ func (t *TrackingDB) Init() error {
 
 	db, err = sql.Open("sqlite3", t.dbpath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	defer db.Close()
@@ -60,7 +61,7 @@ func (t *TrackingDB) Init() error {
 		"NAME"   TEXT,
 		"GAMEID" INTEGER);`)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS "jumps" (
@@ -71,18 +72,93 @@ func (t *TrackingDB) Init() error {
 		"TIME"	    REAL,
 		"KIND"		  INTEGER);`)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS "sectors" (
 		"ID" INTEGER PRIMARY KEY AUTOINCREMENT,
 		"X"  INTEGER,
 		"Y"  INTEGER);`)
+
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	// Get all of the sectors that have been tracked
+	sectors := make([]*ifaces.Sector, 0)
+	srows, err := db.Query(`select * from sectors;`)
+	if err != nil {
+		return nil, err
+	}
+
+	for srows.Next() {
+		sec := &ifaces.Sector{
+			Jumphistory: make([]*ifaces.JumpInfo, 0)}
+		srows.Scan(&sec.Index, &sec.X, &sec.Y)
+		sectors = append(sectors, sec)
+	}
+
+	srows.Close()
+
+	var (
+		jumpid    int64
+		sectorid  int
+		factionid int
+		jumptime  int64
+		kind      int
+		name      string
+		count     int64
+	)
+
+	for _, sec := range sectors {
+		// Pull the last 100 jumps from the db for that sector
+		jrows, err := db.Query(`SELECT * FROM jumps WHERE SECTOR=?
+			ORDER BY rowid ASC LIMIT 100;`, sec.Index)
+
+		if err != nil {
+			return nil, err
+		}
+
+		count = 0
+
+		for jrows.Next() {
+			jrows.Scan(&jumpid, &sectorid, &factionid, &name, &jumptime, &kind)
+
+			if err = jrows.Err(); err != nil {
+				jrows.Close()
+				logger.LogError(t, err.Error())
+				return nil, err
+			}
+
+			if kind > len(factionKind) || kind < 0 {
+				kind = 3
+			}
+
+			j := &ifaces.JumpInfo{
+				Time: time.Unix(jumptime, 0),
+				Name: name,
+				FID:  factionid,
+				X:    sec.X,
+				Y:    sec.Y,
+				Kind: factionKind[kind]}
+
+			sec.Jumphistory = append(sec.Jumphistory, j)
+			count++
+		}
+
+		if err = jrows.Close(); err != nil {
+			logger.LogError(t, err.Error())
+		}
+
+		if err = jrows.Err(); err != nil {
+			return nil, err
+		}
+
+		logger.LogInit(t, fmt.Sprintf("Loaded sector %d (%d_%d), which had %d jumps",
+			sec.Index, sec.X, sec.Y, count))
+	}
+
+	return sectors, nil
 }
 
 // AddJump adds a jump to the tracking DB
@@ -111,7 +187,7 @@ func (t *TrackingDB) AddJump(si, fi, k int64, j ifaces.JumpInfo) error {
 
 	defer s.Close()
 
-	if _, err = s.Exec(si, fi, j.Jump.Time.Unix(), j.Jump.Name, k); err != nil {
+	if _, err = s.Exec(si, fi, j.Name, j.Time.Unix(), k); err != nil {
 		logger.LogError(t, fmt.Sprintf("AddJump: %s",
 			err.Error()))
 		return err
