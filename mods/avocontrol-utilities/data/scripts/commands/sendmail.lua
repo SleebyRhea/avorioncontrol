@@ -214,11 +214,11 @@ command:SetExecute(function(user, ...)
   end
 
   if sent > 0 then
-    out = out .. "Sent email ${n} players."%_T % {n=sent}
+    out = "${o}Sent email ${n} players."%_T % {o=out, n=sent}
   end
 
   if fail > 0 then
-    out = out .. " Failed to send ${n} emails."%_T % {n=fail}
+    out = "${o} Failed to send ${n} emails."%_T % {o=out, n=fail}
   end
 
   return 0, out , ""
