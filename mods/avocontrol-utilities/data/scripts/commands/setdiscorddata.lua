@@ -1,3 +1,16 @@
+--[[
+
+  AvorionControl - data/scripts/commands/setdiscorddata.lua
+  ---------------------------------------------------------
+
+  This command is for use by the bot, and is used to update the in-game
+  data regarding the bots status.
+
+  License: BSD-3-Clause
+  https://opensource.org/licenses/BSD-3-Clause
+
+]]
+
 package.path = package.path .. ";data/scripts/lib/?.lua"
 include("avocontrol-utils")
 
