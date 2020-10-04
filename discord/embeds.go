@@ -3,6 +3,7 @@ package discord
 import (
 	"avorioncontrol/ifaces"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -81,9 +82,9 @@ func generateEmbedStatus(s ifaces.ServerStatus, tz *time.Location) *discordgo.Me
 		onlineField = &discordgo.MessageEmbedField{}
 		onlineField.Inline = false
 		onlineField.Name = "Players Online"
-		onlineField.Value = "```"
-		onlineField.Value = fmt.Sprintf("%s%s", onlineField.Value, s.Players)
-		onlineField.Value = fmt.Sprintf("\n%s\n```", onlineField.Value)
+		plrs := strings.TrimSuffix(s.Players, "\n")
+		plrs = strings.TrimPrefix(plrs, "\n")
+		onlineField.Value = strings.ReplaceAll("\n"+plrs, "\n", "\n• ")
 		embed.Fields = append(embed.Fields, onlineField)
 	}
 
