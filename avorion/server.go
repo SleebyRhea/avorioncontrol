@@ -325,7 +325,7 @@ func (s *Server) Stop(sendchat bool) error {
 
 // Restart restarts the Avorion server
 func (s *Server) Restart() error {
-	defer func() { s.isrestarting = true }()
+	defer func() { s.isrestarting = false }()
 	s.isrestarting = true
 
 	if err := s.Stop(false); err != nil {
