@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	// Devel
@@ -73,6 +74,8 @@ func (c *Core) SetLoglevel(l int) {
 }
 
 func main() {
+	var wg sync.WaitGroup
+
 	if showhelp {
 		flag.Usage()
 		os.Exit(0)
@@ -90,10 +93,11 @@ func main() {
 	}
 
 	sc := make(chan os.Signal, 1)
+	exit := make(chan struct{})
 
 	core = &Core{loglevel: config.Loglevel()}
-	server = avorion.New(config)
-	disbot = discord.New(config)
+	server = avorion.New(config, &wg, exit)
+	disbot = discord.New(config, &wg, exit)
 
 	if err := config.Validate(); err != nil {
 		log.Fatal(err)
@@ -124,14 +128,8 @@ func main() {
 		switch sig {
 		case os.Interrupt, syscall.SIGTERM:
 			logger.LogInfo(core, "Caught termination signal. Gracefully stopping")
-			server.SendChat(ifaces.ChatData{Msg: "Shutting down server"})
-			if server.IsUp() {
-				if err := server.Stop(false); err != nil {
-					server.SendChat(ifaces.ChatData{Msg: "Server ran into an issue shutting down"})
-					log.Fatal(err)
-				}
-			}
-			server.SendChat(ifaces.ChatData{Msg: "Server is off"})
+			close(exit)
+			wg.Wait()
 			config.SaveConfiguration()
 			os.Exit(0)
 

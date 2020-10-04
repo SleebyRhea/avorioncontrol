@@ -28,6 +28,9 @@ type IDiscordConfigurator interface {
 	DiscordLink() string
 	SetDiscordLink(string)
 	SetBotsAllowed(bool)
+	StatusChannel() (string, bool)
+	SetStatusChannel(string)
+	StatusChannelClear() bool
 }
 
 // IGameConfigurator describes an interface to a games configuration

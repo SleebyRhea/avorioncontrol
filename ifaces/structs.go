@@ -36,3 +36,17 @@ type Sector struct {
 
 	Jumphistory []*JumpInfo
 }
+
+// ServerStatus is a struct that describes the current status of an
+//	AvorionServer
+type ServerStatus struct {
+	Name    string
+	Output  string
+	Players string
+
+	Status        int
+	TotalPlayers  int
+	PlayersOnline int
+	Alliances     int
+	Sectors       int
+}

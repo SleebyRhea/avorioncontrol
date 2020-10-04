@@ -23,6 +23,7 @@ type IServer interface {
 	IsUp() bool
 	Stop(bool) error
 	Start(bool) error
+	Status() ServerStatus
 	Restart() error
 	Config() IConfigurator
 
@@ -47,6 +48,9 @@ type IPlayableServer interface {
 	Alliance(string) IAlliance
 	Alliances() []IAlliance
 	NewAlliance(string, []string) IAlliance
+
+	AddPlayerOnline()
+	SubPlayerOnline()
 }
 
 // IVersionedServer describes an interface to an IGameserver's version information

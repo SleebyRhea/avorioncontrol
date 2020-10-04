@@ -135,6 +135,12 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 			arg("...", "The commands arguments")},
 		rconCmnd)
 
+	r.Register("status",
+		"Get the current server status",
+		"status",
+		make([]CommandArgument, 0),
+		statusCmnd)
+
 	r.Register("getjumps",
 		"Get the last n jumps for a player or alliance",
 		"getjumps <type> <max> <name>",

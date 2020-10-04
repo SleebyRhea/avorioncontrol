@@ -3,7 +3,6 @@ package events
 import (
 	"avorioncontrol/ifaces"
 	"avorioncontrol/logger"
-	"fmt"
 	"regexp"
 	"strconv"
 )
@@ -59,15 +58,14 @@ func handleEventPlayerJoin(srv ifaces.IGameServer, e *Event, in string,
 	m := e.Capture.FindStringSubmatch(in)
 	logger.LogOutput(srv, in)
 	if p := srv.Player(m[2]); p == nil {
-		srv.NewPlayer(m[2], m)
-	} else {
+		p = srv.NewPlayer(m[2], m)
 		p.SetOnline(true)
+	} else {
 		p.Update()
+		p.SetOnline(true)
 	}
 
-	srv.SendChat(ifaces.ChatData{
-		Msg:  fmt.Sprintf("Player %s has logged in", m[1]),
-		Name: "Avorion"})
+	srv.AddPlayerOnline()
 }
 
 func handleEventShipTrackInit(srv ifaces.IGameServer, e *Event, in string,
@@ -97,12 +95,9 @@ func handleEventPlayerLeft(srv ifaces.IGameServer, e *Event, in string,
 	m := e.Capture.FindStringSubmatch(in)
 	logger.LogOutput(srv, in)
 
-	srv.SendChat(ifaces.ChatData{
-		Msg:  fmt.Sprintf("Player %s has logged off", m[1]),
-		Name: "Avorion"})
-
 	if p := srv.Player(m[2]); p != nil {
 		p.SetOnline(false)
+		srv.SubPlayerOnline()
 		return
 	}
 

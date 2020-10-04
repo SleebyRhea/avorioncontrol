@@ -36,6 +36,7 @@ const (
 	defaultTimeDatabaseUpdate = time.Minute * 60
 	defaultTimeHangCheck      = time.Minute * 5
 	defaultCommandPrefix      = "mention"
+	defaultStatusClear        = false
 
 	defaultTimeZone = "America/New_York"
 	defaultDBName   = "data.db"
@@ -73,11 +74,13 @@ type Conf struct {
 	pingport int
 
 	// Discord
-	token       string
-	prefix      string
-	chatchannel string
-	discordLink string
-	botsallowed bool
+	token              string
+	prefix             string
+	statuschannel      string
+	chatchannel        string
+	discordLink        string
+	botsallowed        bool
+	statuschannelclear bool
 
 	aliasedCommands  map[string][]string
 	disabledCommands []string
@@ -105,6 +108,8 @@ func New() *Conf {
 		rconport: defaultRconPort,
 		gameport: defaultGamePort,
 		pingport: defaultGamePingPort,
+
+		statuschannelclear: defaultStatusClear,
 
 		timezone:        defaultTimeZone,
 		aliasedCommands: make(map[string][]string)}
@@ -317,9 +322,11 @@ func (c *Conf) LoadConfiguration() {
 	}
 
 	if out.Discord.ChatChannel != "" {
-		logger.LogInfo(c, sprintf("Setting chat channel to: %s",
-			out.Discord.ChatChannel))
 		c.SetChatChannel(out.Discord.ChatChannel)
+	}
+
+	if out.Discord.StatusChannel != "" {
+		c.SetStatusChannel(out.Discord.StatusChannel)
 	}
 
 	if len(out.Discord.AliasedCommands) > 0 {
@@ -340,6 +347,10 @@ func (c *Conf) LoadConfiguration() {
 
 	if out.Discord.Token != "" {
 		c.SetToken(out.Discord.Token)
+	}
+
+	if out.Discord.ClearStatusChannel {
+		c.statuschannelclear = true
 	}
 }
 
@@ -365,7 +376,10 @@ func (c *Conf) SaveConfiguration() {
 			Port:    c.rconport},
 
 		Discord: yamlDataDiscord{
+			ClearStatusChannel: c.statuschannelclear,
+
 			ChatChannel:      c.chatchannel,
+			StatusChannel:    c.statuschannel,
 			BotsAllowed:      c.botsallowed,
 			DiscordLink:      c.discordLink,
 			Prefix:           c.prefix,
@@ -438,6 +452,26 @@ func (c *Conf) Token() string {
 	return c.token
 }
 
+// SetStatusChannel sets the current status channel
+func (c *Conf) SetStatusChannel(id string) {
+	logger.LogInfo(c, sprintf("Setting status channel to: %s", id))
+	c.statuschannel = id
+}
+
+// StatusChannel returns the current status channel
+func (c *Conf) StatusChannel() (string, bool) {
+	if c.statuschannel != "" {
+		return c.statuschannel, true
+	}
+	return "", false
+}
+
+// StatusChannelClear returns whether or not the bot should clear
+//	our server status channel before posting
+func (c *Conf) StatusChannelClear() bool {
+	return c.statuschannelclear
+}
+
 /**********************************/
 /* IFace ifaces.IGameConfigurator */
 /**********************************/
@@ -504,6 +538,8 @@ func (c *Conf) SetChatChannel(id string) chan ifaces.ChatData {
 			close(c.chatpipe)
 		}
 	}
+
+	logger.LogInfo(c, sprintf("Setting chat channel to: %s", id))
 
 	c.chatpipe = make(chan ifaces.ChatData)
 	return c.chatpipe

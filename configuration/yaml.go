@@ -16,14 +16,17 @@ type yamlDataGame struct {
 }
 
 type yamlDataDiscord struct {
-	ChatChannel string `yaml:"channel"`
-	BotsAllowed bool   `yaml:"bots_allowed"`
-	DiscordLink string `yaml:"invite"`
-	Prefix      string `yaml:"prefix"`
-	Token       string `yaml:"token"`
+	BotsAllowed   bool   `yaml:"bots_allowed"`
+	ChatChannel   string `yaml:"channel"`
+	StatusChannel string `yaml:"status_channel"`
+	DiscordLink   string `yaml:"invite"`
+	Prefix        string `yaml:"prefix"`
+	Token         string `yaml:"token"`
 
 	AliasedCommands  map[string][]string `yaml:"aliased_commands"`
 	DisabledCommands []string            `yaml:"disabled_commands,flow"`
+
+	ClearStatusChannel bool `yaml:"status_channel_clear"`
 }
 
 type yamlDataRCON struct {

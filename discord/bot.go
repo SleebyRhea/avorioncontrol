@@ -13,6 +13,7 @@ import (
 	"log"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -32,7 +33,8 @@ type Bot struct {
 
 	// Close goroutines
 	close chan struct{}
-	stop  chan struct{}
+	exit  chan struct{}
+	wg    *sync.WaitGroup
 }
 
 /************************/
@@ -69,9 +71,11 @@ func (b *Bot) ChatPipe() chan ifaces.ChatData {
 }
 
 // New returns a new instance of discord.Bot
-func New(c ifaces.IConfigurator) *Bot {
+func New(c ifaces.IConfigurator, wg *sync.WaitGroup, exit chan struct{}) *Bot {
 	b := &Bot{
-		config: c}
+		config: c,
+		wg:     wg,
+		exit:   exit}
 	b.SetLoglevel(c.Loglevel())
 	return b
 }
@@ -83,7 +87,6 @@ func New(c ifaces.IConfigurator) *Bot {
 // Start initializes the discordgo backend
 func (b *Bot) Start(gs ifaces.IGameServer) {
 	logger.LogInit(b, "Initialized Discord bot")
-	defer logger.LogInfo(b, "Stopped Discord bot")
 	dg, err := discordgo.New("Bot " + b.config.Token())
 	if err != nil {
 		log.Fatal("error creating Discord session,", err)
@@ -199,6 +202,131 @@ func (b *Bot) Mention() string {
 	return b.session.State.User.String()
 }
 
+func (b *Bot) updateServerStatus(guild string, s *discordgo.Session,
+	gs ifaces.IGameServer) {
+	b.wg.Add(1)
+	defer b.wg.Done()
+
+	var (
+		ok              bool
+		cid             string
+		lastcid         string
+		laststatus      ifaces.ServerStatus
+		statusmessageid string
+	)
+
+	updatechan := func(stat ifaces.ServerStatus) {
+		_, err := s.Channel(cid)
+		if err != nil {
+			logger.LogError(b, "Discordgo: "+err.Error())
+			return
+		}
+
+		tz, err := time.LoadLocation(b.config.TimeZone())
+		if err != nil {
+			logger.LogError(b, "Failed to load timezone from config")
+			return
+		}
+
+		_, err = s.ChannelMessageEditEmbed(cid, statusmessageid,
+			generateEmbedStatus(gs.Status(), tz))
+		if err != nil {
+			logger.LogError(b, "Discordgo: "+err.Error())
+		}
+	}
+
+	setupchan := func(stat ifaces.ServerStatus, clear bool) {
+		cid, ok = b.config.StatusChannel()
+		if ok {
+			logger.LogInit(b, "Setting up server status on channel: "+cid)
+
+			if clear {
+				messages, err := s.ChannelMessages(cid, 100, "", "", "")
+				if err != nil {
+					logger.LogError(b, "Discordgo: "+err.Error())
+					return
+				}
+
+				messageids := make([]string, 0)
+				for _, m := range messages {
+					messageids = append(messageids, m.ID)
+				}
+				s.ChannelMessagesBulkDelete(cid, messageids)
+
+				if err != nil {
+					logger.LogError(b, "Discordgo: "+err.Error())
+					return
+				}
+			}
+
+			tz, err := time.LoadLocation(b.config.TimeZone())
+			if err != nil {
+				logger.LogError(b, "Failed to load timezone from config")
+				return
+			}
+
+			m, err := s.ChannelMessageSendEmbed(cid, generateEmbedStatus(
+				stat, tz))
+			if err != nil {
+				logger.LogError(b, "Discordgo: "+err.Error())
+				return
+			}
+
+			statusmessageid = m.ID
+			lastcid = cid
+		}
+	}
+
+	// TODO: Once autostart configuration is in place, we should modify
+	//	this so that it *doesnt* change the status to initializing
+	logger.LogInit(b, "Starting server updater for "+guild)
+	laststatus = gs.Status()
+	laststatus.Status = ifaces.ServerStarting
+	setupchan(laststatus, b.config.StatusChannelClear())
+
+	// Make sure that we change the embed to state that the server is
+	// offline when we exit
+	defer func() {
+		laststatus.Status = ifaces.ServerOffline
+		laststatus.PlayersOnline = 0
+		updatechan(laststatus)
+	}()
+
+	for {
+		select {
+		case <-b.exit:
+			laststatus.Status = ifaces.ServerStopping
+			updatechan(laststatus)
+			for gs.IsUp() {
+				time.Sleep(time.Second)
+			}
+			return
+
+		case <-time.After(time.Second * 5):
+			// No point in continuing if the server status hasn't changed
+			if stat := gs.Status(); stat == laststatus {
+				continue
+			} else {
+				logger.LogInfo(b, "Server status updated")
+				laststatus = stat
+			}
+
+			if cid, ok := b.config.StatusChannel(); ok {
+				if lastcid != cid {
+					setupchan(gs.Status(), b.config.StatusChannelClear())
+					continue
+				}
+
+				updatechan(laststatus)
+			}
+		}
+	}
+}
+
+/*********/
+/* OTHER */
+/*********/
+
 // onGuildJoin handler
 func onGuildJoin(gid string, s *discordgo.Session, b *Bot,
 	gs ifaces.IGameServer) {
@@ -208,8 +336,13 @@ func onGuildJoin(gid string, s *discordgo.Session, b *Bot,
 	commands.InitializeCommandRegistry(reg)
 
 	go func() {
-		defer logger.LogInfo(b, "Stopped bot chat supervisor")
 		logger.LogInit(b, "Started bot chat supervisor")
+		b.wg.Add(1)
+
+		defer func() {
+			b.wg.Done()
+			logger.LogInfo(b, "Stopped bot chat supervisor")
+		}()
 
 		for {
 			select {
@@ -241,17 +374,15 @@ func onGuildJoin(gid string, s *discordgo.Session, b *Bot,
 					}
 					s.ChannelMessageSend(b.config.ChatChannel(), msg)
 				}
+			case <-b.exit:
+				return
 			default:
 				time.Sleep(time.Second)
 			}
 		}
 	}()
 
-	go func() {
-		for {
-
-		}
-	}()
+	go b.updateServerStatus(gid, s, gs)
 
 	logger.LogDebug(reg, "Initialized new command registrar")
 }
