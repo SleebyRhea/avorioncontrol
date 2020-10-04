@@ -10,14 +10,16 @@ import (
 )
 
 var (
-	embedStatusStrings map[int]string
-	embedStatusColors  map[int]int
+	embedStatusStrings  map[int]string
+	embedStatusColors   map[int]int
+	configFieldTemplate string
+	galaxyFieldTemplate string
 )
 
 const (
 	authorName = "@SleepyFugu#3611"
 	authorIcon = "https://avatars2.githubusercontent.com/u/17704274?s=400&u=3897048ff3956501c2850214d235f5ac6520dd40&v=4"
-	authoURL   = "https://github.com/SleepyFugu"
+	authorURL  = "https://github.com/SleepyFugu"
 )
 
 func init() {
@@ -38,6 +40,27 @@ func init() {
 	embedStatusStrings[ifaces.ServerStopping] = "Stopping"
 	embedStatusStrings[ifaces.ServerCrashed] = "Crashed"
 	embedStatusStrings[ifaces.ServerRestarting] = "Re-Initializing"
+
+	configFieldTemplate = "> • **Seed**: _%s_\n" +
+		"> • **Difficulty**: _%s_\n" +
+		"> • **PVP**: _%s_\n" +
+		"> • **Block Limit**: _%d_\n" +
+		"> • **Volume Limit**: _%d_\n" +
+		"> \n" +
+		"> **_Players_**\n" +
+		"> • **Max Slots**: _%d_\n" +
+		"> • **Max Stations**: _%d_\n" +
+		"> • **Max Ships**: _%d_\n" +
+		"> \n" +
+		"> **_Alliances_**\n" +
+		"> • **Max Slots**: _%d_\n" +
+		"> • **Max Stations**: _%d_\n" +
+		"> • **Max Ships**: _%d_\n"
+
+	galaxyFieldTemplate = "> **Alliances**: _%d_\n" +
+		"> **Total Players**:  _%d_\n" +
+		"> \n" +
+		"> **Online Players**%s"
 }
 
 func generateEmbedStatus(s ifaces.ServerStatus, tz *time.Location) *discordgo.MessageEmbed {
@@ -45,8 +68,10 @@ func generateEmbedStatus(s ifaces.ServerStatus, tz *time.Location) *discordgo.Me
 		color       int
 		ok          bool
 		stat        string
-		informField *discordgo.MessageEmbedField
-		onlineField *discordgo.MessageEmbedField
+		plrs        string
+		statusField *discordgo.MessageEmbedField
+		configField *discordgo.MessageEmbedField
+		galaxyField *discordgo.MessageEmbedField
 	)
 
 	if color, ok = embedStatusColors[s.Status]; !ok {
@@ -58,35 +83,36 @@ func generateEmbedStatus(s ifaces.ServerStatus, tz *time.Location) *discordgo.Me
 	}
 
 	embed := discordgo.MessageEmbed{
-		Type:        discordgo.EmbedTypeRich,
-		Title:       "Current State",
-		Color:       color,
-		Timestamp:   time.Now().Format(time.RFC3339),
-		Description: stat,
-		Fields:      make([]*discordgo.MessageEmbedField, 0)}
+		Type:      discordgo.EmbedTypeRich,
+		Title:     "Current Server Status",
+		Color:     color,
+		Timestamp: time.Now().Format(time.RFC3339),
+		Fields:    make([]*discordgo.MessageEmbedField, 0)}
 
-	informField = &discordgo.MessageEmbedField{}
-	informField.Inline = false
-	informField.Name = "Galaxy Information"
-	informField.Value = "```"
-	informField.Value = fmt.Sprintf("%s\nTotal Players:   %d",
-		informField.Value, s.TotalPlayers)
-	informField.Value = fmt.Sprintf("%s\nTotal Alliances: %d",
-		informField.Value, s.Alliances)
-	informField.Value = fmt.Sprintf("%s\nOnline Players:  %d",
-		informField.Value, s.PlayersOnline)
-	informField.Value = fmt.Sprintf("%s\n```", informField.Value)
-	embed.Fields = append(embed.Fields, informField)
+	statusField = &discordgo.MessageEmbedField{
+		Inline: false, Value: stat, Name: "State"}
+
+	configField = &discordgo.MessageEmbedField{
+		Inline: true, Name: "Configuration", Value: configFieldTemplate}
+
+	configField.Value = fmt.Sprintf(configField.Value, "Value", "Insane",
+		"disabled", 15000, 3000000000, 1000, 10, 10, 1000, 10, 10)
 
 	if s.PlayersOnline > 0 {
-		onlineField = &discordgo.MessageEmbedField{}
-		onlineField.Inline = false
-		onlineField.Name = "Players Online"
-		plrs := strings.TrimSuffix(s.Players, "\n")
+		plrs = strings.TrimSuffix(s.Players, "\n")
 		plrs = strings.TrimPrefix(plrs, "\n")
-		onlineField.Value = strings.ReplaceAll("\n"+plrs, "\n", "\n• ")
-		embed.Fields = append(embed.Fields, onlineField)
+		plrs = strings.ReplaceAll("\n"+plrs, "\n", "\n> • ")
+	} else {
+		plrs = "\n> _No players online_"
 	}
 
+	galaxyField = &discordgo.MessageEmbedField{
+		Inline: true, Name: "Galaxy Information", Value: galaxyFieldTemplate}
+
+	galaxyField.Value = fmt.Sprintf(galaxyField.Value, s.Alliances,
+		s.TotalPlayers, plrs)
+
+	embed.Fields = append(embed.Fields, statusField, configField,
+		galaxyField)
 	return &embed
 }
