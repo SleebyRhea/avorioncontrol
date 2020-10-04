@@ -21,7 +21,6 @@ function AvorionControlShipTracker.initialize()
   local ship = Entity()
   local x, y = Sector():getCoordinates()
   index = Uuid(ship.index).number
-  ship:registerCallback("onDestroyed", "onDestroyed")
   print("shipTrackInitEvent: ${oi} ${x}:${y} ${sn}"%_T % {
     oi=ship.factionIndex, x=x, y=y, sn=ship.name})
 end
