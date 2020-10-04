@@ -88,7 +88,7 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 
 	// Debug Commands
 	r.Register("ping",
-		"Get a \"Pong!\" respons",
+		"Get a \"Pong!\" response",
 		"ping",
 		make([]CommandArgument, 0),
 		pingCmd)
