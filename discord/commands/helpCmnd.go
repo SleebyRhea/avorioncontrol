@@ -20,8 +20,7 @@ func helpCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	}
 
 	if len(a[1:]) < 1 {
-		_, err = s.ChannelMessageSend(m.ChannelID, "Please provide a command")
-		return "", err
+		return listCmd(s, m, a, c)
 	}
 
 	if maincmd, err = reg.Command(a[1]); err != nil {
