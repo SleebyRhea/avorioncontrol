@@ -15,7 +15,7 @@
 
 do
   local __old_path = package.path
-  local __mailfile = Server().folder .. "/WelcomeEmail.txt",
+  local __mailfile = Server().folder .. "/WelcomeEmail.txt"
   local vanilla_initialize = initialize
   local vanilla_onPlayerCreated = onPlayerCreated
 
