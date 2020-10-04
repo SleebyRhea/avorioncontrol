@@ -164,6 +164,12 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 		make([]CommandArgument, 0),
 		getPlayersCmnd)
 
+	r.Register("reload",
+		"Reloads the active configuration from our config file",
+		"reload",
+		make([]CommandArgument, 0),
+		reloadConfigCmnd)
+
 	r.Register("setchatchannel",
 		"Sets the channel to output server chat into",
 		"setchatchannel channelid",

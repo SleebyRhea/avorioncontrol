@@ -345,7 +345,8 @@ func (c *Conf) LoadConfiguration() {
 		c.SetPrefix(out.Discord.Prefix)
 	}
 
-	if out.Discord.Token != "" {
+	// Prevent reloading the token
+	if c.token != "" && out.Discord.Token != "" {
 		c.SetToken(out.Discord.Token)
 	}
 
