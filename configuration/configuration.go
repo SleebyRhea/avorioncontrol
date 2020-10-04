@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-ini/ini"
+
 	"gopkg.in/yaml.v2"
 )
 
@@ -65,6 +67,7 @@ type Conf struct {
 	installdir string
 	datadir    string
 	logdir     string
+	gameconfig *ifaces.ServerGameConfig
 
 	rconbin  string
 	rconpass string
@@ -346,7 +349,7 @@ func (c *Conf) LoadConfiguration() {
 	}
 
 	// Prevent reloading the token
-	if c.token != "" && out.Discord.Token != "" {
+	if c.token == "" && out.Discord.Token != "" {
 		c.SetToken(out.Discord.Token)
 	}
 
@@ -590,4 +593,45 @@ func (c *Conf) RemoveCmndAuth(rID string) error {
 // are using
 func (c *Conf) DBName() string {
 	return c.dbname
+}
+
+/**********************************/
+/* IFace ifaces.IGameConfigLoader */
+/**********************************/
+
+// LoadGameConfig loads the server.ini file from the current game path
+func (c *Conf) LoadGameConfig() error {
+	var gcfg = &ifaces.ServerGameConfig{}
+	cfg, err := ini.Load(c.datadir + "/" + c.galaxyname + "/server.ini")
+	if err != nil {
+		logger.LogError(c, "Failed to load game ini: "+err.Error())
+		return err
+	}
+
+	section := cfg.Section("Game")
+	gcfg.Name = cfg.Section("Administration").Key("name").MustString("Avorion Server")
+	gcfg.Collision = section.Key("CollisionDamage").MustString("1")
+	gcfg.Version = section.Key("Version").MustString("1")
+	gcfg.PVP = section.Key("PlayerToPlayerDamage").MustBool()
+	gcfg.Seed = section.Key("Seed").MustString("Invalid")
+	gcfg.Difficulty = section.Key("Difficulty").MustInt()
+	gcfg.BlockLimit = section.Key("MaximumBlocksPerCraft").MustInt64()
+	gcfg.VolumeLimit = section.Key("MaximumVolumePerShip").MustInt64()
+	gcfg.MaxPlayerShips = section.Key("MaximumPlayerShips").MustInt64()
+	gcfg.MaxPlayerSlots = section.Key("PlayerInventorySlots").MustInt64()
+	gcfg.MaxPlayerStations = section.Key("MaximumPlayerStations").MustInt64()
+	gcfg.MaxAllianceSlots = section.Key("AllianceInventorySlots").MustInt64()
+	gcfg.MaxAllianceShips = section.Key("MaximumAllianceShips").MustInt64()
+	gcfg.MaxAllianceStations = section.Key("MaximumAllianceStations").MustInt64()
+	c.gameconfig = gcfg
+	logger.LogInit(c, "Loaded server.ini")
+	return nil
+}
+
+// GameConfig returns the loaded server.ini object
+func (c *Conf) GameConfig() (*ifaces.ServerGameConfig, bool) {
+	if c.gameconfig != nil {
+		return c.gameconfig, true
+	}
+	return nil, false
 }

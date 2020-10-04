@@ -10,10 +10,11 @@ import (
 )
 
 var (
-	embedStatusStrings  map[int]string
-	embedStatusColors   map[int]int
-	configFieldTemplate string
-	galaxyFieldTemplate string
+	embedStatusStrings     map[int]string
+	embedStatusColors      map[int]int
+	galaxyFieldTemplate    string
+	configOneFieldTemplate string
+	configTwoFieldTemplate string
 )
 
 const (
@@ -41,13 +42,17 @@ func init() {
 	embedStatusStrings[ifaces.ServerCrashed] = "Crashed"
 	embedStatusStrings[ifaces.ServerRestarting] = "Re-Initializing"
 
-	configFieldTemplate = "> • **Seed**: _%s_\n" +
-		"> • **Difficulty**: _%s_\n" +
-		"> • **PVP**: _%s_\n" +
-		"> • **Block Limit**: _%d_\n" +
-		"> • **Volume Limit**: _%d_\n" +
+	configOneFieldTemplate = "> • **Version**: _%s_\n" +
+		"> • **Seed**: _%s_\n" +
 		"> \n" +
-		"> **_Players_**\n" +
+		"> • **Difficulty**: _%s_\n" +
+		"> • **Collision**: _%s_\n" +
+		"> • **PVP**: _%s_\n" +
+		"> \n" +
+		"> • **Block Limit**: _%d_\n" +
+		"> • **Volume Limit**: _%d_\n"
+
+	configTwoFieldTemplate = "> **_Players_**\n" +
 		"> • **Max Slots**: _%d_\n" +
 		"> • **Max Stations**: _%d_\n" +
 		"> • **Max Ships**: _%d_\n" +
@@ -65,13 +70,30 @@ func init() {
 
 func generateEmbedStatus(s ifaces.ServerStatus, tz *time.Location) *discordgo.MessageEmbed {
 	var (
-		color       int
-		ok          bool
-		stat        string
-		plrs        string
-		statusField *discordgo.MessageEmbedField
-		configField *discordgo.MessageEmbedField
-		galaxyField *discordgo.MessageEmbedField
+		color          int
+		ok             bool
+		stat           string
+		plrs           string
+		statusField    *discordgo.MessageEmbedField
+		galaxyField    *discordgo.MessageEmbedField
+		configOneField *discordgo.MessageEmbedField
+		configTwoField *discordgo.MessageEmbedField
+
+		version      = "1"
+		collision    = "1"
+		name         = "Avorion Server"
+		pvp          = true
+		pvpString    = "Enabled"
+		seed         = ""
+		difLevel     = 0
+		blkLimit     = int64(0)
+		volLimit     = int64(0)
+		pMaxSlots    = int64(0)
+		pMaxShips    = int64(0)
+		pMaxStations = int64(0)
+		aMaxSlots    = int64(0)
+		aMaxShips    = int64(0)
+		aMaxStations = int64(0)
 	)
 
 	if color, ok = embedStatusColors[s.Status]; !ok {
@@ -84,7 +106,6 @@ func generateEmbedStatus(s ifaces.ServerStatus, tz *time.Location) *discordgo.Me
 
 	embed := discordgo.MessageEmbed{
 		Type:      discordgo.EmbedTypeRich,
-		Title:     "Current Server Status",
 		Color:     color,
 		Timestamp: time.Now().Format(time.RFC3339),
 		Fields:    make([]*discordgo.MessageEmbedField, 0)}
@@ -92,11 +113,41 @@ func generateEmbedStatus(s ifaces.ServerStatus, tz *time.Location) *discordgo.Me
 	statusField = &discordgo.MessageEmbedField{
 		Inline: false, Value: stat, Name: "State"}
 
-	configField = &discordgo.MessageEmbedField{
-		Inline: true, Name: "Configuration", Value: configFieldTemplate}
+	configOneField = &discordgo.MessageEmbedField{
+		Inline: true, Name: "Server Config", Value: configOneFieldTemplate}
 
-	configField.Value = fmt.Sprintf(configField.Value, "Value", "Insane",
-		"disabled", 15000, 3000000000, 1000, 10, 10, 1000, 10, 10)
+	configTwoField = &discordgo.MessageEmbedField{
+		Inline: true, Name: "Player Config", Value: configTwoFieldTemplate}
+
+	if s.INI != nil {
+		version = s.INI.Version
+		collision = s.INI.Collision
+		name = s.INI.Name
+		pvp = s.INI.PVP
+		seed = s.INI.Seed
+		difLevel = s.INI.Difficulty
+		blkLimit = s.INI.BlockLimit
+		volLimit = s.INI.VolumeLimit
+		pMaxSlots = s.INI.MaxPlayerShips
+		pMaxShips = s.INI.MaxPlayerSlots
+		pMaxStations = s.INI.MaxPlayerStations
+		aMaxSlots = s.INI.MaxAllianceSlots
+		aMaxShips = s.INI.MaxAllianceShips
+		aMaxStations = s.INI.MaxAllianceStations
+	}
+
+	if !pvp {
+		pvpString = "disabled"
+	}
+
+	embed.Title = name + " Status"
+
+	configOneField.Value = fmt.Sprintf(configOneField.Value, version,
+		seed, ifaces.Difficulty(difLevel), collision, pvpString, blkLimit,
+		volLimit)
+
+	configTwoField.Value = fmt.Sprintf(configTwoField.Value, pMaxSlots,
+		pMaxShips, pMaxStations, aMaxSlots, aMaxShips, aMaxStations)
 
 	if s.PlayersOnline > 0 {
 		plrs = strings.TrimSuffix(s.Players, "\n")
@@ -107,12 +158,12 @@ func generateEmbedStatus(s ifaces.ServerStatus, tz *time.Location) *discordgo.Me
 	}
 
 	galaxyField = &discordgo.MessageEmbedField{
-		Inline: true, Name: "Galaxy Information", Value: galaxyFieldTemplate}
+		Inline: false, Name: "Galaxy Information", Value: galaxyFieldTemplate}
 
 	galaxyField.Value = fmt.Sprintf(galaxyField.Value, s.Alliances,
 		s.TotalPlayers, plrs)
 
-	embed.Fields = append(embed.Fields, statusField, configField,
-		galaxyField)
+	embed.Fields = append(embed.Fields, statusField, configOneField,
+		configTwoField, galaxyField)
 	return &embed
 }

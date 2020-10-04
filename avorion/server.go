@@ -252,6 +252,7 @@ func (s *Server) Start(sendchat bool) error {
 		select {
 		case <-ready:
 			logger.LogInit(s, "Server is online")
+			s.config.LoadGameConfig()
 			s.UpdatePlayerDatabase(false)
 
 			for _, x := range s.sectors {
@@ -456,6 +457,8 @@ func (s *Server) Status() ifaces.ServerStatus {
 		name = s.config.Galaxy()
 	}
 
+	config, _ := s.config.GameConfig()
+
 	return ifaces.ServerStatus{
 		Name:          name,
 		Status:        status,
@@ -464,7 +467,8 @@ func (s *Server) Status() ifaces.ServerStatus {
 		PlayersOnline: s.onlineplayercount,
 		Alliances:     s.alliancecount,
 		Output:        s.statusoutput,
-		Sectors:       s.sectorcount}
+		Sectors:       s.sectorcount,
+		INI:           config}
 
 }
 
@@ -743,9 +747,9 @@ func (s *Server) updateOnlineString() {
 	s.onlineplayers = online
 }
 
-/*********************************************/
+/*****************************************/
 /* IFace ifaces.IDiscordIntegratedServer */
-/*********************************************/
+/*****************************************/
 
 // DCOutput returns the chan that is used to output to Discord
 func (s *Server) DCOutput() chan ifaces.ChatData {

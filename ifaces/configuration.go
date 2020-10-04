@@ -41,6 +41,8 @@ type IGameConfigurator interface {
 	RCONAddr() string
 	RCONPass() string
 	InstallPath() string
+	LoadGameConfig() error
+	GameConfig() (*ServerGameConfig, bool)
 }
 
 // IGalaxyConfigurator describes an interface to an object that can configure a

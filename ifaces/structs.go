@@ -1,6 +1,8 @@
 package ifaces
 
-import "time"
+import (
+	"time"
+)
 
 // ChatData describes datapassed between Discord and the Server
 type ChatData struct {
@@ -49,4 +51,25 @@ type ServerStatus struct {
 	PlayersOnline int
 	Alliances     int
 	Sectors       int
+
+	INI *ServerGameConfig
+}
+
+// ServerGameConfig describes an object that contains the current
+//	game configuration
+type ServerGameConfig struct {
+	PVP                 bool
+	Name                string
+	Collision           string
+	Seed                string
+	Version             string
+	Difficulty          int
+	BlockLimit          int64
+	VolumeLimit         int64
+	MaxPlayerShips      int64
+	MaxPlayerSlots      int64
+	MaxPlayerStations   int64
+	MaxAllianceSlots    int64
+	MaxAllianceShips    int64
+	MaxAllianceStations int64
 }
