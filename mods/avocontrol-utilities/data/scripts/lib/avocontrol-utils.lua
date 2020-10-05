@@ -47,6 +47,39 @@ function TblLen(t)
   return c
 end
 
+do
+  local toboolean = {["true"] = true, ["false"] = false}
+  function toboolean.__toindex (data)
+    print("avocontrol-utils: TransformServerData: invalid string: "
+      .. data)
+    return false
+  end
+
+  -- TransformServerData converts an object to the given datatype if it
+  --  can. This is really only useful for cases where FetchConfigData
+  --  is used.
+  -- 
+  -- Returns:
+  --  @1    Var or Nil
+  function TransformServerData(dataType, data)
+    if dataType == "boolean" then
+      if type(servervalue) == "number" then
+        return (servervalue > 0 and true or false)
+      end
+
+      if dataType == "string" then
+        return toboolean[string.lower(data)]
+      end
+    end
+
+    if dataType == "number" and type(data) == "string" then
+      return tonumber(servervalue)
+    end
+
+    return data
+  end
+end
+
 
 -- FetchConfigData fetches data values from the server given a prefix, a table of
 --  keys and their intended datatype. Data returned will always be a flat table
@@ -61,31 +94,23 @@ end
 --  @2    Table
 function FetchConfigData(prefix, wants)
   if type(prefix) ~= "string" then
-    return false
+    return false, "Invalid prefix type: "..type(prefix)
   end
   
   if type(wants) ~= "table" then
-    return false
+    return falsem "Invalid wants type: "..type(wants)
   end
 
   local server = Server()
-  local serverkey, valuetype
   local config = {}
 
   for k, t in pairs(wants) do
-    serverkey = "avorioncontrol:"..prefix..":"..k
-    servervalue = server:getValue(serverkey)
-
-    if t == "boolean" then
-      if type(servervalue) == "number" then
-        servervalue = (servervalue > 0 and true or false)
-      end
-    end
-
+    local serverkey = "avorioncontrol:"..prefix..":"..k
+    local servervalue = server:getValue(serverkey)
     if type(t) == "function" then
-      serverkey = t(serverkey)
+      servervalue = t(servervalue)
     elseif type(servervalue) == t then
-      config[k] = servervalue
+      config[k] = TransformServerData(t, servervalue)
     elseif type(t) ~= "string" then
       print("avocontrol-utilities: FetchConfigData: Invalid object type string: "..t)
     end
@@ -93,7 +118,6 @@ function FetchConfigData(prefix, wants)
 
   return config
 end
-
 
 -- SetConfigData sets data values on the server given a prefix and a table of
 --  values that are to be set.
@@ -145,4 +169,32 @@ function FindPlayerByName(request_name, index)
     end
   end
   return nil
+end
+
+do
+  local restypes = {}
+  restypes.Iron     = 1
+  restypes.Titanium = 2
+  restypes.Naonite  = 3
+  restypes.Trinium  = 4
+  restypes.Xanian   = 5
+  restypes.Ogonite  = 6
+  restypes.Avorion  = 7
+
+  for k, v in ipairs(restypes) do
+    restypes[string.lower(k)] = v
+  end
+
+  function restypes.__index(s)
+    return false
+  end
+
+  -- IsValidMaterialString returns either the enum for the given 
+  --  material string (ie: iron) or false
+  --
+  -- Returns:
+  --  @1    Boolean or Number
+  function IsValidMaterialString(s)
+    return restypes[tostring(s)]
+  end
 end

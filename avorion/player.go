@@ -37,6 +37,21 @@ type Player struct {
 
 // Update updates our tracked data for the player
 func (p *Player) Update() error {
+	/*
+	   2020/10/05 11:54:59 [DEBUG] [AvorionServer] Running: getplayerdata -p 1
+	   panic: runtime error: index out of range [14] with length 0
+
+	   goroutine 44 [running]:
+	   avorioncontrol/avorion.(*Server).NewPlayer(0xc0000ac600, 0xc00002afe5, 0x1, 0xc000177b30, 0x0, 0x3, 0x0, 0x0)
+	           /home/steam/go/src/avorioncontrol/avorion/server.go:667 +0x62c
+	   avorioncontrol/avorion/events.handleEventPlayerJoin(0xa55ce0, 0xc0000ac600, 0xc00009b4a0, 0xc00002afc0, 0x26, 0x0)
+	           /home/steam/go/src/avorioncontrol/avorion/events/eventhandlers.go:61 +0x1c2
+	   avorioncontrol/avorion.superviseAvorionOut(0xc0000ac600, 0xc00085a480, 0xc00085a540)
+	           /home/steam/go/src/avorioncontrol/avorion/server.go:952 +0x39a
+	   created by avorioncontrol/avorion.(*Server).Start
+	           /home/steam/go/src/avorioncontrol/avorion/server.go:230 +0xf0f
+	*/
+
 	cmd := fmt.Sprintf("getplayerdata -p %s", p.index)
 
 	out, err := p.server.RunCommand(cmd)

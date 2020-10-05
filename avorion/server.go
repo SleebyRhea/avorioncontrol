@@ -187,7 +187,6 @@ func (s *Server) Start(sendchat bool) error {
 	s.tracking.SetLoglevel(s.loglevel)
 	logger.LogInfo(s, "Syncing mods to data directory")
 	cp.Copy("./mods", s.config.DataPath()+"/mods")
-
 	s.name = s.config.Galaxy()
 
 	s.Cmd = exec.Command(
