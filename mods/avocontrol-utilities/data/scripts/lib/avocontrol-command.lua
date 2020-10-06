@@ -196,7 +196,7 @@ do
       -- Assign any arguments that do not have a given flag to the extra table.
       --  These will be unpacked into the command.execute function
       if not cur and arg then
-        dbg("Adding argument to extra: "..arg)
+        self:Debug("Adding argument to extra: "..arg)
         table.insert(extra, arg)
         goto continue
       end
