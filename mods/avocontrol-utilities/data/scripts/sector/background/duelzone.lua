@@ -22,12 +22,28 @@ include ("stringutility")
 
 -- namespace DuelZoneSector
 DuelZoneSector = {}
-
 if not onServer() then
   return
 end
 
 local isEternal = false
+
+
+-- stripZone strips a zone from the list of zones
+local function stripZone(zones, zone)
+  local patterns = {}
+  table.insert(patterns, "^"..zone.."$")
+  table.insert(patterns, "%:"..zone.."$")
+  table.insert(patterns, "^"..zone.."%:")
+  table.insert(patterns, "%:"..zone.."%:")
+
+  for _, p in ipairs(patterns) do
+    zones = string.gsub(zones, p, "")
+  end
+
+  return zones
+end
+
 
 -- DuelZoneSector.initialize sets pvp to 0 when this script is first
 --  loaded.
@@ -36,7 +52,8 @@ local isEternal = false
 --  None
 function DuelZoneSector.initialize()
   local s = Sector()
-  s.pvpDamage = 0
+  DuelZoneSector:DisablePVP()
+  s:setValue("duelzone", false)
   s:registerCallback("onPlayerLeft", "onPlayerLeft")
   s:registerCallback("onPlayerEntered", "onPlayerEntered")
 end
@@ -47,12 +64,15 @@ end
 -- Returns:
 --  @0    Table
 function DuelZoneSector.secure()
-  return {eternal = isEternal and 1 or 0}
+  return {
+    eternal = (isEternal and 1 or 0),
+    enabled = (Sector().pvpDamage and 1 or 0)}
 end
 
 
 -- DuelZoneSector.restore restores the table returned in DuelZoneSector.secure
---  on script reload
+--  on script reload. In practice, this is really only for making sure
+--  that we are properly setting isEternal and the pvpState.
 --
 -- Returns:
 --  None
@@ -62,13 +82,22 @@ function DuelZoneSector.restore(data)
   end
 
   local eternalType = type(data["eternal"])
+  local enabledType = type(data["enabled"])
 
-  if eternalType == "nil" or eternalType == "string" then
-    return DuelZoneSector.MakeEphemeral()
+  if eternalType ~= "number" then
+    DuelZoneSector.MakeEphemeral()
+  else
+    if data.eternal > 0 then
+      DuelZoneSector.MakeEternal()
+    end
   end
 
-  if data.eternal > 0 then
-    DuelZoneSector.MakeEternal()
+  if enabledType ~= "number" then
+    DuelZoneSector.DisablePVP()
+  else
+    if data.enabled > 0 then
+      DuelZoneSector.EnablePVP()
+    end
   end
 end
 
@@ -122,15 +151,21 @@ end
 --  None
 function DuelZoneSector.EnablePVP(is_eternal)
   local s = Sector()
-  if s.pvpDamage ~= 1 then
-    s.pvpDamage = 1
-    local msg = "This sector has been marked as a duel zone! PVP is on!"
+  local msg = "This sector has been marked as a duelzone. PVP damage is on!"
+
+  if not s.pvpDamage then
+    s.pvpDamage = true
     s:broadcastChatMessage("", 3, msg)
-    if s:hasScript("warzonecheck.lua") then
-      s:removeScript("warzonecheck.lua")
-    end
     isEternal = (is_eternal or false)
     s:setValue("duelzone", true)
+
+    local x, y   = s:getCoordinates()
+    local zone   = x.."_"..y
+    local zones  = (Server():getValue("duelzones") or "")
+
+    Server():setValue("duelzones",
+      string.gsub(stripZone(zones, zone) .. ":" .. zone,
+      "^:*(.-):*$", "%1"))
   end
 end
 
@@ -143,17 +178,24 @@ end
 function DuelZoneSector.DisablePVP(msg)
   local s = Sector()
   
-  if type(msg) == "nil" then
+  if type(msg) ~= "string" then
     msg = "The fight has ended"
   end
 
   msg = "${m}. PVP is now off."%_T % {m = msg}
 
-  if s.pvpDamage ~= 0 then
-    s.pvpDamage = 0
+  if s.pvpDamage then
+    s.pvpDamage = false
     s:broadcastChatMessage("", 3, msg)
     s:addScriptOnce("data/scripts/sector/background/warzonecheck.lua")
     s:setValue("duelzone", false)
+
+    local x, y   = s:getCoordinates()
+    local zone   = x.."_"..y
+    local zones  = (Server():getValue("duelzones") or "")
+
+    Server():setValue("duelzones", string.gsub(stripZone(zones, zone),
+      "^:*(.-):*$", "%1"))
   end
 end
 
@@ -182,10 +224,12 @@ function DuelZoneSector.onPlayerEntered(index)
   local msg = "${p} has arrived, and has interrupted the fight"%_T % {
     p = player.name}
 
-  if not isEternal then
-    DuelZoneSector.DisablePVP(msg)
-  else
-    msg = "You have entered a designated PVP area, PVP damage is on"
-    player:sendChatMessage("", 2, msg)
-  end
+    if not isEternal then
+      DuelZoneSector.DisablePVP(msg)
+    else
+      if Sector().pvpDamage then
+        msg = "You have entered a designated PVP area."
+        player:sendChatMessage("", 2, msg)
+      end
+    end
 end

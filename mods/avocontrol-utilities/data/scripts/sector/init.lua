@@ -1,0 +1,1 @@
+Sector():addScriptOnce("data/scripts/sector/background/duelzone.lua")

@@ -61,6 +61,15 @@ command:AddFlag({
     return "--disable (-d) does not accept arguments"
   end})
 
+command:AddFlag({
+  short = "l",
+  long  = "list",
+  usage = "none",
+  help  = "Disable a dueling zone",
+  func  = function()
+    return "--list (-l) does not accept arguments"
+  end})
+
 command:SetExecute(function(user, ...)
   if type(user) == "nil" then
     return 1, "Please run this from in-game", ""
@@ -70,11 +79,28 @@ command:SetExecute(function(user, ...)
     local extra = table.concat({...}, ", ")
     return 1, "Invalid arguments: " .. extra, ""
   end
-
+  
+  local doList      = command:FlagPassed("list")
   local doEnable    = command:FlagPassed("enable")
   local doDisable   = command:FlagPassed("disable")
   local isEternal   = command:FlagPassed("permanent")
   local isEphemeral = command:FlagPassed("temporary")
+
+  if doList then
+    local zones = Server():getValue("duelzones") or false
+    local out, list = "", {}
+
+    if not zones then
+      return 0, "", "No zones are set"
+    end
+
+    if zones == "" then
+      return 0, "", "No zones are set"
+    end
+
+    return 0, "", "Active Duelzones: "
+      .. string.gsub(string.gsub(zones, ":", ", "), "_", ":")
+  end
 
   if doEnable and doDisable then
     return 1, "", "--enable (-e) and --disable (-d) are not compatible"
