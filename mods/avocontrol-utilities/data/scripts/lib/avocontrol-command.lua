@@ -30,6 +30,7 @@ do
     or false)
 
   local Command = {
+    log         = false,
     name        = "UnsetName",
     flags       = {},
     description = "No description defined",
@@ -275,7 +276,6 @@ do
     end
 
     self.data.extra = (type(self.data.extra) == "table" and self.data.extra or {})
-
     return self.execute(user, unpack(self.data.extra))
   end
 
