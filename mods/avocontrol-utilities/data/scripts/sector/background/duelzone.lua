@@ -1,7 +1,7 @@
 --[[
 
   DuelZoneSector - data/scripts/sector/background/duelzone.lua
-  -------------------------------------------------------
+  ------------------------------------------------------------
 
   A simple sector mod that forces PvP to be disabled by default, with
   a command that allows for the sector from which the command is run
@@ -184,9 +184,9 @@ function DuelZoneSector.DisablePVP(msg)
     s:addScriptOnce("data/scripts/sector/background/warzonecheck.lua")
     s:setValue("duelzone", false)
 
-    local x, y   = s:getCoordinates()
-    local zone   = x.."_"..y
-    local zones  = (Server():getValue("duelzones") or "")
+    local x, y  = s:getCoordinates()
+    local zone  = x.."_"..y
+    local zones = (Server():getValue("duelzones") or "")
 
     Server():setValue("duelzones", string.gsub(stripZone(zones, zone),
       "^:*(.-):*$", "%1"))
