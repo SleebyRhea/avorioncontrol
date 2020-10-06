@@ -1,93 +1,191 @@
+--[[
+
+  DuelZoneSector - data/scripts/sector/background/duelzone.lua
+  -------------------------------------------------------
+
+  A simple sector mod that forces PvP to be disabled by default, with
+  a command that allows for the sector from which the command is run
+  to be temporarily designated as a DuelZone.
+
+  This script is the sector script section of this mod.
+
+  Please see the SectorFunctions.html documentation page for further
+  information.
+
+  License: BSD-3-Clause
+  https://opensource.org/licenses/BSD-3-Clause
+
+]]
+
 package.path = package.path .. ";data/scripts/lib/?.lua"
 include ("stringutility")
 
--- namespace DuelZone
-DuelZone = {}
+-- namespace DuelZoneSector
+DuelZoneSector = {}
 
-if onServer() then
-  local isEternal = false
+if not onServer() then
+  return
+end
 
-  function DuelZone.initialize()
-      Sector().pvpDamage = 0
+local isEternal = false
+
+-- DuelZoneSector.initialize sets pvp to 0 when this script is first
+--  loaded.
+--
+-- Returns:
+--  None
+function DuelZoneSector.initialize()
+  local s = Sector()
+  s.pvpDamage = 0
+  s:registerCallback("onPlayerLeft", "onPlayerLeft")
+  s:registerCallback("onPlayerEntered", "onPlayerEntered")
+end
+
+-- DuelZoneSector.secure stores a table value containing the current
+--  state of this sectors namespace (DuelZoneSector)
+--
+-- Returns:
+--  @0    Table
+function DuelZoneSector.secure()
+  return {eternal = isEternal and 1 or 0}
+end
+
+
+-- DuelZoneSector.restore restores the table returned in DuelZoneSector.secure
+--  on script reload
+--
+-- Returns:
+--  None
+function DuelZoneSector.restore(data)
+  if type(data) == "nil" then
+    return DuelZoneSector.MakeEphemeral()
   end
 
-  function DuelZone.secure()
-    return {eternal = isEternal and 1 or 0}
+  local eternalType = type(data["eternal"])
+
+  if eternalType == "nil" or eternalType == "string" then
+    return DuelZoneSector.MakeEphemeral()
   end
 
-  function DuelZone.secure(data)
-    if type(data) == "nil" then
-      return DuelZone.MakeEphemeral()
+  if data.eternal > 0 then
+    DuelZoneSector.MakeEternal()
+  end
+end
+
+
+-- DuelZoneSector.onRemove ensures that we disable pvp before this
+--  script is unloaded. In addition, remove our registered callBacks
+--  from the sector.
+--
+-- Returns:
+--  None
+function DuelZoneSector.onRemove()
+  local s = Sector()
+
+  DuelZoneSector.DisablePVP()
+
+  if s:callbacksRegistered("onPlayerLeft", "onPlayerLeft") > 0 then
+    s:unregisterCallback("onPlayerLeft", "onPlayerLeft")
+  end
+
+  if s:callbacksRegistered("onPlayerEntered", "onPlayerEntered") then
+    s:unregisterCallback("onPlayerEntered", "onPlayerEntered")
+  end
+end
+
+
+-- DuelZoneSector.MakeEternal sets the zone to be a have pvp enabled
+--  permanently when its activated. When isEternal is true, the 
+--  onPlayerEntered and onPlayerLeft callbacks do nothing.
+--
+-- Returns:
+--  None
+function DuelZoneSector.MakeEternal()
+  isEternal = true
+end
+
+
+-- DuelZoneSector.MakeEphemeral configures the zone to disable pvp when
+--  either of the onPlayerEntered or onPlayerLeft callbacks are run.
+--
+-- Returns:
+--  None
+function DuelZoneSector.MakeEphemeral()
+  isEternal = false
+end
+
+
+-- DuelZoneSector.EnablePVP enables pvp in the sector and broadcasts a
+--  message to all players in said sector.
+--
+-- Returns:
+--  None
+function DuelZoneSector.EnablePVP(is_eternal)
+  local s = Sector()
+  if s.pvpDamage ~= 1 then
+    s.pvpDamage = 1
+    local msg = "This sector has been marked as a duel zone! PVP is on!"
+    s:broadcastChatMessage("", 3, msg)
+    if s:hasScript("warzonecheck.lua") then
+      s:removeScript("warzonecheck.lua")
     end
+    isEternal = (is_eternal or false)
+    s:setValue("duelzone", true)
+  end
+end
 
-    local eternalType = type(data["eternal"])
 
-    if eternalType == "nil" or eternalType == "string" then
-      return DuelZone.MakeEphemeral()
-    end
-
-    if data.eternal > 0 then
-      DuelZone.MakeEternal()
-    end
+-- DuelZoneSector.DisablePVP disables pvp in the sector and broadcasts
+--  a message to all players in said sector.
+--
+-- Returns:
+--  None
+function DuelZoneSector.DisablePVP(msg)
+  local s = Sector()
+  
+  if type(msg) == "nil" then
+    msg = "The fight has ended"
   end
 
-  function DuelZone.onRemove()
-    DuelZone.DisablePVP()
+  msg = "${m}. PVP is now off."%_T % {m = msg}
+
+  if s.pvpDamage ~= 0 then
+    s.pvpDamage = 0
+    s:broadcastChatMessage("", 3, msg)
+    s:addScriptOnce("data/scripts/sector/background/warzonecheck.lua")
+    s:setValue("duelzone", false)
   end
+end
 
-  function DuelZone.MakeEternal()
-    isEternal = true
+
+-- DuelZoneSector.onPlayerLeft disables pvp when a player leaves, and
+--  when the zone is ephemeral
+--
+-- Returns:
+--  None
+function DuelZoneSector.onPlayerLeft(index)
+  local msg = "${p} has left"
+  if not isEternal then
+    DuelZoneSector.DisablePVP(msg)
   end
+end
 
-  function DuelZone.MakeEphemeral()
-    isEternal = false
-  end
 
-  function DuelZone.EnablePVP(is_eternal)
-    local s = Sector()
-    if s.pvpDamage ~= 1 then
-      s.pvpDamage = 1
-      local msg = "This sector has been marked as a duel zone! PVP is on!"
-      s:broadcastChatMessage("", 0, msg)
-      s:broadcastChatMessage("", 3, msg)
-      if s:hasScript("sector/background/warzonecheck.lua") then
-        s:removeScript("sector/background/warzonecheck.lua")
-      end
-      isEternal = (is_eternal or false)
-    end
-  end
+-- DuelZoneSector.onPlayerLeft disables pvp when a player enters, and
+--  when the zone is not ephemeral. When not ephemeral, it also sends
+--  a warning to said player stating that pvp is enabled in the sector.
+--
+-- Returns:
+--  None
+function DuelZoneSector.onPlayerEntered(index)
+  local player = Player(index)
+  local msg = "${p} has arrived, and has interrupted the fight"%_T % {
+    p = player.name}
 
-  function DuelZone.DisablePVP(msg)
-    local s = Sector()
-    
-    if type(msg) == nil then
-      msg = "The fight has ended"
-    end
-
-    msg = "${m}. PVP is now off."%_T % {m = msg}
-
-    if s.pvpDamage ~= 0 then
-      s.pvpDamage = 0
-      s:broadcastChatMessage("", 0, msg)
-      s:broadcastChatMessage("", 3, msg)
-      s:addScriptOnce("data/sector/background/warzonecheck.lua")
-    end
-  end
-
-  function DuelZone.onPlayerLeft(index)
-    local msg = "${p} has left"
-    if not isEternal then
-      DuelZone.DisablePVP(msg)
-    end
-  end
-
-  function DuelZone.onPlayerEntered(index)
-    local player = Player(index).name
-    local msg = "${p} has arrived, and has interrupted the fight"%_T % {
-      p = player}
-
-    if not isEternal then
-      DuelZone.DisablePVP(msg)
-    end
+  if not isEternal then
+    DuelZoneSector.DisablePVP(msg)
+  else
+    msg = "You have entered a designated PVP area, PVP damage is on"
+    player:sendChatMessage("", 2, msg)
   end
 end

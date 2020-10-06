@@ -1,7 +1,7 @@
 --[[
 
   DuelZones - data/scripts/commands/duelzone.lua
-  ---------
+  ----------------------------------------------
 
   A simple sector mod that forces PvP to be disabled by default, with
   a command that allows for the sector from which the command is run
@@ -19,41 +19,56 @@ package.path = package.path .. ";data/scripts/lib/?.lua"
 include("stringutility")
 
 local command       = include("avocontrol-command")
+command.log         = true
 command.name        = "duelzone"
 command.description = "Enable or disable PvP for the sector in which its run"
-local scriptname    = "data/sector/background/duelzone.lua"
+local sector_script = "duelzone.lua"
+local player_script = "data/player/duelzone.lua"
 
 command:AddFlag({
   short = "e",
   long  = "enable",
   usage = "none",
   help  = "Set the current sector to be a dueling zone",
-  func  = function() end})
+  func  = function(arg)
+    return "--enable (-e) does not accept arguments"
+  end})
 
 command:AddFlag({
   short = "p",
   long  = "permanent",
   usage = "none",
   help  = "Permanently set a dueling zone (ignore jumpin/jumpout)",
-  func  = function() end})
+  func  = function()
+    return "--permanent (-p) does not accept arguments"
+  end})
 
 command:AddFlag({
   short = "t",
   long  = "temporary",
   usage = "none",
   help  = "Unset permanency for a dueling zone (disable pvp on jumpin/jumpout)",
-  func  = function() end})
+  func  = function()
+    return "--temporary (-t) does not accept arguments"
+  end})
 
 command:AddFlag({
   short = "d",
   long  = "disable",
   usage = "none",
   help  = "Disable a dueling zone",
-  func  = function() end})
+  func  = function()
+    return "--disable (-d) does not accept arguments"
+  end})
 
 command:SetExecute(function(user, ...)
   if type(user) == "nil" then
     return 1, "Please run this from in-game", ""
+  end
+
+  if ... then
+    local extra = table.concat({...}, ", ")
+    return 1, "Invalid arguments: " .. extra, ""
   end
 
   local doEnable    = command:FlagPassed("enable")
@@ -73,29 +88,26 @@ command:SetExecute(function(user, ...)
     return 1, "", "--permanent (-p) and --temporary (-t) are not compatible"
   end
 
-  local s = Sector()
-
-  if not s:hasScript(scriptname) then
-    s:addScriptOnce(scriptname)
-  end
+  local x,y = Player():getSectorCoordinates()
 
   if doDisable then
-    s:invokeFunction(scriptname, "DisablePVP")
+    invokeSectorFunction(x, y, true, sector_script, "DisablePVP")
     return 0, "", "Disabled PVP in this sector"
   end
 
   if doEnable then
-    s:invokeFunction(scriptname, "EnablePVP", isEternal)
+    invokeSectorFunction(x, y, true, sector_script, "EnablePVP",
+      isEternal)
     return 0, "", "Enabled PVP in this sector"
   end
 
   if isEternal then
-    s:invokeFunction(scriptname, "MakeEternal")
+    invokeSectorFunction(x, y, true, sector_script, "MakeEternal")
     return 0, "", "Sector is now a permanent PVP zone"
   end
 
   if isEphemeral then
-    s:invokeFunction(scriptname, "MakeEphemeral")
+    invokeSectorFunction(x, y, true, sector_script, "MakeEphemeral")
     return 0, "", "Sector is now a temporary PVP zone"
   end
 
