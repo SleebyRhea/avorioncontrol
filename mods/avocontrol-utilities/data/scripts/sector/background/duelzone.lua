@@ -31,16 +31,10 @@ local isEternal = false
 
 -- stripZone strips a zone from the list of zones
 local function stripZone(zones, zone)
-  local patterns = {}
-  table.insert(patterns, "^"..zone.."$")
-  table.insert(patterns, "%:"..zone.."$")
-  table.insert(patterns, "^"..zone.."%:")
-  table.insert(patterns, "%:"..zone.."%:")
-
-  for _, p in ipairs(patterns) do
-    zones = string.gsub(zones, p, "")
-  end
-
+  zones = string.gsub(zones, "^"..zone.."$", "")
+  zones = string.gsub(zones, "%:"..zone.."$", "")
+  zones = string.gsub(zones, "^"..zone.."%:", "")
+  zones = string.gsub(zones, "%:"..zone.."%:", "")
   return zones
 end
 
