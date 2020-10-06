@@ -265,6 +265,15 @@ do
       return 1, err, ""
     end
     
+    if self.log then
+      local u = "rcon"
+      if type(user) ~= nil then
+        u = Player(user).name
+      end
+      print("${pre}: ${c} was run by ${u}"%_T % {pre="Command", 
+        c=self.name, u = u})
+    end
+
     self.data.extra = (type(self.data.extra) == "table" and self.data.extra or {})
 
     return self.execute(user, unpack(self.data.extra))
