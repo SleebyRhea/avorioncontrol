@@ -137,5 +137,7 @@ command:SetExecute(function(user, ...)
     return 0, "", "Sector is now a temporary PVP zone"
   end
 
-  return 1, "Please supply an argument", ""
+  local usage = "Usage: /duelzone [e]enable [d]isable [p]ermanent"
+
+  return 1, usage, ""
 end)
