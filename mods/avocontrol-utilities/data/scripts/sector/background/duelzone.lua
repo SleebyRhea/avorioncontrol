@@ -200,7 +200,7 @@ end
 -- Returns:
 --  None
 function DuelZoneSector.onPlayerLeft(index)
-  local msg = "${p} has left"
+  local msg = "${p} has left"%_T % {p = Player(index).name}
   if not isEternal then
     DuelZoneSector.DisablePVP(msg)
   end
