@@ -26,7 +26,8 @@ if not onServer() then
   return
 end
 
-local isEternal = false
+local isEternal   = false
+local playersHere = false
 
 
 -- stripZone strips a zone from the list of zones
@@ -145,7 +146,7 @@ end
 --  None
 function DuelZoneSector.EnablePVP(is_eternal)
   local s = Sector()
-  local msg = "This sector has been marked as a duelzone. PVP damage is on!"
+  local msg = "This sector has been marked as a duelzone. PVP damage is enabled!"
 
   if not s.pvpDamage then
     s.pvpDamage = true
@@ -176,7 +177,7 @@ function DuelZoneSector.DisablePVP(msg)
     msg = "The fight has ended"
   end
 
-  msg = "${m}. PVP is now off."%_T % {m = msg}
+  msg = "${m}. PVP is now disabled."%_T % {m = msg}
 
   if s.pvpDamage then
     s.pvpDamage = false
