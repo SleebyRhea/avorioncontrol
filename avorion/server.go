@@ -782,7 +782,7 @@ func (s *Server) ValidateIntegrationPin(in, discordID string) bool {
 		path := fmt.Sprintf("%s/%s/discordrequests/%s",
 			s.config.DataPath(), s.config.Galaxy(), m[1])
 		if val == m[2] {
-			if _, err := os.Stat(path); err == nil {
+			if _, err := os.Stat(path); err != nil {
 				os.Remove(path)
 			} else {
 				logger.LogError(s, fmt.Sprintf("Failed to remove request file (%s)",
@@ -889,7 +889,7 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 			case <-time.After(60 * time.Second):
 				logger.LogError(s, "Avorion is lagging, restarting...")
 				s.iscrashed = true
-				if err := s.Restart(); err == nil {
+				if err := s.Restart(); err != nil {
 					logger.LogError(s, err.Error())
 				} else {
 					s.iscrashed = false
@@ -900,7 +900,7 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 				if err != nil {
 					s.iscrashed = true
 					logger.LogError(s, err.Error())
-					if err := s.Restart(); err == nil {
+					if err := s.Restart(); err != nil {
 						logger.LogError(s, err.Error())
 					} else {
 						s.iscrashed = false
