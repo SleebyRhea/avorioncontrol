@@ -268,7 +268,7 @@ do
     
     if self.log then
       local u = "rcon"
-      if type(user) ~= nil then
+      if type(user) ~= "nil" then
         u = Player(user).name
       end
       print("${pre}: ${c} was run by ${u}"%_T % {pre="Command", 
