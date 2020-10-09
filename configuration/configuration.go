@@ -116,6 +116,12 @@ func New() *Conf {
 
 		timezone:        defaultTimeZone,
 		aliasedCommands: make(map[string][]string)}
+
+	rconhost := fmt.Sprintf("[%s]\nhostname = %s\nport = %d\npassword = %s\n",
+		c.Galaxy(), c.RCONAddr(), c.RCONPort(), c.RCONPass())
+
+	ioutil.WriteFile(fmt.Sprintf("%s/rconhost.conf", c.DataPath()),
+		[]byte(rconhost), 0644)
 	return c
 }
 

@@ -160,12 +160,6 @@ func (s *Server) Start(sendchat bool) error {
 	defer func() { s.isstarting = false }()
 	s.isstarting = true
 
-	rconhost := fmt.Sprintf("[%s]\nhostname = %s\nport = %d\npassword = %s\n",
-		s.config.Galaxy(), s.config.RCONAddr(), s.config.RCONPort(), s.config.RCONPass())
-
-	ioutil.WriteFile(fmt.Sprintf("%s/rconhost.conf", s.config.DataPath()),
-		[]byte(rconhost), 0644)
-
 	s.tracking, err = gamedb.New(fmt.Sprintf("%s/%s", s.config.DataPath(),
 		s.config.DBName()))
 	if err != nil {
