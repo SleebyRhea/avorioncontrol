@@ -3,11 +3,9 @@ package avorion
 import (
 	"avorioncontrol/ifaces"
 	"avorioncontrol/logger"
-	"fmt"
 	"net"
 	"strconv"
 
-	"strings"
 	"time"
 )
 
@@ -35,44 +33,14 @@ type Player struct {
 	jumphistory []ifaces.ShipCoordData
 }
 
-// Update updates our tracked data for the player
+// Update gathers playerdata from the server and updates our cache
 func (p *Player) Update() error {
-	/*
-	   2020/10/05 11:54:59 [DEBUG] [AvorionServer] Running: getplayerdata -p 1
-	   panic: runtime error: index out of range [14] with length 0
-
-	   goroutine 44 [running]:
-	   avorioncontrol/avorion.(*Server).NewPlayer(0xc0000ac600, 0xc00002afe5, 0x1, 0xc000177b30, 0x0, 0x3, 0x0, 0x0)
-	           /home/steam/go/src/avorioncontrol/avorion/server.go:667 +0x62c
-	   avorioncontrol/avorion/events.handleEventPlayerJoin(0xa55ce0, 0xc0000ac600, 0xc00009b4a0, 0xc00002afc0, 0x26, 0x0)
-	           /home/steam/go/src/avorioncontrol/avorion/events/eventhandlers.go:61 +0x1c2
-	   avorioncontrol/avorion.superviseAvorionOut(0xc0000ac600, 0xc00085a480, 0xc00085a540)
-	           /home/steam/go/src/avorioncontrol/avorion/server.go:952 +0x39a
-	   created by avorioncontrol/avorion.(*Server).Start
-	           /home/steam/go/src/avorioncontrol/avorion/server.go:230 +0xf0f
-	*/
-
-	cmd := fmt.Sprintf("getplayerdata -p %s", p.index)
-
-	out, err := p.server.RunCommand(cmd)
-	if err != nil {
-		logger.LogError(p.server, fmt.Sprintf(
-			"Failed to acquire player data for: %s (%s)", p.index, p.name))
-		return err
-	}
-
-	out = strings.TrimSuffix(out, "\n")
-	logger.LogDebug(p, fmt.Sprintf("Processing: (%s)", out))
-
-	//d := rePlayerData.FindStringSubmatch(out)
-
 	return nil
 }
 
 // UpdateFromData updates the players information using the data from
 //	a successful rePlayerData match
 func (p *Player) UpdateFromData(d [15]string) error {
-	logger.LogInfo(p, "Updated database")
 	return nil
 }
 
@@ -98,18 +66,17 @@ func (p *Player) AddJump(sc ifaces.ShipCoordData) {
 		p.jumphistory = p.jumphistory[1:]
 	}
 
+	sector := p.server.Sector(sc.X, sc.Y)
 	fid64, _ := strconv.ParseInt(p.index, 10, 32)
 	fid := int(fid64)
 
-	sector := p.server.Sector(sc.X, sc.Y)
-
-	// Add a pointer to the players jump to the sector history for our usage
-	//	later on
+	// Add a pointer to the players jump to the sector history for our
+	//	usage later on
 	jump := &ifaces.JumpInfo{
 		Name: sc.Name,
-		FID:  fid,
 		Kind: "player",
 		Time: sc.Time,
+		FID:  fid,
 		X:    sc.X,
 		Y:    sc.Y}
 
@@ -179,7 +146,7 @@ func (p *Player) Message(string) {
 
 // UUID returns the UUID of a player
 func (p *Player) UUID() string {
-	return fmt.Sprintf("Player:%s:%s", p.index, p.name)
+	return sprintf("Player:%s:%s", p.index, p.name)
 }
 
 // Loglevel returns the loglevel of a player
@@ -196,8 +163,11 @@ func (p *Player) SetLoglevel(l int) {
 /* IFace ifaces.IHaveShips */
 /***************************/
 
-// GetLastJumps returns up to (max) jumps that this player has performed recently
+// GetLastJumps returns up to (max) jumps that this player has
+// performed recently
+//
 // TODO: This should return both the jumps and how many were found
+// so that we can avoid an extra len call later
 func (p *Player) GetLastJumps(limit int) []ifaces.ShipCoordData {
 	var jumps []ifaces.ShipCoordData
 
@@ -209,7 +179,7 @@ func (p *Player) GetLastJumps(limit int) []ifaces.ShipCoordData {
 		return jumps
 	}
 
-	// If -1 is used just return the entire history, but in reverse (for easy search)
+	// If -1 is used just return the entire history, but in reverse
 	if limit < 0 {
 		limit = l
 	}

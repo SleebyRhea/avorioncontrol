@@ -28,6 +28,31 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
+const (
+	logUUID          = `AvorionServer`
+	errBadIndex      = `invalid index provided (%s)`
+	errExecFailed    = `failed to run Avorion binary (%s/bin/%s)`
+	errBadDataString = `failed to parse data string (%s)`
+	errFailedRCON    = `failed to run RCON command (%s)`
+	errFailToGetData = `failed to acquire data for %s (%s)`
+
+	warnChatDiscarded = `discarded chat message (time: >5 seconds)`
+	warnGameLagging   = `Avorion is lagging, performing restart`
+
+	noticeDBUpate    = `Updating player data DB. Potential lag incoming.`
+	regexIntegration = `^([0-9]+):([0-9]{6})$`
+
+	rconPlayerDiscord   = `run Player(%s):setValue("discorduserid", %s)`
+	rconGetPlayerData   = `getplayerdata -p %s`
+	rconGetAllianceData = `getplayerdata -a %s`
+	rconGetAllData      = `getplayerdata`
+)
+
+var (
+	sprintf          = fmt.Sprintf
+	regexpDiscordPin = regexp.MustCompile(regexIntegration)
+)
+
 // Server - Avorion server definition
 type Server struct {
 	ifaces.IGameServer
@@ -100,33 +125,35 @@ type Server struct {
 /********/
 
 // New returns a new object of type Server
-func New(c ifaces.IConfigurator, wg *sync.WaitGroup, exit chan struct{}, args ...string) ifaces.IGameServer {
-	executable := "AvorionServer.exe"
+func New(c ifaces.IConfigurator, wg *sync.WaitGroup, exit chan struct{},
+	args ...string) ifaces.IGameServer {
+
+	path := c.InstallPath()
+	cmnd := "AvorionServer.exe"
 	if runtime.GOOS != "windows" {
-		executable = "AvorionServer"
+		cmnd = "AvorionServer"
 	}
 
-	version, err := exec.Command(c.InstallPath()+"/bin/"+executable,
+	version, err := exec.Command(path+"/bin/"+cmnd,
 		"--version").Output()
-
 	if err != nil {
-		log.Fatal("Failed to get Avorion version: " + c.InstallPath() + "/bin/" + executable)
-		os.Exit(1)
+		log.Fatal(sprintf(errExecFailed, path, cmnd))
 	}
 
 	s := &Server{
-		config:     c,
 		wg:         wg,
 		exit:       exit,
-		uuid:       "AvorionServer",
-		version:    string(version),
-		serverpath: c.InstallPath(),
-		executable: executable,
-		rconpass:   c.RCONPass(),
-		rconaddr:   c.RCONAddr(),
-		rconport:   c.RCONPort(),
-		requests:   make(map[string]string),
-		sectors:    make(map[int]map[int]*ifaces.Sector), // =0~0=
+		uuid:       logUUID,
+		config:     c,
+		serverpath: path,
+		executable: cmnd,
+
+		version:  string(version),
+		rconpass: c.RCONPass(),
+		rconaddr: c.RCONAddr(),
+		rconport: c.RCONPort(),
+		requests: make(map[string]string),
+		sectors:  make(map[int]map[int]*ifaces.Sector), // =0~0=
 
 		// State tracking
 		isstarting:   false,
@@ -139,11 +166,9 @@ func New(c ifaces.IConfigurator, wg *sync.WaitGroup, exit chan struct{}, args ..
 
 // NotifyServer sends an ingame notification
 func (s *Server) NotifyServer(in string) error {
-	cmd := "say [NOTIFICATION] " + in
-	if _, err := s.RunCommand(cmd); err != nil {
-		return err
-	}
-	return nil
+	cmd := sprintf("say [NOTIFICATION] %s", in)
+	_, err := s.RunCommand(cmd)
+	return err
 }
 
 /********************************/
@@ -160,7 +185,7 @@ func (s *Server) Start(sendchat bool) error {
 	defer func() { s.isstarting = false }()
 	s.isstarting = true
 
-	s.tracking, err = gamedb.New(fmt.Sprintf("%s/%s", s.config.DataPath(),
+	s.tracking, err = gamedb.New(sprintf("%s/%s", s.config.DataPath(),
 		s.config.DBName()))
 	if err != nil {
 		return err
@@ -215,7 +240,6 @@ func (s *Server) Start(sendchat bool) error {
 		return err
 	}
 
-	logger.LogInit(s, "Starting Server and waiting till ready")
 	ready := make(chan struct{})
 	s.stop = make(chan struct{})
 	s.close = make(chan struct{})
@@ -227,6 +251,7 @@ func (s *Server) Start(sendchat bool) error {
 		defer close(s.close)
 		defer close(s.stop)
 
+		logger.LogInit(s, "Starting Server and waiting till ready")
 		if err := s.Cmd.Start(); err != nil {
 			logger.LogError(s, err.Error())
 			close(s.close)
@@ -247,44 +272,17 @@ func (s *Server) Start(sendchat bool) error {
 			logger.LogInit(s, "Server is online")
 			s.config.LoadGameConfig()
 			s.UpdatePlayerDatabase(false)
-
-			for _, x := range s.sectors {
-				for _, sec := range x {
-					for _, j := range sec.Jumphistory {
-						for _, p := range s.players {
-							if p.Index() == strconv.FormatInt(int64(j.FID), 10) {
-								p.jumphistory = append(p.jumphistory, ifaces.ShipCoordData{
-									X: j.X, Y: j.Y, Name: j.Name, Time: j.Time})
-							}
-						}
-
-						for _, a := range s.alliances {
-							if a.Index() == strconv.FormatInt(int64(j.FID), 10) {
-								a.jumphistory = append(a.jumphistory, ifaces.ShipCoordData{
-									X: j.X, Y: j.Y, Name: j.Name, Time: j.Time})
-							}
-						}
-					}
-				}
-			}
-
-			for _, p := range s.players {
-				sort.Sort(jumpsByTime(p.jumphistory))
-			}
-
-			for _, a := range s.alliances {
-				sort.Sort(jumpsByTime(a.jumphistory))
-			}
+			s.loadSectors()
 			return nil
 
 		case <-s.close:
 			close(ready)
-			return errors.New("Avorion died before initialization could complete")
+			return errors.New("avorion died before initialization could complete")
 
 		case <-time.After(5 * time.Minute):
 			close(ready)
 			s.Cmd.Process.Kill()
-			return errors.New("Avorion took over 5 minutes to start")
+			return errors.New("avorion took over 5 minutes to start")
 		}
 	}
 }
@@ -309,7 +307,7 @@ func (s *Server) Stop(sendchat bool) error {
 	select {
 	case <-time.After(60 * time.Second):
 		s.Cmd.Process.Kill()
-		return errors.New("Avorion took too long to exit, killed")
+		return errors.New("Avorion took too long to exit (killed)")
 
 	case <-s.close:
 		logger.LogInfo(s, "Avorion server has been stopped")
@@ -356,61 +354,54 @@ func (s *Server) Config() ifaces.IConfigurator {
 	return s.config
 }
 
-// UpdatePlayerDatabase updates the Avorion player database with all of the
-// players that are known to the game
+// UpdatePlayerDatabase updates the Avorion player database with all
+// of the players that are known to the game
+//
+// FIXME: Fix this absolute mess of a method
 func (s *Server) UpdatePlayerDatabase(notify bool) error {
 	var (
+		out string
+		err error
+		m   []string
+
 		allianceCount = 0
 		playerCount   = 0
 	)
 
 	if notify {
-		s.NotifyServer("Updating playerinfo DB. Possible lag incoming.")
+		s.NotifyServer(noticeDBUpate)
 	}
 
-	out, err := s.RunCommand("getplayerdata")
-	if err != nil {
+	if out, err = s.RunCommand(rconGetAllData); err != nil {
 		return err
 	}
 
 	for _, info := range strings.Split(out, "\n") {
-		var m []string
-
-		if strings.HasPrefix(info, "player:") {
+		switch true {
+		case strings.HasPrefix(info, "player: "):
 			playerCount++
 			if m = rePlayerData.FindStringSubmatch(info); m != nil {
-				if p := s.Player(m[1]); p != nil {
-					var arr [15]string
-					copy(arr[:], m)
-					if err := p.UpdateFromData(arr); err != nil {
-						logger.LogError(s, fmt.Sprintf(
-							"Failed to update player from data (%s)", err.Error()))
-					}
-				} else {
+				if p := s.Player(m[1]); p == nil {
 					s.NewPlayer(m[1], m)
 				}
 			} else {
-				logger.LogError(s, fmt.Sprintf("Unable to parse player line: (%s)", info))
+				logger.LogError(s, "player: "+sprintf(errBadDataString, info))
 				continue
 			}
 
-		} else if strings.HasPrefix(info, "alliance:") {
+		case strings.HasPrefix(info, "alliance: "):
 			allianceCount++
 			if m = reAllianceData.FindStringSubmatch(info); m != nil {
-				if a := s.Alliance(m[1]); a != nil {
-					var arr [13]string
-					copy(arr[:], m)
-					if err := a.UpdateFromData(arr); err != nil {
-						logger.LogError(s, fmt.Sprintf(
-							"Failed to update player from data (%s)", err.Error()))
-					}
-				} else {
+				if a := s.Alliance(m[1]); a == nil {
 					s.NewAlliance(m[1], m)
 				}
 			} else {
-				logger.LogError(s, fmt.Sprintf("Unable to parse player line: (%s)", info))
+				logger.LogError(s, sprintf(errBadDataString, info))
 				continue
 			}
+
+		default:
+			logger.LogError(s, sprintf(errBadDataString, info))
 		}
 	}
 
@@ -418,11 +409,11 @@ func (s *Server) UpdatePlayerDatabase(notify bool) error {
 	s.alliancecount = allianceCount
 
 	for _, p := range s.players {
-		logger.LogDebug(s, fmt.Sprintf("Processed player: %s", p.Name()))
+		logger.LogDebug(s, "Processed player: "+p.Name())
 	}
 
 	for _, a := range s.alliances {
-		logger.LogDebug(s, fmt.Sprintf("Processed alliance: %s", a.Name()))
+		logger.LogDebug(s, "Processed alliance: "+a.Name())
 	}
 
 	return nil
@@ -496,8 +487,9 @@ func (s *Server) RunCommand(c string) (string, error) {
 		logger.LogDebug(s, "Running: "+c)
 
 		// TODO: Make this use an rcon lib
-		ret, err := exec.Command(s.config.RCONBin(), "-H", s.rconaddr,
-			"-p", fmt.Sprint(s.rconport), "-P", s.rconpass, c).Output()
+		ret, err := exec.Command(s.config.RCONBin(), "-H",
+			s.rconaddr, "-p", sprintf("%d", s.rconport),
+			"-P", s.rconpass, c).Output()
 		out := string(ret)
 
 		if err != nil {
@@ -514,9 +506,9 @@ func (s *Server) RunCommand(c string) (string, error) {
 	return "", errors.New("Server is not online")
 }
 
-/*************************************/
+/*********************************/
 /* IFace ifaces.IVersionedServer */
-/*************************************/
+/*********************************/
 
 // SetVersion - Sets the current version of the Avorion server
 func (s *Server) SetVersion(v string) {
@@ -528,9 +520,9 @@ func (s *Server) Version() string {
 	return s.version
 }
 
-/**********************************/
+/******************************/
 /* IFace ifaces.ISeededServer */
-/**********************************/
+/******************************/
 
 // Seed - Return the current game seed
 func (s *Server) Seed() string {
@@ -543,9 +535,9 @@ func (s *Server) SetSeed(seed string) {
 	s.seed = seed
 }
 
-/************************************/
+/********************************/
 /* IFace ifaces.ILockableServer */
-/************************************/
+/********************************/
 
 // Password - Return the current password
 func (s *Server) Password() string {
@@ -557,9 +549,9 @@ func (s *Server) SetPassword(p string) {
 	s.password = p
 }
 
-/********************************/
+/****************************/
 /* IFace ifaces.IMOTDServer */
-/********************************/
+/****************************/
 
 // MOTD - Return the current MOTD
 func (s *Server) MOTD() string {
@@ -571,9 +563,9 @@ func (s *Server) SetMOTD(m string) {
 	s.motd = m
 }
 
-/************************************/
+/********************************/
 /* IFace ifaces.IPlayableServer */
-/************************************/
+/********************************/
 
 // Player return a player object that matches the index given
 func (s *Server) Player(plrstr string) ifaces.IPlayer {
@@ -590,7 +582,7 @@ func (s *Server) Player(plrstr string) ifaces.IPlayer {
 // PlayerFromName return a player object that matches the name given
 func (s *Server) PlayerFromName(name string) ifaces.IPlayer {
 	for _, p := range s.players {
-		logger.LogDebug(s, fmt.Sprintf("Does (%s) == (%s) ?", p.name, name))
+		logger.LogDebug(s, sprintf("Does (%s) == (%s) ?", p.name, name))
 		if p.name == name {
 			logger.LogDebug(s, "Found player.")
 			return p
@@ -638,16 +630,19 @@ func (s *Server) Alliances() []ifaces.IAlliance {
 // NewPlayer adds a new player to the list of players if it isn't already present
 func (s *Server) NewPlayer(index string, d []string) ifaces.IPlayer {
 	if _, err := strconv.Atoi(index); err != nil {
-		log.Fatal(errors.New("Invalid player index provided: " + index))
+		logger.LogError(s, "player: "+sprintf(errBadIndex, index))
+		s.Stop(true)
+		os.Exit(1)
 	}
 
+	cmd := sprintf(rconGetPlayerData, index)
+
 	if len(d) < 15 {
-		if data, err := s.RunCommand("getplayerdata -p " + index); err != nil {
-			logger.LogError(s, fmt.Sprintf("Failed to get player data: (%s)", err.Error()))
+		if data, err := s.RunCommand(cmd); err != nil {
+			logger.LogError(s, sprintf(errFailedRCON, err.Error()))
 		} else {
 			if d = rePlayerData.FindStringSubmatch(data); d != nil {
-				logger.LogError(s,
-					fmt.Sprintf("Failed to parse player string, gracefully stopping: (%s)", data))
+				logger.LogError(s, sprintf(errBadDataString, data))
 				s.Stop(true)
 				<-s.close
 				panic("Failed to parse data string")
@@ -683,19 +678,21 @@ func (s *Server) RemovePlayer(n string) {
 //	present
 func (s *Server) NewAlliance(index string, d []string) ifaces.IAlliance {
 	if _, err := strconv.Atoi(index); err != nil {
-		log.Fatal(errors.New("Invalid alliance index provided: " + index))
+		logger.LogError(s, "alliance: "+sprintf(errBadIndex, index))
+		s.Stop(true)
+		os.Exit(1)
 	}
 
 	if len(d) < 13 {
 		if data, err := s.RunCommand("getplayerdata -a " + index); err != nil {
-			logger.LogError(s, fmt.Sprintf("Failed to get alliance data: (%s)", err.Error()))
+			logger.LogError(s, sprintf("Failed to get alliance data: (%s)", err.Error()))
 		} else {
 			if d = rePlayerData.FindStringSubmatch(data); d != nil {
 				logger.LogError(s,
-					fmt.Sprintf("Failed to parse alliance string, gracefully stopping: (%s)", data))
+					sprintf("alliance: "+errBadDataString, data))
 				s.Stop(true)
 				<-s.close
-				panic("Failed to parse alliance data string")
+				panic("Bad data string given in *Server.NewAlliance")
 			}
 		}
 	}
@@ -734,7 +731,7 @@ func (s *Server) updateOnlineString() {
 	online := ""
 	for _, p := range s.players {
 		if p.Online() {
-			online = fmt.Sprintf("%s\n%s", online, p.Name())
+			online = sprintf("%s\n%s", online, p.Name())
 		}
 	}
 	s.onlineplayers = online
@@ -750,10 +747,10 @@ func (s *Server) DCOutput() chan ifaces.ChatData {
 }
 
 // AddIntegrationRequest registers a request by a player for Discord integration
-// TODO: Move this to sqlite3
+// TODO: Move this to our sqlite DB
 func (s *Server) AddIntegrationRequest(index, pin string) {
 	s.requests[index] = pin
-	path := fmt.Sprintf("%s/%s/discordrequests", s.config.DataPath(),
+	path := sprintf("%s/%s/discordrequests", s.config.DataPath(),
 		s.config.Galaxy())
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -771,15 +768,16 @@ func (s *Server) AddIntegrationRequest(index, pin string) {
 //	and registers the integration
 //  TODO: Move this to sqlite3
 func (s *Server) ValidateIntegrationPin(in, discordID string) bool {
-	m := regexp.MustCompile("^([0-9]+):([0-9]{6})$").FindStringSubmatch(in)
+	m := regexpDiscordPin.FindStringSubmatch(in)
+
 	if val, ok := s.requests[m[1]]; ok {
-		path := fmt.Sprintf("%s/%s/discordrequests/%s",
+		path := sprintf("%s/%s/discordrequests/%s",
 			s.config.DataPath(), s.config.Galaxy(), m[1])
 		if val == m[2] {
 			if _, err := os.Stat(path); err != nil {
 				os.Remove(path)
 			} else {
-				logger.LogError(s, fmt.Sprintf("Failed to remove request file (%s)",
+				logger.LogError(s, sprintf("Failed to remove request file (%s)",
 					err))
 			}
 
@@ -806,8 +804,7 @@ func (s *Server) Sector(x, y int) *ifaces.Sector {
 	if _, ok := s.sectors[x][y]; !ok {
 		s.sectors[x][y] = &ifaces.Sector{
 			X: x, Y: y, Jumphistory: make([]*ifaces.JumpInfo, 0)}
-		logger.LogInfo(s, fmt.Sprintf("Tracking new sector: (%d:%d)",
-			x, y))
+		logger.LogInfo(s, sprintf("Tracking new sector: (%d:%d)", x, y))
 
 		// TODO: This performs unnecessarily expensive DB calls here. Granted,
 		// that ONLY affects initilization, but it should still be optimized
@@ -831,15 +828,14 @@ func (s *Server) SendChat(input ifaces.ChatData) {
 		case s.Config().ChatPipe() <- input:
 			logger.LogDebug(s, "Sent chat data to bot")
 		case <-time.After(time.Second * 5):
-			logger.LogWarning(s, "Failed to send chat message, took too long (discarded)")
+			logger.LogWarning(s, warnChatDiscarded)
 		}
 	}
 }
 
 // addIntegration is a helper function that registers an integration
 func (s *Server) addIntegration(index, discordID string) {
-	s.RunCommand(fmt.Sprintf("run Player(%s):setValue(\"discorduserid\", %s)",
-		index, discordID))
+	s.RunCommand(sprintf(rconPlayerDiscord, index, discordID))
 }
 
 /**************/
@@ -853,6 +849,7 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 	defer logger.LogInfo(s, "Stopped status supervisor")
 	defer s.wg.Done()
 	s.wg.Add(1)
+
 	logger.LogInit(s, "Starting status supervisor")
 	for {
 		// Close the routine gracefully
@@ -881,7 +878,7 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 			// Wait for 60 seconds and restart the server if Avorion is taking too long
 			select {
 			case <-time.After(60 * time.Second):
-				logger.LogError(s, "Avorion is lagging, restarting...")
+				logger.LogWarning(s, warnGameLagging)
 				s.iscrashed = true
 				if err := s.Restart(); err != nil {
 					logger.LogError(s, err.Error())
@@ -905,6 +902,7 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 			}
 
 		// Update our playerinfo db
+		// TODO: Move this into the configuration object
 		case <-time.After(1 * time.Hour):
 			s.UpdatePlayerDatabase(true)
 		}
@@ -917,10 +915,12 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 // to be processed by our websocket handler.
 func superviseAvorionOut(s *Server, ready chan struct{},
 	closech chan struct{}) {
+
 	logger.LogInit(s, "Started Avorion stdout supervisor")
 	scanner := bufio.NewScanner(s.stdout)
 	pch := make(chan string, 0) // Player Login
 
+	// TODO: Move the scanner.Scan() loop into a goroutine.
 	for scanner.Scan() {
 		out := scanner.Text()
 
@@ -956,6 +956,37 @@ func superviseAvorionOut(s *Server, ready chan struct{},
 				logger.LogInit(s, out)
 			}
 		}
+	}
+}
+
+// TODO: Make this less godawful
+func (s *Server) loadSectors() {
+	for _, x := range s.sectors {
+		for _, sec := range x {
+			for _, j := range sec.Jumphistory {
+				for _, p := range s.players {
+					if p.Index() == strconv.FormatInt(int64(j.FID), 10) {
+						p.jumphistory = append(p.jumphistory, ifaces.ShipCoordData{
+							X: j.X, Y: j.Y, Name: j.Name, Time: j.Time})
+					}
+				}
+
+				for _, a := range s.alliances {
+					if a.Index() == strconv.FormatInt(int64(j.FID), 10) {
+						a.jumphistory = append(a.jumphistory, ifaces.ShipCoordData{
+							X: j.X, Y: j.Y, Name: j.Name, Time: j.Time})
+					}
+				}
+			}
+		}
+	}
+
+	for _, p := range s.players {
+		sort.Sort(jumpsByTime(p.jumphistory))
+	}
+
+	for _, a := range s.alliances {
+		sort.Sort(jumpsByTime(a.jumphistory))
 	}
 }
 
