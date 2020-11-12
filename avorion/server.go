@@ -688,6 +688,7 @@ func (s *Server) NewPlayer(index string, d []string) ifaces.IPlayer {
 	s.players = append(s.players, p)
 	s.tracking.TrackPlayer(p)
 	logger.LogInfo(p, "Registered player")
+	s.playercount++
 	return p
 }
 
