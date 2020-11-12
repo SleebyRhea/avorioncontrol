@@ -46,6 +46,7 @@ type IPlayableServer interface {
 	PlayerFromDiscord(string) IPlayer
 
 	Alliance(string) IAlliance
+	AllianceFromName(string) IAlliance
 	Alliances() []IAlliance
 	NewAlliance(string, []string) IAlliance
 

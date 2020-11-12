@@ -618,6 +618,18 @@ func (s *Server) Alliance(index string) ifaces.IAlliance {
 	return nil
 }
 
+// AllianceFromName returns an alliance object that matches the name given
+func (s *Server) AllianceFromName(name string) ifaces.IAlliance {
+	for _, a := range s.alliances {
+		logger.LogDebug(s, sprintf("Does (%s) == (%s) ?", a.name, name))
+		if a.name == name {
+			logger.LogDebug(s, "Found player.")
+			return a
+		}
+	}
+	return nil
+}
+
 // Alliances returns a slice of all of the alliances that are currently known
 func (s *Server) Alliances() []ifaces.IAlliance {
 	v := make([]ifaces.IAlliance, 0)

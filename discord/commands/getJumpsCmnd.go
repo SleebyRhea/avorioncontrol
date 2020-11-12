@@ -43,7 +43,8 @@ func getJumpsCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 		return "", err
 	}
 
-	if kind == "player" {
+	switch kind {
+	case "player":
 		if p := reg.server.PlayerFromName(ref); p != nil {
 			obj = p
 		} else if p := reg.server.Player(ref); p != nil {
@@ -51,13 +52,15 @@ func getJumpsCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 		} else if p := reg.server.PlayerFromDiscord(ref); p != nil {
 			obj = p
 		}
-		// } else if kind == "alliance" {
-		// 	if a := reg.server.AllianceFromName(ref); a != nil {
-		// 		obj = a
-		// 	} else if a := reg.server.Player(ref); a != nil {
-		// 		obj = a
-		// 	}
-	} else {
+
+	case "alliance":
+		if a := reg.server.AllianceFromName(ref); a != nil {
+			obj = a
+		} else if a := reg.server.Alliance(ref); a != nil {
+			obj = a
+		}
+
+	default:
 		msg := sprintf("`%s` is not a valid option (player or alliance expected)", kind)
 		s.ChannelMessageSend(m.ChannelID, msg)
 	}
