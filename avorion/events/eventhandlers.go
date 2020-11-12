@@ -30,7 +30,7 @@ func initB() {
 		handleEventPlayerJoin)
 
 	New("EventPlayerLeft",
-		`^\s*Player logged off: (.+?), index: ([0-9]+):?\s*$`,
+		`^\s*Player logged off: '(.+?)' \(([0-9]+)\) \([0-9]+\)\s*$`,
 		handleEventPlayerLeft)
 
 	New("EventServerLag",
@@ -81,6 +81,20 @@ func handleEventPlayerJoin(srv ifaces.IGameServer, e *Event, in string,
 	srv.AddPlayerOnline()
 }
 
+func handleEventPlayerLeft(srv ifaces.IGameServer, e *Event, in string,
+	oc chan string) {
+	m := e.Capture.FindStringSubmatch(in)
+	logger.LogOutput(srv, in)
+
+	if p := srv.Player(m[2]); p != nil {
+		p.SetOnline(false)
+		srv.SubPlayerOnline()
+		return
+	}
+
+	logger.LogError(srv, "Player logged off, but has no tracking: "+m[2])
+}
+
 func handleEventShipTrackInit(srv ifaces.IGameServer, e *Event, in string,
 	oc chan string) {
 }
@@ -101,20 +115,6 @@ func handleEventShipJump(srv ifaces.IGameServer, e *Event, in string,
 	} else if a := srv.Alliance(m[1]); a != nil {
 		a.AddJump(data)
 	}
-}
-
-func handleEventPlayerLeft(srv ifaces.IGameServer, e *Event, in string,
-	oc chan string) {
-	m := e.Capture.FindStringSubmatch(in)
-	logger.LogOutput(srv, in)
-
-	if p := srv.Player(m[2]); p != nil {
-		p.SetOnline(false)
-		srv.SubPlayerOnline()
-		return
-	}
-
-	logger.LogError(srv, "Player logged off, but has no tracking: "+m[2])
 }
 
 func handlePlayerChat(srv ifaces.IGameServer, e *Event, in string,
@@ -172,7 +172,7 @@ func handleLongTickEvent(srv ifaces.IGameServer, e *Event, in string,
 
 func handleModUpdate(srv ifaces.IGameServer, e *Event, in string,
 	oc chan string) {
-	logger.LogOutput(srv, in)
+	logger.LogInit(srv, in)
 	m := e.Capture.FindStringSubmatch(in)
 
 	out := fmt.Sprintf("Updated %s%s", modURLBase, m[1])
