@@ -52,7 +52,7 @@ func initB() {
 		handleLongTickEvent)
 
 	New("EventModUpdate",
-		`^\s*Acquiring workshop item ([0-9]+)\s*$`,
+		`^\s*Downloading ([0-9]+) \[[^\s]+ of [^\s]+ \| 100%\]\s*$`,
 		handleModUpdate)
 
 	New("EventNone",
