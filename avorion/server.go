@@ -40,9 +40,8 @@ const (
 	warnChatDiscarded = `discarded chat message (time: >5 seconds)`
 	warnGameLagging   = `Avorion is lagging, performing restart`
 
-	noticeDBUpate    = `Updating player data DB. Potential lag incoming.`
-	regexIntegration = `^([0-9]+):([0-9]{6})$`
-
+	noticeDBUpate       = `Updating player data DB. Potential lag incoming.`
+	regexIntegration    = `^([0-9]+):([0-9]{6})$`
 	rconPlayerDiscord   = `run Player(%s):setValue("discorduserid", %s)`
 	rconGetPlayerData   = `getplayerdata -p %s`
 	rconGetAllianceData = `getplayerdata -a %s`
@@ -225,11 +224,11 @@ func (s *Server) Start(sendchat bool) error {
 	s.Cmd.Env = append(os.Environ(),
 		"LD_LIBRARY_PATH="+s.serverpath+"/linux64")
 
-	// This prevents ctrl+c from killing the child process as well as the parent
-	// on *Nix systems (not an issue on Windows). Unneeded when running as a unit.
-	// https://rosettacode.org/wiki/Check_output_device_is_a_terminal#Go
-	if terminal.IsTerminal(int(os.Stdout.Fd())) {
-		if runtime.GOOS != "windows" {
+	if runtime.GOOS != "windows" {
+		// This prevents ctrl+c from killing the child process as well as the parent
+		// on *Nix systems (not an issue on Windows). Unneeded when running as a unit.
+		// https://rosettacode.org/wiki/Check_output_device_is_a_terminal#Go
+		if terminal.IsTerminal(int(os.Stdout.Fd())) {
 			s.Cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true, Pgid: 0}
 		}
 	}
@@ -259,6 +258,12 @@ func (s *Server) Start(sendchat bool) error {
 		if err := s.Cmd.Start(); err != nil {
 			logger.LogError(s, err.Error())
 			close(s.close)
+		}
+
+		if runtime.GOOS == "linux" {
+			// if s.config.AffinityMask() != nil {
+			// 	exec.Command("taskset" "-p", s.config.AffinityMask(), s.Cmd.Process.Pid)
+			// }
 		}
 
 		for {
@@ -660,7 +665,7 @@ func (s *Server) NewPlayer(index string, d []string) ifaces.IPlayer {
 		if data, err := s.RunCommand(cmd); err != nil {
 			logger.LogError(s, sprintf(errFailedRCON, err.Error()))
 		} else {
-			if d = rePlayerData.FindStringSubmatch(data); d != nil {
+			if d = rePlayerData.FindStringSubmatch(data); d == nil {
 				logger.LogError(s, sprintf(errBadDataString, data))
 				s.Stop(true)
 				<-s.close
