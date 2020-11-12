@@ -206,6 +206,9 @@ func (s *Server) Start(sendchat bool) error {
 	s.tracking.SetLoglevel(s.loglevel)
 	logger.LogInfo(s, "Syncing mods to data directory")
 	cp.Copy("./mods", s.config.DataPath()+"/mods")
+	if err := s.config.BuildModConfig(); err != nil {
+		return errors.New("Failed to generate modconfig.lua file")
+	}
 	s.name = s.config.Galaxy()
 
 	s.Cmd = exec.Command(
@@ -770,7 +773,7 @@ func (s *Server) AddIntegrationRequest(index, pin string) {
 	}
 
 	// For tracking when the server goes down and needs this rebuilt
-	if err := ioutil.WriteFile(path+"/"+index, []byte(pin), 0); err != nil {
+	if err := ioutil.WriteFile(path+"/"+index, []byte(pin), 0644); err != nil {
 		logger.LogError(s, "Failed to write Discord integration request to "+
 			path+"/"+index)
 	}

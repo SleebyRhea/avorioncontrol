@@ -35,9 +35,17 @@ type yamlDataRCON struct {
 	Port    int    `yaml:"port"`
 }
 
+type yamlDataMods struct {
+	Enforce  bool     `yaml:"enforce"`
+	Allowed  []int64  `yaml:"allowed"`
+	Enabled  []int64  `yaml:"enabled"`
+	ModPaths []string `yaml:"modpaths"`
+}
+
 type yamlData struct {
 	Core    yamlDataCore    `yaml:"Core"`
 	Game    yamlDataGame    `yaml:"Game"`
 	RCON    yamlDataRCON    `yaml:"RCON"`
 	Discord yamlDataDiscord `yaml:"Discord"`
+	Mods    yamlDataMods    `yaml:"Mods"`
 }

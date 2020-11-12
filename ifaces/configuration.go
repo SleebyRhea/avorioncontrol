@@ -17,6 +17,7 @@ type IConfigurator interface {
 	ITimeConfigurator
 	IChatConfigurator
 	IConfigSaveLoader
+	IModConfigurator
 	logger.ILogger
 }
 
@@ -102,4 +103,9 @@ type IConfigSaveLoader interface {
 // IDatabaseConfigurator describes an interface to a db configurator
 type IDatabaseConfigurator interface {
 	DBName() string
+}
+
+// IModConfigurator describes an interface to a modconfig builder
+type IModConfigurator interface {
+	BuildModConfig() error
 }

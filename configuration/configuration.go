@@ -18,7 +18,8 @@ import (
 
 const (
 	// Conf
-	defaultFile = "config.yaml"
+	defaultFile  = "config.yaml"
+	defaultModID = "123123123"
 
 	// Discord
 	defaultLoglevel    = 1
@@ -37,8 +38,9 @@ const (
 	defaultServerInstallation = "/srv/avorion/server_files/"
 	defaultTimeDatabaseUpdate = time.Minute * 60
 	defaultTimeHangCheck      = time.Minute * 5
-	defaultCommandPrefix      = "mention"
+	defaultCommandPrefix      = "mentan"
 	defaultStatusClear        = false
+	defaultEnforceMods        = false
 
 	defaultTimeZone = "America/New_York"
 	defaultDBName   = "data.db"
@@ -88,6 +90,11 @@ type Conf struct {
 	aliasedCommands  map[string][]string
 	disabledCommands []string
 
+	enforceMods     bool
+	enabledMods     []int64
+	allowedMods     []int64
+	enabledModPaths []string
+
 	// Chat
 	chatpipe chan ifaces.ChatData
 }
@@ -113,6 +120,11 @@ func New() *Conf {
 		pingport: defaultGamePingPort,
 
 		statuschannelclear: defaultStatusClear,
+
+		enforceMods:     defaultEnforceMods,
+		enabledMods:     make([]int64, 0),
+		allowedMods:     make([]int64, 0),
+		enabledModPaths: make([]string, 0),
 
 		timezone:        defaultTimeZone,
 		aliasedCommands: make(map[string][]string)}
@@ -362,6 +374,20 @@ func (c *Conf) LoadConfiguration() {
 	if out.Discord.ClearStatusChannel {
 		c.statuschannelclear = true
 	}
+
+	if out.Mods.Allowed != nil {
+		c.allowedMods = out.Mods.Allowed
+	}
+
+	if out.Mods.Enabled != nil {
+		c.enabledMods = out.Mods.Enabled
+	}
+
+	if out.Mods.ModPaths != nil {
+		c.enabledModPaths = out.Mods.ModPaths
+	}
+
+	c.enforceMods = out.Mods.Enforce
 }
 
 // SaveConfiguration saves our current configuration to a yaml file
@@ -395,7 +421,12 @@ func (c *Conf) SaveConfiguration() {
 			Prefix:           c.prefix,
 			Token:            c.token,
 			AliasedCommands:  c.aliasedCommands,
-			DisabledCommands: c.disabledCommands}}
+			DisabledCommands: c.disabledCommands},
+
+		Mods: yamlDataMods{
+			Enforce: c.enforceMods,
+			Enabled: c.enabledMods,
+			Allowed: c.allowedMods}}
 
 	if strings.HasPrefix(y.Discord.Prefix, "<@!") {
 		y.Discord.Prefix = "mention"
@@ -599,6 +630,39 @@ func (c *Conf) RemoveCmndAuth(rID string) error {
 // are using
 func (c *Conf) DBName() string {
 	return c.dbname
+}
+
+/*********************************/
+/* IFace ifaces.IModConfigurator */
+/*********************************/
+
+// BuildModConfig generates a valid modconfig.lua file for Avorion
+func (c *Conf) BuildModConfig() error {
+	file := sprintf("%s/%s/modconfig.lua", c.datadir, c.galaxyname)
+	logger.LogInfo(c, "Generating "+file)
+
+	modconfig := sprintf("modLocation   = \"\"\n"+
+		"forceEnabling = %t\n"+
+		"local prefix  = \"%s\"\n"+
+		"\nmods = {\n", c.enforceMods, c.datadir+"mods/")
+
+	for _, modid := range c.enabledMods {
+		modconfig += sprintf("  {workshopid = \"%d\"},\n", modid)
+	}
+
+	for _, modpath := range c.enabledModPaths {
+		modconfig += sprintf("  {path = prefix .. \"%d\"},\n", modpath)
+	}
+
+	modconfig += "}\n\nallowed = {\n"
+
+	for _, allowedid := range c.allowedMods {
+		modconfig += sprintf("  {workshopid = \"%d\"},\n", allowedid)
+	}
+
+	modconfig += "}\n"
+
+	return ioutil.WriteFile(file, []byte(modconfig), 0644)
 }
 
 /**********************************/
