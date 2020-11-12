@@ -424,9 +424,10 @@ func (c *Conf) SaveConfiguration() {
 			DisabledCommands: c.disabledCommands},
 
 		Mods: yamlDataMods{
-			Enforce: c.enforceMods,
-			Enabled: c.enabledMods,
-			Allowed: c.allowedMods}}
+			Enforce:  c.enforceMods,
+			Enabled:  c.enabledMods,
+			Allowed:  c.allowedMods,
+			ModPaths: c.enabledModPaths}}
 
 	if strings.HasPrefix(y.Discord.Prefix, "<@!") {
 		y.Discord.Prefix = "mention"
@@ -655,7 +656,7 @@ func (c *Conf) BuildModConfig() error {
 	}
 
 	for _, modpath := range c.enabledModPaths {
-		modconfig += sprintf("  {path = prefix .. \"%d\"},\n", modpath)
+		modconfig += sprintf("  {path = prefix .. \"%s\"},\n", modpath)
 	}
 
 	modconfig += "}\n\nallowed = {\n"
