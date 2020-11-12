@@ -29,12 +29,13 @@ import (
 )
 
 const (
-	logUUID          = `AvorionServer`
-	errBadIndex      = `invalid index provided (%s)`
-	errExecFailed    = `failed to run Avorion binary (%s/bin/%s)`
-	errBadDataString = `failed to parse data string (%s)`
-	errFailedRCON    = `failed to run RCON command (%s)`
-	errFailToGetData = `failed to acquire data for %s (%s)`
+	logUUID            = `AvorionServer`
+	errBadIndex        = `invalid index provided (%s)`
+	errExecFailed      = `failed to run Avorion binary (%s/bin/%s)`
+	errBadDataString   = `failed to parse data string (%s)`
+	errEmptyDataString = `got empty data string`
+	errFailedRCON      = `failed to run RCON command (%s)`
+	errFailToGetData   = `failed to acquire data for %s (%s)`
 
 	warnChatDiscarded = `discarded chat message (time: >5 seconds)`
 	warnGameLagging   = `Avorion is lagging, performing restart`
@@ -402,6 +403,9 @@ func (s *Server) UpdatePlayerDatabase(notify bool) error {
 				logger.LogError(s, sprintf(errBadDataString, info))
 				continue
 			}
+
+		case info == "":
+			logger.LogWarning(s, "playerdb: "+errEmptyDataString)
 
 		default:
 			logger.LogError(s, sprintf(errBadDataString, info))
