@@ -304,7 +304,7 @@ func (b *Bot) updateServerStatus(guild string, s *discordgo.Session,
 
 		case <-time.After(time.Second * 5):
 			// No point in continuing if the server status hasn't changed
-			if stat := gs.Status(); stat == laststatus {
+			if stat := gs.Status(); gs.CompareStatus(stat, laststatus) {
 				continue
 			} else {
 				logger.LogInfo(b, "Server status updated")
