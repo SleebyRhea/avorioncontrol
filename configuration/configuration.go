@@ -413,15 +413,14 @@ func (c *Conf) SaveConfiguration() {
 
 		Discord: yamlDataDiscord{
 			ClearStatusChannel: c.statuschannelclear,
-
-			ChatChannel:      c.chatchannel,
-			StatusChannel:    c.statuschannel,
-			BotsAllowed:      c.botsallowed,
-			DiscordLink:      c.discordLink,
-			Prefix:           c.prefix,
-			Token:            c.token,
-			AliasedCommands:  c.aliasedCommands,
-			DisabledCommands: c.disabledCommands},
+			ChatChannel:        c.chatchannel,
+			StatusChannel:      c.statuschannel,
+			BotsAllowed:        c.botsallowed,
+			DiscordLink:        c.discordLink,
+			Prefix:             c.prefix,
+			Token:              c.token,
+			AliasedCommands:    c.aliasedCommands,
+			DisabledCommands:   c.disabledCommands},
 
 		Mods: yamlDataMods{
 			Enforce:  c.enforceMods,
