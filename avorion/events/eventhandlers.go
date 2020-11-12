@@ -5,6 +5,7 @@ import (
 	"avorioncontrol/logger"
 	"regexp"
 	"strconv"
+	"time"
 )
 
 var discChatRe = regexp.MustCompile(`^\s*<D> <.*?#[0-9]{4}> (.*)$`)
@@ -41,6 +42,12 @@ func initB() {
 	New("NilCommandEvent",
 		`^\s*nilCommandEvent: (.*)$`,
 		handleNilCommand)
+
+	New("EventLongTick",
+		`^Warning: Sector (\(-?[0-9]+:-?[0-9]+\)) had a very long tick `+
+			`of over ([0-9]+)ms. To gather info, use /profile, or enable `+
+			`profiling in your server.ini and run /status.`,
+		handleLongTickEvent)
 
 	New("EventNone",
 		".*",
@@ -142,6 +149,19 @@ func handleDiscordIntegrationRequest(srv ifaces.IGameServer, e *Event, in string
 	oc chan string) {
 	m := e.Capture.FindStringSubmatch(in)
 	srv.AddIntegrationRequest(m[1], m[2])
+}
+
+func handleLongTickEvent(srv ifaces.IGameServer, e *Event, in string,
+	oc chan string) {
+	logger.LogOutput(srv, in)
+	select {
+	case <-benchTimer.C:
+		logger.LogInfo(srv, "Starting benchmark")
+		srv.RunCommand("profile")
+		benchTimer.Reset(time.Minute * 5)
+	default:
+		logger.LogInfo(srv, "Benchmark timeout of at least 5 minutes has not passed")
+	}
 }
 
 func defaultEventHandler(srv ifaces.IGameServer, e *Event, in string,

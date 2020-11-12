@@ -2,14 +2,17 @@ package events
 
 import (
 	"regexp"
+	"time"
 )
 
 var events []*Event             // Iteration
 var eventsMap map[string]*Event // Reference
+var benchTimer *time.Timer
 
 func init() {
 	events = make([]*Event, 0)
 	eventsMap = make(map[string]*Event)
+	benchTimer = time.NewTimer(time.Minute * 5)
 	initB()
 }
 
