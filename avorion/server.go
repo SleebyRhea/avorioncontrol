@@ -953,7 +953,11 @@ func superviseAvorionOut(s *Server, ready chan struct{},
 				close(ready)
 
 			default:
-				logger.LogInit(s, out)
+				e := events.GetFromString(out)
+				if e == nil {
+					continue
+				}
+				e.Handler(s, e, out, nil)
 			}
 		}
 	}

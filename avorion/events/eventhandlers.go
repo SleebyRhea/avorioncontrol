@@ -3,12 +3,14 @@ package events
 import (
 	"avorioncontrol/ifaces"
 	"avorioncontrol/logger"
+	"fmt"
 	"regexp"
 	"strconv"
 	"time"
 )
 
 var discChatRe = regexp.MustCompile(`^\s*<D> <.*?#[0-9]{4}> (.*)$`)
+var modURLBase = `https://steamcommunity.com/sharedfiles/filedetails/?id=`
 
 func initB() {
 	New("EventShipTrackInit",
@@ -44,10 +46,14 @@ func initB() {
 		handleNilCommand)
 
 	New("EventLongTick",
-		`^Warning: Sector (\(-?[0-9]+:-?[0-9]+\)) had a very long tick `+
+		`^\s*Warning: Sector (\(-?[0-9]+:-?[0-9]+\)) had a very long tick `+
 			`of over ([0-9]+)ms. To gather info, use /profile, or enable `+
 			`profiling in your server.ini and run /status.`,
 		handleLongTickEvent)
+
+	New("EventModUpdate",
+		`^\s*Acquiring workshop item ([0-9]+)\s*$`,
+		handleModUpdate)
 
 	New("EventNone",
 		".*",
@@ -162,6 +168,20 @@ func handleLongTickEvent(srv ifaces.IGameServer, e *Event, in string,
 	default:
 		logger.LogInfo(srv, "Benchmark timeout of at least 5 minutes has not passed")
 	}
+}
+
+func handleModUpdate(srv ifaces.IGameServer, e *Event, in string,
+	oc chan string) {
+	logger.LogOutput(srv, in)
+	m := e.Capture.FindStringSubmatch(in)
+
+	out := fmt.Sprintf("Updated %s%s", modURLBase, m[1])
+
+	output := ifaces.ChatData{
+		Name: `Startup`,
+		Msg:  out}
+
+	srv.SendChat(output)
 }
 
 func defaultEventHandler(srv ifaces.IGameServer, e *Event, in string,
