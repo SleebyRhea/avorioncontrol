@@ -83,7 +83,12 @@ func getJumpsCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 			msg = sprintf("%s\n%d/%02d/%02d %02d:%02d:%02d - (%d:%d) %s", msg,
 				t.Year(), t.Month(), t.Day(),
 				t.Hour(), t.Minute(), t.Second(), j.X, j.Y, j.Name)
+			if len(msg) > 1900 {
+				msg += "\n...(truncated due to length)"
+				break
+			}
 		}
+
 		msg = msg + "```"
 		s.ChannelMessageSend(m.ChannelID, msg)
 	} else {

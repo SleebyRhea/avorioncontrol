@@ -103,23 +103,26 @@ func getCoordHistoryCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 		t := sprintf("%d/%02d/%02d %02d:%02d:%02d", tl.Year(), tl.Month(), tl.Day(),
 			tl.Hour(), tl.Minute(), tl.Second())
 
-		if j.Kind == "player" {
+		switch j.Kind {
+		case "player":
 			if obj = reg.server.Player(fid); obj == nil {
 				return "", errors.New("Invalid ifaces.IHaveShips object")
 			}
-		} else if j.Kind == "alliance" {
+
+		case "alliance":
 			if obj = reg.server.Alliance(fid); obj == nil {
 				return "", errors.New("Invalid ifaces.IHaveShips object")
 			}
 			return "", errors.New("Invalid ifaces.IHaveShips object")
-		} else {
+
+		default:
 			return "", errors.New("Invalid ifaces.IHaveShips object")
 		}
 
 		suffix := sprintf("\n%s (%d:%d) %s/%s \"%s\"",
 			t, j.X, j.Y, obj.Name(), j.Kind, j.Name)
 		if len(suffix+msg) > 1900 {
-			msg = msg + "\n(truncated)"
+			msg += "\n...(truncated due to length)"
 		} else {
 			msg = msg + suffix
 		}
