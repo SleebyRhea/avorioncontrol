@@ -24,6 +24,7 @@ type IServer interface {
 	Stop(bool) error
 	Start(bool) error
 	Status() ServerStatus
+	CompareStatus(ServerStatus, ServerStatus) bool
 	Restart() error
 	Config() IConfigurator
 

@@ -432,6 +432,8 @@ func (s *Server) UpdatePlayerDatabase(notify bool) error {
 }
 
 // Status returns a struct containing the current status of the server
+//
+//FIXME: Implement a function to properly compare two server states
 func (s *Server) Status() ifaces.ServerStatus {
 	var status = ifaces.ServerOffline
 
@@ -465,7 +467,22 @@ func (s *Server) Status() ifaces.ServerStatus {
 		Output:        s.statusoutput,
 		Sectors:       s.sectorcount,
 		INI:           config}
+}
 
+// CompareStatus takes two ifaces.ServerStatus arguments and compares
+//	them. If they are equivalent, then return true. Else, false.
+func (s *Server) CompareStatus(a, b ifaces.ServerStatus) bool {
+	if a.Name == b.Name &&
+		a.Status == b.Status &&
+		a.Players == b.Players &&
+		a.TotalPlayers == b.TotalPlayers &&
+		a.PlayersOnline == b.PlayersOnline &&
+		a.Alliances == b.Alliances &&
+		a.Output == b.Output &&
+		a.Sectors == b.Sectors {
+		return true
+	}
+	return false
 }
 
 /************************/
@@ -760,6 +777,7 @@ func (s *Server) updateOnlineString() {
 		}
 	}
 	s.onlineplayers = online
+	logger.LogDebug(s, "Updated online string: "+s.onlineplayers)
 }
 
 /*****************************************/
