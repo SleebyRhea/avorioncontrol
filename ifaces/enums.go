@@ -15,7 +15,7 @@ const (
 	difficultyVeteran  = 0
 	difficultyExpert   = 1
 	difficultyHardcore = 2
-	difficultyInsane   = 2
+	difficultyInsane   = 3
 
 	difficultyBeginnerString = "Beginner"
 	difficultyEasyString     = "Easy"
