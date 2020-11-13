@@ -65,12 +65,12 @@ func (c *Core) UUID() string {
 
 // Loglevel returns the loglevel of an alliance
 func (c *Core) Loglevel() int {
-	return c.loglevel
+	return config.Loglevel()
 }
 
 // SetLoglevel sets the loglevel of an alliance
 func (c *Core) SetLoglevel(l int) {
-	c.loglevel = l
+	config.SetLoglevel(l)
 }
 
 func main() {

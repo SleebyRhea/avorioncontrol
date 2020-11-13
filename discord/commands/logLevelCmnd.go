@@ -50,7 +50,7 @@ func loglevelCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	for _, obj := range a[2:] {
 		switch obj {
 		case "registrar", "guild":
-			out = sprintf("Default loglevel is now: _**%d**_", l)
+			out = sprintf("Default command loglevel is now: _**%d**_", l)
 			reg.SetLoglevel(l)
 			s.ChannelMessageSend(m.ChannelID, out)
 			continue
@@ -61,10 +61,11 @@ func loglevelCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 			s.ChannelMessageSend(m.ChannelID, out)
 			return
 
-		// TODO: Implement core/config level changing
-		case "core":
-			out = "Changing core logging via command is not yet implemented"
-			s.ChannelMessageSend(m.ChannelID, out)
+		case "core", "default":
+			c.SetLoglevel(l)
+			c.SaveConfiguration()
+			s.ChannelMessageSend(m.ChannelID,
+				sprintf("Core command loglevel is now: _**%d**_", l))
 			return
 
 		// Process commands/aliases here
