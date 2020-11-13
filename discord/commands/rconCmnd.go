@@ -14,12 +14,13 @@ func rconCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	var (
 		srv ifaces.IGameServer
 		reg *CommandRegistrar
-		cmd *CommandRegistrant
+		// cmd *CommandRegistrant
 
 		rcmd string
 		out  string
 		msg  string
 		err  error
+		cnt  int
 	)
 
 	if !HasNumArgs(a, 1, -1) {
@@ -31,28 +32,47 @@ func rconCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 		return "", err
 	}
 
-	if cmd, err = reg.Command(a[0]); err != nil {
-		return "", err
-	}
+	// if cmd, err = reg.Command(a[0]); err != nil {
+	// 	return "", err
+	// }
 
 	srv = reg.server
 	rcmd = strings.Join(a[1:], " ")
 
 	if out, err = srv.RunCommand(rcmd); err != nil {
-		logger.LogError(cmd, sprintf("Failed to run \"%s\": %s", rcmd, err.Error()))
 		_ = s.MessageReactionAdd(m.ChannelID, m.ID, "🚫")
-		return "", nil
+		return "", &ErrCommandError{sprintf(
+			"Failed to run \"%s\": %s", rcmd, err.Error())}
 	}
 
 	_ = s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
+	if strings.ReplaceAll(out, " ", "") == "" {
+		return "", nil
+	}
 
-	if strings.ReplaceAll(out, " ", "") != "" {
+	if utf8.RuneCountInString(out) <= 1900 {
 		msg = sprintf("**Output: `%s`**\n```\n%s\n```", rcmd, out)
-		if utf8.RuneCountInString(out) <= 2000 {
-			_, err = s.ChannelMessageSend(m.ChannelID, msg)
-		} else {
-			_, err = s.ChannelMessageSend(m.ChannelID, "Output too large for discord")
+		_, err = s.ChannelMessageSend(m.ChannelID, msg)
+		logger.LogDebug(reg, sprintf("Len: %d", len(msg)))
+		return "", err
+	}
+
+	cnt = 1
+	msg = ""
+	for _, line := range strings.Split(out, "\n") {
+		msg += line
+		msg += "\n"
+		if utf8.RuneCountInString(msg) >= 1900 {
+			_, err = s.ChannelMessageSend(m.ChannelID, sprintf(
+				"**Output %d: `%s`**\n```\n%s```\n", cnt, rcmd, msg))
+			cnt++
+			msg = ""
 		}
+	}
+
+	if msg != "" {
+		_, err = s.ChannelMessageSend(m.ChannelID, sprintf(
+			"**Output %d: `%s`**\n```\n%s```\n", cnt, rcmd, msg))
 	}
 
 	return "", err

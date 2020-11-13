@@ -232,7 +232,7 @@ func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
 	args[0] = cmd.Name()
 
 	if len(args) > 1 {
-		if args[1] == "help" {
+		if args[1] == "help" && cmd.Name() != "rcon" {
 			help, _ := cmd.Help()
 			s.ChannelMessageSend(m.ChannelID, help)
 			return cmd.Name(), nil
