@@ -26,26 +26,26 @@ func helpCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	if maincmd, err = reg.Command(a[1]); err != nil {
 		msg := sprintf("Command `%s` doesn't exist or isn't registered", a[1])
 		_, err = s.ChannelMessageSend(m.ChannelID, msg)
-		return "", err
+		return "", &ErrInvalidCommand{msg}
 	}
 
 	if c.CommandDisabled(maincmd.Name()) {
-		msg := sprintf("Command `%s` is not enabled", a[1])
-		_, err = s.ChannelMessageSend(m.ChannelID, msg)
-		return "", err
+		msg := sprintf("`%s` is not a valid command", a[1])
+		return "", &ErrCommandDisabled{msg}
 	}
 
-	if c, cmdlets := maincmd.Subcommands(); c > 0 {
-		for _, cmd := range a[2:] {
-		cmdletloop:
+	if len(a[1:]) > 1 {
+		if c, cmdlets := maincmd.Subcommands(); c > 0 {
 			for _, sub := range cmdlets {
-				if string(cmd[0]) == sub.Name() {
+				if a[2] == sub.Name() {
 					maincmd = sub
-					break cmdletloop
+					break
 				}
 			}
+		}
 
-			msg := sprintf("Subcommand `%s` doesn't exist under `%s`", cmd[0],
+		if maincmd.Name() == a[1] {
+			msg := sprintf("Subcommand `%s` doesn't exist under `%s`", a[2],
 				maincmd.Name())
 			_, err := s.ChannelMessageSend(m.ChannelID, msg)
 			return "", err
