@@ -22,7 +22,8 @@ func loglevelCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	)
 
 	if !HasNumArgs(a, 2, -1) {
-		return wrongArgsCmd(s, m, a, c)
+		return "", &ErrInvalidArgument{sprintf(
+			`%s was passed the wrong number of arguments`, a[0])}
 	}
 
 	if reg, err = Registrar(m.GuildID); err != nil {
@@ -41,9 +42,7 @@ func loglevelCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 			"1 - Show warnings (default)\n" +
 			"2 - Show informational output\n" +
 			"3 - Debug mode\n```"
-
-		s.ChannelMessageSend(m.ChannelID, out)
-		return "", nil
+		return "", &ErrCommandError{out}
 	}
 
 	logger.LogDebug(cmd, sprintf("Using loglevel %d", l))

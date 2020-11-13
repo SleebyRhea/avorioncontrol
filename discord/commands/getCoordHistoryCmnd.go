@@ -23,7 +23,8 @@ func getCoordHistoryCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 
 	// Require at least one set of coords
 	if !HasNumArgs(a, 1, -1) {
-		return wrongArgsCmd(s, m, a, c)
+		return "", &ErrInvalidArgument{sprintf(
+			`%s was passed the wrong number of arguments`, a[0])}
 	}
 
 	if reg, err = Registrar(m.GuildID); err != nil {
@@ -43,9 +44,8 @@ func getCoordHistoryCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 	for _, c := range a[1:] {
 		logger.LogDebug(cmd, "Operating on: "+c)
 		if match = coordRe.FindStringSubmatch(c); match == nil {
-			s.ChannelMessageSend(m.ChannelID, sprintf("Invalid coordinate given: `%s`",
-				c))
-			return "", nil
+			return "", &ErrInvalidArgument{sprintf(
+				"Invalid coordinate given: `%s`", c)}
 		}
 
 		x, _ := strconv.Atoi(match[1])
@@ -53,16 +53,14 @@ func getCoordHistoryCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 
 		// Make sure our coordinates are actually between -500 and 500
 		if x > 500 || x < -500 {
-			s.ChannelMessageSend(m.ChannelID, sprintf("Coordinate **x** is out of range: `%d`",
-				x))
-			return "", nil
+			return "", &ErrInvalidArgument{sprintf(
+				"Coordinate **x** is out of range: `%d`", x)}
 		}
 
 		// Make sure our coordinates are actually between -500 and 500
 		if y > 500 || y < -500 {
-			s.ChannelMessageSend(m.ChannelID, sprintf("Coordinate **y** is out of range: `%d`",
-				y))
-			return "", nil
+			return "", &ErrInvalidArgument{sprintf(
+				"Coordinate **y** is out of range: `%d`", y)}
 		}
 
 		coords = append(coords, [2]int{x, y})
@@ -130,5 +128,5 @@ func getCoordHistoryCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 
 	msg = msg + "\n```"
 	s.ChannelMessageSend(m.ChannelID, msg)
-	return "", err
+	return "", nil
 }

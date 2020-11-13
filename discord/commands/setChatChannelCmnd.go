@@ -20,7 +20,8 @@ func setChatChannelCmnd(s *discordgo.Session, m *discordgo.MessageCreate,
 	)
 
 	if !HasNumArgs(a, 1, 1) {
-		return wrongArgsCmd(s, m, a, c)
+		return "", &ErrInvalidArgument{sprintf(
+			`%s was passed the wrong number of arguments`, a[0])}
 	}
 
 	if reg, err = Registrar(m.GuildID); err != nil {

@@ -161,9 +161,42 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 
 		// Process a command if the prefix is used
 		if strings.HasPrefix(m.Content, b.config.Prefix()) {
-			if err = reg.ProcessCommand(s, m, b.config); err != nil {
-				logger.LogError(reg, err.Error())
+			var name string
+			if name, err = reg.ProcessCommand(s, m, b.config); err != nil {
+				switch err.(type) {
+				case *commands.ErrInvalidArgument:
+					s.ChannelMessageSend(m.ChannelID, err.Error())
+					cmd, _ := reg.Command(name)
+					help, _ := cmd.Help()
+					s.ChannelMessageSend(m.ChannelID, help)
+
+				case *commands.ErrUnauthorizedUsage:
+					logger.LogWarning(b, fmt.Sprintf(
+						"%s attempted to run [%s], but wasn't authorized",
+						m.Author.String(), m.Content))
+					s.ChannelMessageSend(m.ChannelID, err.Error())
+
+				case *commands.ErrInvalidTimezone:
+					s.ChannelMessageSend(m.ChannelID, err.Error())
+					logger.LogError(reg, err.Error())
+
+				case *commands.ErrInvalidCommand:
+					s.ChannelMessageSend(m.ChannelID, err.Error())
+
+				case *commands.ErrCommandDisabled:
+					s.ChannelMessageSend(m.ChannelID, err.Error())
+
+				case *commands.ErrInvalidAlias:
+					s.ChannelMessageSend(m.ChannelID, err.Error())
+
+				case *commands.ErrCommandError:
+					s.ChannelMessageSend(m.ChannelID, err.Error())
+
+				default:
+					logger.LogError(reg, err.Error())
+				}
 			}
+
 			return
 		}
 

@@ -143,11 +143,10 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 
 	r.Register("getjumps",
 		"Get the last n jumps for a player or alliance",
-		"getjumps <type> <max> <name>",
+		"getjumps <max> <name>",
 		[]CommandArgument{
-			arg("type", "player or alliance type"),
 			arg("max", "Max jumps to list"),
-			arg("name", "Name of the object to check")},
+			arg("name", "Player or Alliance name")},
 		getJumpsCmnd)
 
 	r.Register("getcoordhistory",

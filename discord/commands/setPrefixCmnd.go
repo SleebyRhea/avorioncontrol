@@ -16,7 +16,8 @@ func setprefixCmd(s *discordgo.Session, m *discordgo.MessageCreate,
 	)
 
 	if !HasNumArgs(a, 1, 1) {
-		return wrongArgsCmd(s, m, a, c)
+		return "", &ErrInvalidArgument{sprintf(
+			`%s was passed the wrong number of arguments`, a[0])}
 	}
 
 	//eg: aa!, aa!!, !, !!, or <@!USERID> if mention is used

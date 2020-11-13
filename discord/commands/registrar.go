@@ -165,7 +165,7 @@ func (reg *CommandRegistrar) UserAuthorized(cmd string, m *discordgo.Member) boo
 //  @m *discordgo.MessageCreate    Discordgo message event
 //  @c IConfigurator               Bot configuration pointer
 func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
-	m *discordgo.MessageCreate, c ifaces.IConfigurator) error {
+	m *discordgo.MessageCreate, c ifaces.IConfigurator) (string, error) {
 	var (
 		err    error
 		out    string
@@ -183,9 +183,9 @@ func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
 		args = append(args, m[0])
 	}
 
-	// If there was no command given, then just return nothing
+	// If there was no command given, don't do anything else
 	if len(args) == 0 || len(args[0]) == 0 {
-		return nil
+		return "empty", nil
 	}
 
 	name := args[0]
@@ -198,42 +198,41 @@ func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
 	if cmd, err = reg.Command(name); err != nil {
 		if b, ac := c.GetAliasedCommand(name); b == true {
 			if cmd, err = reg.Command(ac); err != nil {
-				return errors.New("Configured command alias is invalid: " + ac)
+				return "", &ErrInvalidAlias{sprintf(
+					"Configured command alias is invalid: " + ac)}
 			}
 		} else {
-			_, err = invalidCmd(s, m, args, c)
-			return err
+			return name, &ErrInvalidCommand{sprintf(
+				`%s is not valid command`, name)}
 		}
 	}
 
 	if c.CommandDisabled(cmd.Name()) {
-		_, err = disabledCmnd(s, m, args, c)
-		return err
+		return cmd.Name(), &ErrCommandDisabled{sprintf(`%s has been disabled`,
+			cmd.Name())}
 	}
 
 	if cmd.exec == nil {
-		logger.LogWarning(cmd, "Can't execute (missing exec field)")
-		_, err = invalidCmd(s, m, args, c)
-		return err
+		logger.LogWarning(cmd, sprintf("Can't execute %s (missing exec field)",
+			cmd.Name()))
+		return cmd.Name(), &ErrInvalidCommand{sprintf(`%s is not a valid command`,
+			cmd.Name())}
 	}
 
 	if member, err = s.GuildMember(reg.GuildID, m.Author.ID); err != nil {
-		return err
+		return "", err
 	}
 
 	if !reg.UserAuthorized(name, member) {
-		out, err = unauthorizedCmd(s, m, args, c)
-		logger.LogInfo(reg, out)
-		return err
+		return "", &ErrUnauthorizedUsage{sprintf(`%s attempted to run %s`,
+			m.Author.String, cmd.Name())}
 	}
 
 	// Update our arguments with the full command name
 	args[0] = cmd.Name()
-
-	// Execute our command and log any string returns
 	if out, err = cmd.exec(s, m, args, c); out != "" {
 		logger.LogInfo(cmd, out)
 	}
 
-	return err
+	return cmd.Name(), err
 }

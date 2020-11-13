@@ -2,7 +2,6 @@ package commands
 
 import (
 	"avorioncontrol/ifaces"
-	"avorioncontrol/logger"
 	"strconv"
 	"strings"
 	"time"
@@ -15,68 +14,52 @@ func getJumpsCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	var (
 		obj ifaces.IHaveShips
 		reg *CommandRegistrar
-		cmd *CommandRegistrant
 		err error
 		cnt int
 	)
 
 	// Make sure we have the args we need
-	if !HasNumArgs(a, 3, -1) {
-		return wrongArgsCmd(s, m, a, c)
+	if !HasNumArgs(a, 2, -1) {
+		return "", &ErrInvalidArgument{sprintf(
+			"`%s` was passed the wrong number of arguments", a[0])}
 	}
 
-	kind := a[1]
-	ref := strings.Join(a[3:], " ")
+	ref := strings.Join(a[2:], " ")
 
 	// FIXME: Prevent overflows here
-	if cnt, err = strconv.Atoi(a[2]); err != nil {
-		msg := sprintf("`%s` is not a valid integer.", a[2])
-		s.ChannelMessageSend(m.ChannelID, msg)
-		return "", err
+	if cnt, err = strconv.Atoi(a[1]); err != nil {
+		return "", &ErrInvalidArgument{sprintf(
+			"`%s` is not a valid number.", a[1])}
 	}
 
 	if reg, err = Registrar(m.GuildID); err != nil {
 		return "", err
 	}
 
-	if cmd, err = reg.Command(a[0]); err != nil {
+	if _, err = reg.Command(a[0]); err != nil {
 		return "", err
 	}
 
-	switch kind {
-	case "player":
-		if p := reg.server.PlayerFromName(ref); p != nil {
-			obj = p
-		} else if p := reg.server.Player(ref); p != nil {
-			obj = p
-		} else if p := reg.server.PlayerFromDiscord(ref); p != nil {
-			obj = p
-		}
-
-	case "alliance":
-		if a := reg.server.AllianceFromName(ref); a != nil {
-			obj = a
-		} else if a := reg.server.Alliance(ref); a != nil {
-			obj = a
-		}
-
-	default:
-		msg := sprintf("`%s` is not a valid option (player or alliance expected)", kind)
-		s.ChannelMessageSend(m.ChannelID, msg)
+	if p := reg.server.PlayerFromName(ref); p != nil {
+		obj = p
+	} else if p := reg.server.PlayerFromDiscord(ref); p != nil {
+		obj = p
+	} else if p := reg.server.Player(ref); p != nil {
+		obj = p
+	} else if a := reg.server.Alliance(ref); a != nil {
+		obj = a
+	} else if a := reg.server.AllianceFromName(ref); a != nil {
+		obj = a
 	}
 
 	if obj == nil {
-		msg := sprintf("`%s` is not a valid player or alliance reference", ref)
-		s.ChannelMessageSend(m.ChannelID, msg)
-		return "", err
+		return "", &ErrInvalidArgument{sprintf(
+			"`%s` is not a valid player or alliance reference", ref)}
 	}
 
 	loc, err := time.LoadLocation(c.TimeZone())
 	if err != nil {
-		msg := sprintf("Failed to load timezone: `%s`", c.TimeZone())
-		s.ChannelMessageSend(m.ChannelID, msg)
-		logger.LogError(cmd, err.Error())
-		return "", nil
+		return "", &ErrInvalidTimezone{c.TimeZone()}
 	}
 
 	if jumps := obj.GetLastJumps(cnt); len(jumps) > 0 {
@@ -92,12 +75,12 @@ func getJumpsCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 			}
 		}
 
-		msg = msg + "```"
+		msg += "```"
 		s.ChannelMessageSend(m.ChannelID, msg)
 	} else {
 		msg := sprintf("Player **%s** has no recorded jump history", ref)
 		s.ChannelMessageSend(m.ChannelID, msg)
 	}
 
-	return "", err
+	return "", nil
 }

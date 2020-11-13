@@ -21,7 +21,8 @@ func addAdminSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs
 	// Account for the fact that this is a subcommand by passing the HasNumArgs
 	//	a slice of the args removing the first argument
 	if !HasNumArgs(a[1:], 2, 1) {
-		return wrongArgsCmd(s, m, a, c)
+		return "", &ErrInvalidArgument{sprintf(
+			`%s was passed the wrong number of arguments`, a[0])}
 	}
 
 	if reg, err = Registrar(m.GuildID); err != nil {
@@ -70,7 +71,8 @@ func removeAdminSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotA
 	// Account for the fact that this is a subcommand by passing the HasNumArgs
 	//	a slice of the args removing the first argument
 	if !HasNumArgs(a[1:], 2, 1) {
-		return wrongArgsCmd(s, m, a, c)
+		return "", &ErrInvalidArgument{sprintf(
+			`%s was passed the wrong number of arguments`, a[0])}
 	}
 
 	if reg, err = Registrar(m.GuildID); err != nil {
@@ -84,7 +86,8 @@ func removeAdminSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotA
 	role := a[2]
 
 	if level, err = strconv.Atoi(a[3]); err != nil {
-		return "", err
+		return "", &ErrInvalidArgument{sprintf(
+			`%s is an invalid number`, a[3])}
 	}
 
 	if guild, err = s.Guild(m.GuildID); err != nil {

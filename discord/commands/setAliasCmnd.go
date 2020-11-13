@@ -15,7 +15,8 @@ func setaliasCmd(s *discordgo.Session, m *discordgo.MessageCreate,
 	)
 
 	if !HasNumArgs(a, 2, 2) {
-		return wrongArgsCmd(s, m, a, c)
+		return "", &ErrInvalidArgument{sprintf(
+			`%s was passed the wrong number of arguments`, a[0])}
 	}
 
 	author := m.Author.String()
