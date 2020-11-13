@@ -1037,17 +1037,3 @@ func (s *Server) loadSectors() {
 		sort.Sort(jumpsByTime(a.jumphistory))
 	}
 }
-
-type jumpsByTime []ifaces.ShipCoordData
-
-func (t jumpsByTime) Len() int {
-	return len(t)
-}
-
-func (t jumpsByTime) Less(i, j int) bool {
-	return t[i].Time.Unix() < t[j].Time.Unix()
-}
-
-func (t jumpsByTime) Swap(i, j int) {
-	t[i], t[j] = t[j], t[i]
-}

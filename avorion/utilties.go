@@ -1,6 +1,9 @@
 package avorion
 
-import "regexp"
+import (
+	"avorioncontrol/ifaces"
+	"regexp"
+)
 
 // REVIEW: These regexp objects need to be replaced with a function that produces
 // a parser object for the command that is provided. Ideallty, this would be replaced
@@ -48,3 +51,17 @@ var rePlayerData = regexp.MustCompile(
 var reAllianceData = regexp.MustCompile(`^\s*alliance: ([0-9]+) ([0-9]+) ([0-9]+) ` +
 	`credits:([0-9]+) iron:([0-9]+) titanium:([0-9]+) naonite:([0-9]+) ` +
 	`trinium:([0-9]+) xanian:([0-9]+) ogonite:([0-9]+) avorion:([0-9]+) (.*)$`)
+
+type jumpsByTime []ifaces.ShipCoordData
+
+func (t jumpsByTime) Len() int {
+	return len(t)
+}
+
+func (t jumpsByTime) Less(i, j int) bool {
+	return t[i].Time.Unix() < t[j].Time.Unix()
+}
+
+func (t jumpsByTime) Swap(i, j int) {
+	t[i], t[j] = t[j], t[i]
+}
