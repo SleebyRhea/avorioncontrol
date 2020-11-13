@@ -351,7 +351,7 @@ func (s *Server) IsUp() bool {
 		return false
 	}
 
-	if s.Cmd.Process != nil {
+	if s.Cmd.Process != nil && !s.isstarting {
 		return true
 	}
 
