@@ -2,7 +2,6 @@ package commands
 
 import (
 	"avorioncontrol/ifaces"
-	"avorioncontrol/logger"
 	"strings"
 	"unicode/utf8"
 
@@ -14,7 +13,6 @@ func rconCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	var (
 		srv ifaces.IGameServer
 		reg *CommandRegistrar
-		// cmd *CommandRegistrant
 
 		rcmd string
 		out  string
@@ -31,10 +29,6 @@ func rconCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	if reg, err = Registrar(m.GuildID); err != nil {
 		return "", err
 	}
-
-	// if cmd, err = reg.Command(a[0]); err != nil {
-	// 	return "", err
-	// }
 
 	srv = reg.server
 	rcmd = strings.Join(a[1:], " ")
@@ -53,7 +47,6 @@ func rconCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	if utf8.RuneCountInString(out) <= 1900 {
 		msg = sprintf("**Output: `%s`**\n```\n%s\n```", rcmd, out)
 		_, err = s.ChannelMessageSend(m.ChannelID, msg)
-		logger.LogDebug(reg, sprintf("Len: %d", len(msg)))
 		return "", err
 	}
 
