@@ -203,7 +203,7 @@ func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
 			}
 		} else {
 			return name, &ErrInvalidCommand{sprintf(
-				`%s is not valid command`, name)}
+				"`%s` is not a valid command", name)}
 		}
 	}
 
@@ -230,6 +230,15 @@ func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
 
 	// Update our arguments with the full command name
 	args[0] = cmd.Name()
+
+	if len(args) > 1 {
+		if args[1] == "help" {
+			help, _ := cmd.Help()
+			s.ChannelMessageSend(m.ChannelID, help)
+			return cmd.Name(), nil
+		}
+	}
+
 	if out, err = cmd.exec(s, m, args, c); out != "" {
 		logger.LogInfo(cmd, out)
 	}
