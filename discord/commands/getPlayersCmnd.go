@@ -11,15 +11,18 @@ func getPlayersCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	var (
 		reg *CommandRegistrar
 		err error
-
-		players = reg.server.Players()
 	)
 
 	if reg, err = Registrar(m.GuildID); err != nil {
 		return "", err
 	}
 
-	if len(players) < 1 {
+	if reg.server == nil || !reg.server.IsUp() {
+		return "", &ErrCommandError{"Server has not finished initializing"}
+	}
+
+	players := reg.server.Players()
+	if len(players) == 0 {
 		s.ChannelMessageSend(m.ChannelID, "No tracked players")
 		return "", nil
 	}
@@ -28,8 +31,8 @@ func getPlayersCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	for _, p := range players {
 		msg = sprintf("\n%s\n%s", msg, p.Name())
 	}
-	msg = msg + "```"
+	msg += "```"
 
 	s.ChannelMessageSend(m.ChannelID, msg)
-	return "", err
+	return "", nil
 }
