@@ -173,7 +173,7 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 				case *commands.ErrUnauthorizedUsage:
 					logger.LogWarning(b, fmt.Sprintf(
 						"%s attempted to run [%s], but wasn't authorized",
-						m.Author.String(), m.Content))
+						m.Author.String(), name))
 					s.ChannelMessageSend(m.ChannelID, err.Error())
 
 				case *commands.ErrInvalidTimezone:
