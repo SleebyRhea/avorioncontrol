@@ -62,6 +62,10 @@ func getJumpsCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 		return "", &ErrInvalidTimezone{c.TimeZone()}
 	}
 
+	if cnt > 25 {
+		cnt = 25
+	}
+
 	if jumps := obj.GetLastJumps(cnt); len(jumps) > 0 {
 		msg := sprintf("**Jumps for %s**:```", obj.Name())
 		for _, j := range jumps {
