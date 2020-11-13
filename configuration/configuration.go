@@ -38,7 +38,7 @@ const (
 	defaultServerInstallation = "/srv/avorion/server_files/"
 	defaultTimeDatabaseUpdate = time.Minute * 60
 	defaultTimeHangCheck      = time.Minute * 5
-	defaultCommandPrefix      = "mentan"
+	defaultCommandPrefix      = "mention"
 	defaultStatusClear        = false
 	defaultEnforceMods        = false
 
