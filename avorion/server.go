@@ -201,6 +201,7 @@ func (s *Server) Start(sendchat bool) error {
 			s.sectors[sec.X] = make(map[int]*ifaces.Sector, 0)
 		}
 		s.sectors[sec.X][sec.Y] = sec
+		s.sectorcount++
 	}
 
 	s.tracking.SetLoglevel(s.loglevel)
@@ -853,6 +854,7 @@ func (s *Server) Sector(x, y int) *ifaces.Sector {
 		// TODO: This performs unnecessarily expensive DB calls here. Granted,
 		// that ONLY affects initilization, but it should still be optimized
 		s.tracking.TrackSector(s.sectors[x][y])
+		s.sectorcount++
 	}
 
 	return s.sectors[x][y]

@@ -64,6 +64,7 @@ func init() {
 
 	galaxyFieldTemplate = "> **Alliances**: _%d_\n" +
 		"> **Total Players**:  _%d_\n" +
+		"> **Total Sectors**:  _%d_\n" +
 		"> \n" +
 		"> **Online Players**%s"
 }
@@ -149,7 +150,7 @@ func generateEmbedStatus(s ifaces.ServerStatus, tz *time.Location) *discordgo.Me
 	configTwoField.Value = fmt.Sprintf(configTwoField.Value, pMaxSlots,
 		pMaxShips, pMaxStations, aMaxSlots, aMaxShips, aMaxStations)
 
-	if s.PlayersOnline > 0 {
+	if s.PlayersOnline >= 1 && s.Status == ifaces.ServerOnline {
 		plrs = strings.TrimSuffix(s.Players, "\n")
 		plrs = strings.TrimPrefix(plrs, "\n")
 		plrs = strings.ReplaceAll("\n"+plrs, "\n", "\n> • ")
@@ -161,7 +162,7 @@ func generateEmbedStatus(s ifaces.ServerStatus, tz *time.Location) *discordgo.Me
 		Inline: false, Name: "Galaxy Information", Value: galaxyFieldTemplate}
 
 	galaxyField.Value = fmt.Sprintf(galaxyField.Value, s.Alliances,
-		s.TotalPlayers, plrs)
+		s.TotalPlayers, s.Sectors, plrs)
 
 	embed.Fields = append(embed.Fields, statusField, configOneField,
 		configTwoField, galaxyField)
