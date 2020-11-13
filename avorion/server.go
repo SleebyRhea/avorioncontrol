@@ -351,7 +351,7 @@ func (s *Server) IsUp() bool {
 		return false
 	}
 
-	if s.Cmd.Process != nil && !s.isstarting {
+	if s.Cmd.Process != nil {
 		return true
 	}
 
@@ -382,6 +382,7 @@ func (s *Server) UpdatePlayerDatabase(notify bool) error {
 	}
 
 	if out, err = s.RunCommand(rconGetAllData); err != nil {
+		logger.LogError(s, err.Error())
 		return err
 	}
 
