@@ -87,6 +87,8 @@ type Conf struct {
 	botsallowed        bool
 	statuschannelclear bool
 
+	roleAuthLevels   map[string]int
+	cmndAuthLevels   map[string]int
 	aliasedCommands  map[string][]string
 	disabledCommands []string
 
@@ -127,6 +129,8 @@ func New() *Conf {
 		enabledModPaths: make([]string, 0),
 
 		timezone:        defaultTimeZone,
+		roleAuthLevels:  make(map[string]int),
+		cmndAuthLevels:  make(map[string]int),
 		aliasedCommands: make(map[string][]string)}
 
 	rconhost := fmt.Sprintf("[%s]\nhostname = %s\nport = %d\npassword = %s\n",
@@ -350,12 +354,24 @@ func (c *Conf) LoadConfiguration() {
 		c.SetStatusChannel(out.Discord.StatusChannel)
 	}
 
-	if len(out.Discord.AliasedCommands) > 0 {
-		c.aliasedCommands = out.Discord.AliasedCommands
+	if out.Discord.AliasedCommands != nil {
+		if len(out.Discord.AliasedCommands) > 0 {
+			c.aliasedCommands = out.Discord.AliasedCommands
+		}
 	}
 
-	if len(out.Discord.DisabledCommands) > 0 {
-		c.disabledCommands = out.Discord.DisabledCommands
+	if out.Discord.DisabledCommands != nil {
+		if len(out.Discord.DisabledCommands) > 0 {
+			c.disabledCommands = out.Discord.DisabledCommands
+		}
+	}
+
+	if out.Discord.CommandAuthLevels != nil {
+		c.cmndAuthLevels = out.Discord.CommandAuthLevels
+	}
+
+	if out.Discord.RoleAuthLevels != nil {
+		c.roleAuthLevels = out.Discord.RoleAuthLevels
 	}
 
 	if out.Discord.DiscordLink != "" {
@@ -419,6 +435,8 @@ func (c *Conf) SaveConfiguration() {
 			DiscordLink:        c.discordLink,
 			Prefix:             c.prefix,
 			Token:              c.token,
+			CommandAuthLevels:  c.cmndAuthLevels,
+			RoleAuthLevels:     c.roleAuthLevels,
 			AliasedCommands:    c.aliasedCommands,
 			DisabledCommands:   c.disabledCommands},
 
@@ -601,24 +619,55 @@ func (c *Conf) ChatPipe() chan ifaces.ChatData {
 /**************************************/
 
 // AddRoleAuth sets the role to have a given command authorization level
-func (c *Conf) AddRoleAuth(rID string, l int) {
+func (c *Conf) AddRoleAuth(rID string, l int) error {
+	if l > 0 {
+		c.roleAuthLevels[rID] = l
+		c.SaveConfiguration()
+	}
+
+	return nil
 }
 
 // RemoveRoleAuth removes authorization for a role
 func (c *Conf) RemoveRoleAuth(rID string) error {
+	if _, ok := c.roleAuthLevels[rID]; ok {
+		delete(c.roleAuthLevels, rID)
+		c.SaveConfiguration()
+	}
+
 	return nil
 }
 
+// GetRoleAuth gets the integer authorization level of a role
+func (c *Conf) GetRoleAuth(rID string) int {
+	if l, ok := c.roleAuthLevels[rID]; ok {
+		return l
+	}
+	return 0
+}
+
 // AddCmndAuth sets the authorization level required for a given command
-func (c *Conf) AddCmndAuth(cmd string, l int) {
+func (c *Conf) AddCmndAuth(cmnd string, l int) {
+	if l > 0 {
+		c.cmndAuthLevels[cmnd] = l
+		c.SaveConfiguration()
+	}
 }
 
 // GetCmndAuth gets the roles that are authorized to run the given command
-func (c *Conf) GetCmndAuth(rID string, l int) {
+func (c *Conf) GetCmndAuth(cmnd string) int {
+	if l, ok := c.cmndAuthLevels[cmnd]; ok {
+		return l
+	}
+
+	return 0
 }
 
 // RemoveCmndAuth removes a commands authorization requirements
-func (c *Conf) RemoveCmndAuth(rID string) error {
+func (c *Conf) RemoveCmndAuth(cmnd string) error {
+	if _, ok := c.cmndAuthLevels[cmnd]; ok {
+		delete(c.cmndAuthLevels, cmnd)
+	}
 	return nil
 }
 

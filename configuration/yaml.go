@@ -23,8 +23,11 @@ type yamlDataDiscord struct {
 	Prefix        string `yaml:"prefix"`
 	Token         string `yaml:"token"`
 
-	AliasedCommands  map[string][]string `yaml:"aliased_commands"`
-	DisabledCommands []string            `yaml:"disabled_commands,flow"`
+	DisabledCommands []string `yaml:"disabled_commands,flow"`
+
+	AliasedCommands   map[string][]string `yaml:"aliased_commands"`
+	RoleAuthLevels    map[string]int      `yaml:"role_auth_levels"`
+	CommandAuthLevels map[string]int      `yaml:"command_auth_levels"`
 
 	ClearStatusChannel bool `yaml:"status_channel_clear"`
 }

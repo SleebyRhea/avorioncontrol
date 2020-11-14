@@ -85,11 +85,12 @@ type ITimeConfigurator interface {
 
 // IAuthConfigurator describes an interface to an authorization object
 type IAuthConfigurator interface {
-	AddRoleAuth(string, int)
+	AddRoleAuth(string, int) error
 	RemoveRoleAuth(string) error
+	GetRoleAuth(string) int
 
-	GetCmndAuth(string, int)
 	AddCmndAuth(string, int)
+	GetCmndAuth(string) int
 	RemoveCmndAuth(string) error
 }
 
