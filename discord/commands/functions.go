@@ -203,4 +203,46 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 		"restart",
 		make([]CommandArgument, 0),
 		restartServerCmnd, "server")
+
+	r.Register("admin",
+		"Configure admin level privileges",
+		"admin <roles|commands|addrole|delrole|addcommand|delcommand>",
+		make([]CommandArgument, 0),
+		proxySubCmnd)
+	r.Register("roles",
+		"Show the current roles that have admin privileges",
+		"roles",
+		make([]CommandArgument, 0),
+		showAdminRolesSubCmnd, "admin")
+	r.Register("commands",
+		"Show the commands that require admin privileges",
+		"commands",
+		make([]CommandArgument, 0),
+		showAdminCmndsSubCmnd, "admin")
+	r.Register("addrole",
+		"Add a set level of authorization to a role",
+		"addrole <role> <level>",
+		[]CommandArgument{
+			arg("role", "role to add auth privileges to"),
+			arg("level", "number representing authorization level (max 10)")},
+		addAdminRoleSubCmnd, "admin")
+	r.Register("delrole",
+		"Remove authorization from a role",
+		"delrole <role>",
+		[]CommandArgument{
+			arg("role", "role to add auth privileges to")},
+		removeAdminRoleSubCmnd, "admin")
+	r.Register("addcommand",
+		"Require the given command to have a set level of authorization",
+		"addcommand <command> <level>",
+		[]CommandArgument{
+			arg("level", "number representing authorization level (max 10)"),
+			arg("command", "role to add auth privileges to")},
+		addAdminCmndSubCmnd, "admin")
+	r.Register("delcommand",
+		"Remove the authorization requirements from a command",
+		"delcommand <command>",
+		[]CommandArgument{
+			arg("command", "command to have remove requirements from")},
+		removeAdminCmndSubCmnd, "admin")
 }

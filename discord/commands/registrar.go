@@ -152,13 +152,6 @@ func (reg *CommandRegistrar) AllCommands() (_ int, cs []string) {
 	return len(cs), cs
 }
 
-// UserAuthorized - Check if a user is authorized to use a given command
-//  @cmd string             Name of the command being checked
-//  @m *discordgo.Member    Pointer to the guild member that ran the command
-func (reg *CommandRegistrar) UserAuthorized(cmd string, m *discordgo.Member) bool {
-	return true
-}
-
 // ProcessCommand - Processes a Discord message that has the configured prefix,
 // and runs the correct command given its contents
 //  @s *discordgo.Session          Discordgo Session
@@ -198,7 +191,7 @@ func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
 	if cmd, err = reg.Command(name); err != nil {
 		if b, ac := c.GetAliasedCommand(name); b == true {
 			if cmd, err = reg.Command(ac); err != nil {
-				return "", &ErrInvalidAlias{sprintf(
+				return ac, &ErrInvalidAlias{sprintf(
 					"Configured command alias is invalid: " + ac)}
 			}
 		} else {
@@ -208,24 +201,37 @@ func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
 	}
 
 	if c.CommandDisabled(cmd.Name()) {
-		return cmd.Name(), &ErrCommandDisabled{sprintf(`%s has been disabled`,
-			cmd.Name())}
-	}
-
-	if cmd.exec == nil {
-		logger.LogWarning(cmd, sprintf("Can't execute %s (missing exec field)",
-			cmd.Name()))
+		logger.LogInfo(cmd, sprintf(
+			"%s attempted to run the disabled command: %s", m.Author.String, cmd.Name()))
 		return cmd.Name(), &ErrInvalidCommand{sprintf(`%s is not a valid command`,
 			cmd.Name())}
 	}
 
 	if member, err = s.GuildMember(reg.GuildID, m.Author.ID); err != nil {
-		return "", err
+		return cmd.Name(), err
 	}
 
-	if !reg.UserAuthorized(name, member) {
-		return "", &ErrUnauthorizedUsage{sprintf(`%s attempted to run %s`,
-			m.Author.String, cmd.Name())}
+	authreq := c.GetCmndAuth(cmd.Name())
+	authlvl := 0
+
+	if authreq > 0 {
+		for _, r := range member.Roles {
+			if l := c.GetRoleAuth(r); l > authlvl {
+				authlvl = l
+			}
+		}
+
+		if authlvl < authreq {
+			return cmd.Name(), &ErrUnauthorizedUsage{
+				"You do not have permission to run that command"}
+		}
+	}
+
+	if cmd.exec == nil {
+		logger.LogError(cmd, sprintf("Can't execute %s (missing exec field)",
+			cmd.Name()))
+		return cmd.Name(), &ErrInvalidCommand{sprintf(`%s is not a valid command`,
+			cmd.Name())}
 	}
 
 	// Update our arguments with the full command name
