@@ -9,7 +9,7 @@ import (
 func helpCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	c ifaces.IConfigurator) (string, error) {
 	var (
-		maincmd *CommandRegistrant //Primary command being checked
+		maincmd *CommandRegistrant
 		reg     *CommandRegistrar
 		err     error
 		out     string
