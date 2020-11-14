@@ -21,9 +21,9 @@ func proxySubCmnd(s *discordgo.Session, m *discordgo.MessageCreate,
 		err error
 	)
 
-	if !HasNumArgs(a, 1, 1) {
+	if !HasNumArgs(a, 1, -1) {
 		return "", &ErrInvalidArgument{sprintf(
-			`%s was passed the wrong number of arguments`, a[0])}
+			"`%s` was not passed a subcommand to run", a[0])}
 	}
 
 	if reg, err = Registrar(m.GuildID); err != nil {
