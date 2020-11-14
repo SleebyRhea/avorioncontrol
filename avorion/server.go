@@ -196,6 +196,7 @@ func (s *Server) Start(sendchat bool) error {
 		return errors.New("GameDB: " + err.Error())
 	}
 
+	s.sectorcount = 0
 	for _, sec := range sectors {
 		if _, ok := s.sectors[sec.X]; !ok {
 			s.sectors[sec.X] = make(map[int]*ifaces.Sector, 0)
