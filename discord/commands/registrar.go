@@ -158,12 +158,13 @@ func (reg *CommandRegistrar) AllCommands() (_ int, cs []string) {
 //  @m *discordgo.MessageCreate    Discordgo message event
 //  @c IConfigurator               Bot configuration pointer
 func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
-	m *discordgo.MessageCreate, c ifaces.IConfigurator) (string, error) {
+	m *discordgo.MessageCreate, c ifaces.IConfigurator) (string, ICommandError) {
 	var (
 		err    error
 		out    string
 		cmd    *CommandRegistrant
 		member *discordgo.Member
+		cmderr ICommandError
 	)
 
 	args := make(BotArgs, 0)
@@ -192,21 +193,23 @@ func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
 		if b, ac := c.GetAliasedCommand(name); b == true {
 			if cmd, err = reg.Command(ac); err != nil {
 				logger.LogError(reg, "Invalid alias: "+ac)
-				return ac, &ErrInvalidAlias{ac}
+				return ac, &ErrInvalidAlias{cmd: cmd, alias: ac}
 			}
 		} else {
-			return name, &ErrInvalidCommand{name}
+			return name, &ErrInvalidCommand{name: name, cmd: cmd}
 		}
 	}
 
 	if c.CommandDisabled(cmd.Name()) {
 		logger.LogInfo(cmd, sprintf(
 			"%s attempted to run the disabled command: %s", m.Author.String, cmd.Name()))
-		return cmd.Name(), &ErrInvalidCommand{cmd.Name()}
+		return cmd.Name(), &ErrInvalidCommand{name: cmd.Name(), cmd: cmd}
 	}
 
 	if member, err = s.GuildMember(reg.GuildID, m.Author.ID); err != nil {
-		return cmd.Name(), err
+		return cmd.Name(), &ErrCommandError{
+			message: "You are not part of the guild, and cannot use this command",
+			cmd:     cmd}
 	}
 
 	authreq := c.GetCmndAuth(cmd.Name())
@@ -220,14 +223,14 @@ func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
 		}
 
 		if authlvl < authreq {
-			return cmd.Name(), &ErrUnauthorizedUsage{cmd.Name()}
+			return cmd.Name(), &ErrUnauthorizedUsage{cmd: cmd}
 		}
 	}
 
 	if cmd.exec == nil {
 		logger.LogError(cmd, sprintf("Can't execute %s (missing exec field)",
 			cmd.Name()))
-		return cmd.Name(), &ErrInvalidCommand{cmd.Name()}
+		return cmd.Name(), &ErrInvalidCommand{name: cmd.Name()}
 	}
 
 	// Update our arguments with the full command name
@@ -241,9 +244,9 @@ func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
 		}
 	}
 
-	if out, err = cmd.exec(s, m, args, c); out != "" {
+	if out, cmderr = cmd.exec(s, m, args, c, cmd); out != "" {
 		logger.LogInfo(cmd, out)
 	}
 
-	return cmd.Name(), err
+	return cmd.Name(), cmderr
 }

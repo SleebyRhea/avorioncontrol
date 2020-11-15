@@ -2,21 +2,18 @@ package commands
 
 import (
 	"avorioncontrol/ifaces"
+	"avorioncontrol/logger"
 
 	"github.com/bwmarrin/discordgo"
 )
 
 func listCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c ifaces.IConfigurator) (string, error) {
+	c ifaces.IConfigurator, cmd *CommandRegistrant) (string, ICommandError) {
 	var (
-		reg *CommandRegistrar
+		reg = cmd.Registrar()
 		err error
 		msg string
 	)
-
-	if reg, err = Registrar(m.GuildID); err != nil {
-		return "", err
-	}
 
 	_, cmnds := reg.AllCommands()
 	for _, n := range cmnds {
@@ -30,10 +27,17 @@ func listCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	if msg != "" {
 		_, err = s.ChannelMessageSend(m.ChannelID,
 			sprintf("**Available Commands:**\n```\n%s\n```", msg))
-		return "", err
+		if err != nil {
+			logger.LogError(cmd, "discordgo: "+err.Error())
+		}
+		return "", nil
 	}
 
-	_, err = s.ChannelMessageSend(m.ChannelID,
-		sprintf("No commands available"))
-	return "", err
+	_, err = s.ChannelMessageSend(m.ChannelID, "No commands available")
+	if err != nil {
+		logger.LogError(cmd, "discordgo: "+err.Error())
+		return "", nil
+	}
+
+	return "", nil
 }

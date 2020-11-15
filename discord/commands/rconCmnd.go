@@ -2,6 +2,7 @@ package commands
 
 import (
 	"avorioncontrol/ifaces"
+	"avorioncontrol/logger"
 	"strings"
 	"unicode/utf8"
 
@@ -9,10 +10,10 @@ import (
 )
 
 func rconCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c ifaces.IConfigurator) (string, error) {
+	c ifaces.IConfigurator, cmd *CommandRegistrant) (string, ICommandError) {
 	var (
-		srv ifaces.IGameServer
-		reg *CommandRegistrar
+		reg = cmd.Registrar()
+		srv = reg.server
 
 		rcmd string
 		out  string
@@ -22,32 +23,29 @@ func rconCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	)
 
 	if !HasNumArgs(a, 1, -1) {
-		return "", &ErrInvalidArgument{sprintf(
-			`%s was passed the wrong number of arguments`, a[0])}
+		return "", &ErrInvalidArgument{
+			message: sprintf(`%s was passed the wrong number of arguments`, cmd.Name()),
+			cmd:     cmd}
 	}
 
-	if reg, err = Registrar(m.GuildID); err != nil {
-		return "", err
-	}
-
-	srv = reg.server
 	rcmd = strings.Join(a[1:], " ")
 
 	if out, err = srv.RunCommand(rcmd); err != nil {
-		_ = s.MessageReactionAdd(m.ChannelID, m.ID, "🚫")
-		return "", &ErrCommandError{sprintf(
-			"Failed to run \"%s\": %s", rcmd, err.Error())}
+		return "", &ErrCommandError{
+			message: sprintf("Failed to run `%s`. Error:\n```%s```", rcmd, err.Error()),
+			cmd:     cmd}
 	}
 
-	_ = s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
 	if strings.ReplaceAll(out, " ", "") == "" {
 		return "", nil
 	}
 
 	if utf8.RuneCountInString(out) <= 1900 {
 		msg = sprintf("**Output: `%s`**\n```\n%s\n```", rcmd, out)
-		_, err = s.ChannelMessageSend(m.ChannelID, msg)
-		return "", err
+		if _, err := s.ChannelMessageSend(m.ChannelID, msg); err != nil {
+			logger.LogError(cmd, "discordgo: "+err.Error())
+		}
+		return "", nil
 	}
 
 	cnt = 1
@@ -66,10 +64,11 @@ func rconCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	if msg != "" {
 		_, err = s.ChannelMessageSend(m.ChannelID, sprintf(
 			"**Output %d: `%s`**\n```\n%s```\n", cnt, rcmd, msg))
+		if err != nil {
+			logger.LogError(cmd, "discordgo: "+err.Error())
+		}
 	}
 
-	out = sprintf("%s ran the rcon command: [%s]", m.Author.String(),
-		strings.Join(a[1:], " "))
-
-	return out, err
+	return sprintf("%s ran the rcon command: [%s]", m.Author.String(),
+		strings.Join(a[1:], " ")), nil
 }

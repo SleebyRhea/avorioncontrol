@@ -3,7 +3,6 @@ package commands
 import (
 	"avorioncontrol/ifaces"
 	"avorioncontrol/logger"
-	"errors"
 	"regexp"
 	"strconv"
 	"time"
@@ -12,27 +11,17 @@ import (
 )
 
 func getCoordHistoryCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c ifaces.IConfigurator) (string, error) {
+	c ifaces.IConfigurator, cmd *CommandRegistrant) (string, ICommandError) {
 	var (
-		reg *CommandRegistrar
-		cmd *CommandRegistrant
-
+		reg   = cmd.Registrar()
 		match []string
-		err   error
 	)
 
 	// Require at least one set of coords
 	if !HasNumArgs(a, 1, -1) {
-		return "", &ErrInvalidArgument{sprintf(
-			`%s was passed the wrong number of arguments`, a[0])}
-	}
-
-	if reg, err = Registrar(m.GuildID); err != nil {
-		return "", err
-	}
-
-	if cmd, err = reg.Command(a[0]); err != nil {
-		return "", err
+		return "", &ErrInvalidArgument{
+			message: sprintf(`%s was passed the wrong number of arguments`, cmd.Name()),
+			cmd:     cmd}
 	}
 
 	jumps := make([]ifaces.JumpInfo, 0)
@@ -44,8 +33,9 @@ func getCoordHistoryCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 	for _, c := range a[1:] {
 		logger.LogDebug(cmd, "Operating on: "+c)
 		if match = coordRe.FindStringSubmatch(c); match == nil {
-			return "", &ErrInvalidArgument{sprintf(
-				"Invalid coordinate given: `%s`", c)}
+			return "", &ErrInvalidArgument{
+				message: sprintf("Invalid coordinate given: `%s`", c),
+				cmd:     cmd}
 		}
 
 		x, _ := strconv.Atoi(match[1])
@@ -53,14 +43,16 @@ func getCoordHistoryCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 
 		// Make sure our coordinates are actually between -500 and 500
 		if x > 500 || x < -500 {
-			return "", &ErrInvalidArgument{sprintf(
-				"Coordinate **x** is out of range: `%d`", x)}
+			return "", &ErrInvalidArgument{
+				message: sprintf("Coordinate **x** is out of range: `%d`", x),
+				cmd:     cmd}
 		}
 
 		// Make sure our coordinates are actually between -500 and 500
 		if y > 500 || y < -500 {
-			return "", &ErrInvalidArgument{sprintf(
-				"Coordinate **y** is out of range: `%d`", y)}
+			return "", &ErrInvalidArgument{
+				message: sprintf("Coordinate **y** is out of range: `%d`", y),
+				cmd:     cmd}
 		}
 
 		coords = append(coords, [2]int{x, y})
@@ -104,17 +96,30 @@ func getCoordHistoryCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 		switch j.Kind {
 		case "player":
 			if obj = reg.server.Player(fid); obj == nil {
-				return "", errors.New("Invalid ifaces.IHaveShips object")
+				logger.LogError(cmd, "Got an invalid ifaces.IHaveShips object")
+				return "", &ErrCommandError{
+					message: "Error, bad data type encountered. Please review the logs.",
+					cmd:     cmd}
 			}
 
 		case "alliance":
 			if obj = reg.server.Alliance(fid); obj == nil {
-				return "", errors.New("Invalid ifaces.IHaveShips object")
+				logger.LogError(cmd, "Got an invalid ifaces.IHaveShips object")
+				return "", &ErrCommandError{
+					message: "Error, bad data type encountered. Please review the logs.",
+					cmd:     cmd}
 			}
-			return "", errors.New("Invalid ifaces.IHaveShips object")
+
+			logger.LogError(cmd, "Got an invalid ifaces.IHaveShips object")
+			return "", &ErrCommandError{
+				message: "Error, bad data type encountered. Please review the logs.",
+				cmd:     cmd}
 
 		default:
-			return "", errors.New("Invalid ifaces.IHaveShips object")
+			logger.LogError(cmd, "Got an invalid ifaces.IHaveShips object")
+			return "", &ErrCommandError{
+				message: "Error, bad data type encountered. Please review the logs.",
+				cmd:     cmd}
 		}
 
 		suffix := sprintf("\n%s (%d:%d) %s/%s \"%s\"",

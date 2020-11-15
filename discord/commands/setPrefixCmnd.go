@@ -8,38 +8,33 @@ import (
 )
 
 func setprefixCmd(s *discordgo.Session, m *discordgo.MessageCreate,
-	a BotArgs, c ifaces.IConfigurator) (string, error) {
-	var (
-		msg string
-		out string
-		p   string
-	)
+	a BotArgs, c ifaces.IConfigurator, cmd *CommandRegistrant) (string, ICommandError) {
 
 	if !HasNumArgs(a, 1, 1) {
-		return "", &ErrInvalidArgument{sprintf(
-			`%s was passed the wrong number of arguments`, a[0])}
+		return "", &ErrInvalidArgument{
+			message: sprintf(`%s was passed the wrong number of arguments`, cmd.Name()),
+			cmd:     cmd}
 	}
 
 	//eg: aa!, aa!!, !, !!, or <@!USERID> if mention is used
-	r := "^([a-zA-Z0-9]{0,2}[?!;:>%$#~=+-]{1,2}|mention)$"
-	author := m.Author.String()
+	var r = "^([a-zA-Z0-9]{0,2}[?!;:>%$#~=+-]{1,2}|mention)$"
+	var msg string
 
 	if !regexp.MustCompile(r).MatchString(a[1]) {
-		msg = sprintf("Invalid prefix supplied: `%s`", a[1])
-		out = "User " + author + " attempted to set an invalid prefix"
-		_, err := s.ChannelMessageSend(m.ChannelID, msg)
-		return out, err
+		return "", &ErrInvalidArgument{
+			message: sprintf("Invalid prefix supplied: `%s`", a[1]),
+			cmd:     cmd}
 	}
 
 	if a[1] == "mention" {
 		c.SetPrefix(sprintf("<@!%s>", s.State.User.ID))
-		msg = sprintf("Setting prefix to %s", p)
+		msg = "Updated prefix to " + s.State.User.Mention()
 	} else {
 		c.SetPrefix(a[1])
-		msg = sprintf("Setting prefix to `%s`", a[1])
+		msg = sprintf("Updated prefix to `%s`", a[1])
 	}
 
 	c.SaveConfiguration()
-	err := s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
-	return out, err
+	s.ChannelMessageSend(m.ChannelID, msg)
+	return sprintf("User %s updated the prefix", m.Author.String()), nil
 }

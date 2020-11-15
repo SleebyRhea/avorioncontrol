@@ -132,8 +132,9 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 	// Setup our message handler for processing commands
 	dg.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
 		var (
-			reg *commands.CommandRegistrar
-			err error
+			reg    *commands.CommandRegistrar
+			cmderr commands.ICommandError
+			err    error
 		)
 
 		// Stop DMs
@@ -161,40 +162,52 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 
 		// Process a command if the prefix is used
 		if strings.HasPrefix(m.Content, b.config.Prefix()) {
-			var name string
-			if name, err = reg.ProcessCommand(s, m, b.config); err != nil {
-				switch err.(type) {
+			if _, cmderr = reg.ProcessCommand(s, m, b.config); cmderr != nil {
+				s.MessageReactionAdd(m.ChannelID, m.ID, "🚫")
+				switch cmderr.(type) {
 				case *commands.ErrInvalidArgument:
-					s.ChannelMessageSend(m.ChannelID, err.Error())
-					cmd, _ := reg.Command(name)
-					help, _ := cmd.Help()
-					s.ChannelMessageSend(m.ChannelID, help)
+					s.ChannelMessageSend(m.ChannelID, cmderr.Error())
+					if cmderr.Command() != nil {
+						help, _ := cmderr.Command().Help()
+						s.ChannelMessageSend(m.ChannelID, help)
+					}
 
 				case *commands.ErrUnauthorizedUsage:
-					logger.LogWarning(b, fmt.Sprintf(
-						"%s attempted to run [%s], but wasn't authorized do so",
-						m.Author.String(), name))
-					s.ChannelMessageSend(m.ChannelID, err.Error())
+					if cmderr.Command() != nil {
+						logger.LogWarning(b, fmt.Sprintf(
+							"%s attempted to run [%s], but wasn't authorized do so",
+							m.Author.String(), cmderr.Command().Name()))
+					}
+					s.ChannelMessageSend(m.ChannelID, cmderr.Error())
 
 				case *commands.ErrInvalidTimezone:
-					s.ChannelMessageSend(m.ChannelID, err.Error())
-					logger.LogError(reg, err.Error())
+					s.ChannelMessageSend(m.ChannelID, cmderr.Error())
+					logger.LogError(reg, cmderr.Error())
 
 				case *commands.ErrInvalidCommand:
-					s.ChannelMessageSend(m.ChannelID, err.Error())
+					s.ChannelMessageSend(m.ChannelID, cmderr.Error())
 
 				case *commands.ErrCommandDisabled:
-					s.ChannelMessageSend(m.ChannelID, err.Error())
+					s.ChannelMessageSend(m.ChannelID, cmderr.Error())
 
 				case *commands.ErrInvalidAlias:
-					s.ChannelMessageSend(m.ChannelID, err.Error())
+					s.ChannelMessageSend(m.ChannelID, cmderr.Error())
 
 				case *commands.ErrCommandError:
-					s.ChannelMessageSend(m.ChannelID, err.Error())
+					s.ChannelMessageSend(m.ChannelID, cmderr.Error())
+
+				case *commands.ErrInvalidSubcommand:
+					s.ChannelMessageSend(m.ChannelID, cmderr.Error())
+					if cmderr.Subcommand() != nil {
+						help, _ := cmderr.Subcommand().Help()
+						s.ChannelMessageSend(m.ChannelID, help)
+					}
 
 				default:
-					logger.LogError(reg, err.Error())
+					logger.LogError(reg, cmderr.Error())
 				}
+			} else {
+				s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
 			}
 
 			return

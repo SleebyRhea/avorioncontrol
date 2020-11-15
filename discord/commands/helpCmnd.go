@@ -2,35 +2,32 @@ package commands
 
 import (
 	"avorioncontrol/ifaces"
+	"avorioncontrol/logger"
 
 	"github.com/bwmarrin/discordgo"
 )
 
 func helpCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c ifaces.IConfigurator) (string, error) {
+	c ifaces.IConfigurator, cmd *CommandRegistrant) (string, ICommandError) {
 	var (
 		maincmd *CommandRegistrant
-		reg     *CommandRegistrar
+		reg     = cmd.Registrar()
 		err     error
 		out     string
 	)
 
-	if reg, err = Registrar(m.GuildID); err != nil {
-		return "", err
-	}
-
 	if len(a[1:]) < 1 {
-		return listCmd(s, m, a, c)
+		return listCmd(s, m, a, c, cmd)
 	}
 
 	if maincmd, err = reg.Command(a[1]); err != nil {
-		msg := sprintf("Command `%s` doesn't exist or isn't registered", a[1])
-		_, err = s.ChannelMessageSend(m.ChannelID, msg)
-		return "", &ErrInvalidCommand{msg}
+		return "", &ErrInvalidCommand{
+			name: a[1],
+			cmd:  cmd}
 	}
 
 	if c.CommandDisabled(maincmd.Name()) {
-		return "", &ErrCommandDisabled{a[1]}
+		return "", &ErrCommandDisabled{cmd: cmd}
 	}
 
 	if len(a[1:]) > 1 {
@@ -44,18 +41,22 @@ func helpCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 		}
 
 		if maincmd.Name() == a[1] {
-			msg := sprintf("Subcommand `%s` doesn't exist under `%s`", a[2],
-				maincmd.Name())
-			_, err := s.ChannelMessageSend(m.ChannelID, msg)
-			return "", err
+			return "", &ErrInvalidSubcommand{
+				subname: a[2],
+				cmd:     maincmd}
 		}
 	}
 
 	if out, err = maincmd.Help(); err != nil {
-		return "", err
+		logger.LogError(maincmd, err.Error())
+		return "", &ErrCommandError{
+			message: "Error getting help",
+			cmd:     cmd}
 	}
 
-	_, err = s.ChannelMessageSend(m.ChannelID, out)
+	if _, err = s.ChannelMessageSend(m.ChannelID, out); err != nil {
+		logger.LogError(cmd, err.Error())
+	}
 
-	return "", err
+	return "", nil
 }

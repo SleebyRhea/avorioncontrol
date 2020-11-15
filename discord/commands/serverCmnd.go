@@ -8,87 +8,49 @@ import (
 )
 
 func restartServerCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c ifaces.IConfigurator) (string, error) {
-	var (
-		reg *CommandRegistrar
-		cmd *CommandRegistrant
-		err error
-	)
+	c ifaces.IConfigurator, cmd *CommandRegistrant) (string, ICommandError) {
 
-	if reg, err = Registrar(m.GuildID); err != nil {
-		return "", err
+	reg := cmd.Registrar()
+	if err := reg.server.Restart(); err != nil {
+		logger.LogError(cmd, "Avorion: "+err.Error())
+		return "", &ErrCommandError{
+			message: "Error restarting Avorion: " + err.Error(),
+			cmd:     cmd}
 	}
 
-	if cmd, err = reg.Command(a[0]); err != nil {
-		return "", err
-	}
-
-	if err = reg.server.Restart(); err != nil {
-		s.MessageReactionAdd(m.ChannelID, m.ID, "🚫")
-		s.ChannelMessageSend(m.ChannelID, "Encountered an error restarting Avorion")
-		logger.LogError(cmd, err.Error())
-		return "", nil
-	}
-
-	s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
 	return "", nil
 }
 
 func stopServerCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c ifaces.IConfigurator) (string, error) {
-	var (
-		reg *CommandRegistrar
-		cmd *CommandRegistrant
-		err error
-	)
+	c ifaces.IConfigurator, cmd *CommandRegistrant) (string, ICommandError) {
 
-	if reg, err = Registrar(m.GuildID); err != nil {
-		return "", err
-	}
-
-	if cmd, err = reg.Command(a[0]); err != nil {
-		return "", err
-	}
-
+	reg := cmd.Registrar()
 	if reg.server.IsUp() {
-		if err = reg.server.Stop(true); err != nil {
-			s.MessageReactionAdd(m.ChannelID, m.ID, "🚫")
-			s.ChannelMessageSend(m.ChannelID, "Encountered an error stopping the server")
-			logger.LogError(cmd, err.Error())
-			return "", nil
+		if err := reg.server.Stop(true); err != nil {
+			logger.LogError(cmd, "Avorion: "+err.Error())
+			return "", &ErrCommandError{
+				message: "Error stopping Avorion: " + err.Error(),
+				cmd:     cmd}
 		}
 	}
 
-	s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
 	return "", nil
 }
 
 func startServerCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c ifaces.IConfigurator) (string, error) {
-	var (
-		reg *CommandRegistrar
-		cmd *CommandRegistrant
-		err error
-	)
+	c ifaces.IConfigurator, cmd *CommandRegistrant) (string, ICommandError) {
 
-	if reg, err = Registrar(m.GuildID); err != nil {
-		return "", err
-	}
-
-	if cmd, err = reg.Command("server"); err != nil {
-		return "", err
-	}
-
+	reg := cmd.Registrar()
 	if !reg.server.IsUp() {
-		if err = reg.server.Start(true); err != nil {
-			s.MessageReactionAdd(m.ChannelID, m.ID, "🚫")
+		if err := reg.server.Start(true); err != nil {
 			s.ChannelMessageSend(m.ChannelID, sprintf(
 				"Encountered an error starting the server:\n```%s\n```\n", err.Error()))
-			logger.LogError(cmd, err.Error())
-			return "", nil
+			logger.LogError(cmd, "Avorion: "+err.Error())
+			return "", &ErrCommandError{
+				message: "Error starting Avorion: " + err.Error(),
+				cmd:     cmd}
 		}
 	}
 
-	s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
 	return "", nil
 }

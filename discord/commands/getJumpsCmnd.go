@@ -10,34 +10,28 @@ import (
 )
 
 func getJumpsCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c ifaces.IConfigurator) (string, error) {
+	c ifaces.IConfigurator, cmd *CommandRegistrant) (string, ICommandError) {
 	var (
+		reg = cmd.Registrar()
 		obj ifaces.IHaveShips
-		reg *CommandRegistrar
 		err error
 		cnt int
 	)
 
 	// Make sure we have the args we need
 	if !HasNumArgs(a, 2, -1) {
-		return "", &ErrInvalidArgument{sprintf(
-			"`%s` was passed the wrong number of arguments", a[0])}
+		return "", &ErrInvalidArgument{
+			message: sprintf("`%s` was passed the wrong number of arguments", a[0]),
+			cmd:     cmd}
 	}
 
 	ref := strings.Join(a[2:], " ")
 
 	// FIXME: Prevent overflows here
 	if cnt, err = strconv.Atoi(a[1]); err != nil {
-		return "", &ErrInvalidArgument{sprintf(
-			"`%s` is not a valid number.", a[1])}
-	}
-
-	if reg, err = Registrar(m.GuildID); err != nil {
-		return "", err
-	}
-
-	if _, err = reg.Command(a[0]); err != nil {
-		return "", err
+		return "", &ErrInvalidArgument{
+			message: sprintf("`%s` is not a valid number.", a[1]),
+			cmd:     cmd}
 	}
 
 	if p := reg.server.PlayerFromName(ref); p != nil {
@@ -53,13 +47,16 @@ func getJumpsCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	}
 
 	if obj == nil {
-		return "", &ErrInvalidArgument{sprintf(
-			"`%s` is not a valid player or alliance reference", ref)}
+		return "", &ErrInvalidArgument{
+			message: sprintf("`%s` is not a valid player or alliance reference", ref),
+			cmd:     cmd}
 	}
 
 	loc, err := time.LoadLocation(c.TimeZone())
 	if err != nil {
-		return "", &ErrInvalidTimezone{c.TimeZone()}
+		return "", &ErrInvalidTimezone{
+			tz:  c.TimeZone(),
+			cmd: cmd}
 	}
 
 	if cnt > 25 {

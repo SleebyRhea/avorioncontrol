@@ -2,50 +2,41 @@ package commands
 
 import (
 	"avorioncontrol/ifaces"
+	"avorioncontrol/logger"
 	"regexp"
 
 	"github.com/bwmarrin/discordgo"
 )
 
 func setaliasCmd(s *discordgo.Session, m *discordgo.MessageCreate,
-	a BotArgs, c ifaces.IConfigurator) (string, error) {
-	var (
-		reg *CommandRegistrar
-		err error
-	)
+	a BotArgs, c ifaces.IConfigurator, cmd *CommandRegistrant) (string, ICommandError) {
+	reg := cmd.Registrar()
 
 	if !HasNumArgs(a, 2, 2) {
-		return "", &ErrInvalidArgument{sprintf(
-			`%s was passed the wrong number of arguments`, a[0])}
+		return "", &ErrInvalidArgument{
+			message: sprintf(`%s was passed the wrong number of arguments`),
+			cmd:     cmd}
 	}
 
-	author := m.Author.String()
-	out := ""
-	v := "^[a-zA-Z]{1,10}$"
-
-	if reg, err = Registrar(m.GuildID); err != nil {
-		return out, err
-	}
-
-	if !regexp.MustCompile(v).MatchString(a[2]) {
-		out = "User " + author + " attempted to set an improper alias"
-		msg := sprintf("Invalid alias supplied: `%s`", a[2])
-		_, err = s.ChannelMessageSend(m.ChannelID, msg)
-		return out, err
+	if !regexp.MustCompile("^[a-zA-Z]{1,10}$").MatchString(a[2]) {
+		return "", &ErrInvalidAlias{
+			alias: a[2],
+			cmd:   cmd}
 	}
 
 	if reg.IsRegistered(a[1]) == false {
-		msg := sprintf("Command supplied is not valid: `%s`", a[1])
-		_, err = s.ChannelMessageSend(m.ChannelID, msg)
-		return out, err
+		return "", &ErrInvalidCommand{
+			name: a[1],
+			cmd:  cmd}
 	}
 
-	if err = c.SetAliasCommand(a[1], a[2]); err != nil {
-		_, err = s.ChannelMessageSend(m.ChannelID, "Failed to configure Alias!")
-		return out, err
+	if err := c.SetAliasCommand(a[1], a[2]); err != nil {
+		logger.LogError(cmd, err.Error())
+		return "", &ErrCommandError{
+			message: "Failed to configure Alias: " + err.Error(),
+			cmd:     cmd}
 	}
 
 	c.SaveConfiguration()
-	err = s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
-	return out, err
+	return "", nil
 }

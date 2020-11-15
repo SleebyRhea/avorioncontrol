@@ -7,18 +7,13 @@ import (
 )
 
 func getPlayersCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c ifaces.IConfigurator) (string, error) {
-	var (
-		reg *CommandRegistrar
-		err error
-	)
-
-	if reg, err = Registrar(m.GuildID); err != nil {
-		return "", err
-	}
+	c ifaces.IConfigurator, cmd *CommandRegistrant) (string, ICommandError) {
+	var reg = cmd.Registrar()
 
 	if reg.server == nil || !reg.server.IsUp() {
-		return "", &ErrCommandError{"Server has not finished initializing"}
+		return "", &ErrCommandError{
+			message: "Server has not finished initializing",
+			cmd:     cmd}
 	}
 
 	players := reg.server.Players()

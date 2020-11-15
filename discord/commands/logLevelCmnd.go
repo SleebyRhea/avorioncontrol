@@ -3,53 +3,47 @@ package commands
 import (
 	"avorioncontrol/ifaces"
 	"avorioncontrol/logger"
-	"errors"
 	"strconv"
 
 	"github.com/bwmarrin/discordgo"
 )
 
 func loglevelCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c ifaces.IConfigurator) (out string, err error) {
+	c ifaces.IConfigurator, cmd *CommandRegistrant) (string, ICommandError) {
 	var (
-		reg    *CommandRegistrar
-		cmd    *CommandRegistrant
+		reg    = cmd.Registrar()
 		cmdobj *CommandRegistrant
 
-		l  int
-		ac string
-		ok bool
+		l   int
+		err error
+		ac  string
+		ok  bool
+		out string
 	)
 
 	if !HasNumArgs(a, 2, -1) {
-		return "", &ErrInvalidArgument{sprintf(
-			`%s was passed the wrong number of arguments`, a[0])}
-	}
-
-	if reg, err = Registrar(m.GuildID); err != nil {
-		return "", err
-	}
-
-	if cmd, err = reg.Command("loglevel"); err != nil {
-		return "", err
+		return "", &ErrInvalidArgument{
+			message: sprintf(`%s was passed the wrong number of arguments`, a[0]),
+			cmd:     cmd}
 	}
 
 	// Validate our loglevel
 	if l, err = strconv.Atoi(a[1]); err != nil || l > 3 || l < 0 {
 		out = sprintf("`%s` is not a valid loglevel. Valid levels include:\n",
-			a[1])
-		out = out + "```\n0 - Only output service level info\n" +
+			a[1]) + "```\n0 - Only output service level info\n" +
 			"1 - Show warnings (default)\n" +
 			"2 - Show informational output\n" +
 			"3 - Debug mode\n```"
-		return "", &ErrCommandError{out}
+		return "", &ErrCommandError{
+			message: out,
+			cmd:     cmd}
 	}
 
 	logger.LogDebug(cmd, sprintf("Using loglevel %d", l))
 
 	for _, obj := range a[2:] {
 		switch obj {
-		case "registrar", "guild":
+		case "guild":
 			out = sprintf("Default command loglevel is now: _**%d**_", l)
 			reg.SetLoglevel(l)
 			s.ChannelMessageSend(m.ChannelID, out)
@@ -57,16 +51,16 @@ func loglevelCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 
 		// REVIEW: Is user/role specific logging something I want to implement?
 		case "user", "role":
-			out = "User/Role specific logging is not yet implemented"
-			s.ChannelMessageSend(m.ChannelID, out)
-			return
+			return "", &ErrCommandError{
+				message: "User/Role specific logging is not yet implemented",
+				cmd:     cmd}
 
-		case "core", "default":
+		case "default":
 			c.SetLoglevel(l)
 			c.SaveConfiguration()
 			s.ChannelMessageSend(m.ChannelID,
-				sprintf("Core command loglevel is now: _**%d**_", l))
-			return
+				sprintf("Default command loglevel is now: _**%d**_", l))
+			return "", nil
 
 		// Process commands/aliases here
 		// TODO: Refactor this if CommandRegistrar.GetAliasedCommand and
@@ -78,19 +72,17 @@ func loglevelCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 
 			if cmdobj, err = reg.Command(obj); err != nil {
 				logger.LogDebug(cmd,
-					sprintf("Command %s isn't registered, checking for aliases",
-						obj))
+					sprintf("Command [%s] isn't registered, checking for aliases", obj))
 
-				if ok, ac = c.GetAliasedCommand(obj); ok == false {
+				if ok, ac = c.GetAliasedCommand(obj); !ok {
 					s.ChannelMessageSend(m.ChannelID, out)
 					return "", nil
 				}
 
 				if cmdobj, err = reg.Command(ac); err != nil {
+					logger.LogError(cmd, "Found configured alias that is invalid: "+ac)
 					s.ChannelMessageSend(m.ChannelID, out)
-					errOut := sprintf("Configured command alias is invalid: `%s`",
-						ac)
-					return "", errors.New(errOut)
+					return "", nil
 				}
 			}
 
