@@ -716,6 +716,41 @@ func (c *Conf) BuildModConfig() error {
 	return ioutil.WriteFile(file, []byte(modconfig), 0644)
 }
 
+// AddServerMod adds a server mod to the config file and saves said config
+func (c *Conf) AddServerMod(id int64) error {
+	for _, found := range c.enabledMods {
+		if id == found {
+			return errors.New("Mod is already present in the configuration")
+		}
+	}
+	c.enabledMods = append(c.enabledMods, id)
+	return nil
+}
+
+// RemoveServerMod adds a server mod to the config file and saves said config
+func (c *Conf) RemoveServerMod(id int64) error {
+	for i, found := range c.enabledMods {
+		if id == found {
+			c.enabledMods[i] = c.enabledMods[len(c.enabledMods)-1]
+			c.enabledMods[len(c.enabledMods)-1] = 0
+			c.enabledMods = c.enabledMods[:len(c.enabledMods)-1]
+			c.SaveConfiguration()
+			return nil
+		}
+	}
+
+	return errors.New("Mod is not present in the configuration")
+}
+
+// ListServerMods returns a slice of all of the Workshop mods configured to be
+// installed
+func (c *Conf) ListServerMods() []int64 {
+	new := make([]int64, len(c.enabledMods))
+	copy(new, c.enabledMods)
+	c.SaveConfiguration()
+	return new
+}
+
 /**********************************/
 /* IFace ifaces.IGameConfigLoader */
 /**********************************/

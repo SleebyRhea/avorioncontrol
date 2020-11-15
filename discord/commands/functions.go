@@ -245,4 +245,33 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 		[]CommandArgument{
 			arg("command", "command to have remove requirements from")},
 		removeAdminCmndSubCmnd, "admin")
+
+	r.Register("mod",
+		"Configure mods installed on the Avorion server",
+		"mod <add|remove|list>",
+		make([]CommandArgument, 0),
+		proxySubCmnd)
+	r.Register("add",
+		"Add a mod or mods to the server configuration",
+		"add <workshopid> <workshopid> ...",
+		[]CommandArgument{
+			arg("workshopid", "Steam workshop ID of a mod to add")},
+		modAddSubCmnd, "mod")
+	r.Register("remove",
+		"Remove a mod or mods from the server configuration",
+		"remove <workshopid> <workshopid> ...",
+		[]CommandArgument{
+			arg("workshopid", "Steam workshop ID of a mod to add")},
+		modRemoveSubCmnd, "mod")
+	r.Register("list",
+		"List the workshop mods that are currently configured to be installed",
+		"list",
+		make([]CommandArgument, 0),
+		listModsSubCmnd, "mod")
+
+	r.Register("modlist",
+		"List the workshop mods that are currently configured to be installed",
+		"list",
+		make([]CommandArgument, 0),
+		listModsSubCmnd)
 }

@@ -109,4 +109,7 @@ type IDatabaseConfigurator interface {
 // IModConfigurator describes an interface to a modconfig builder
 type IModConfigurator interface {
 	BuildModConfig() error
+	AddServerMod(int64) error
+	RemoveServerMod(int64) error
+	ListServerMods() []int64
 }
