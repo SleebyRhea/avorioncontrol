@@ -150,7 +150,6 @@ func removeAdminRoleSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a 
 				return "", nil
 			}
 
-			s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
 			logger.LogInfo(cmd, sprintf("%s removed authorization for %s",
 				m.Author.Mention(), r.Name, level))
 			return "", nil
@@ -193,7 +192,6 @@ func addAdminCmndSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 			cmd:     cmd}
 	}
 
-	s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
 	return sprintf("%s set the authorization level for [%s] to %d",
 		m.Author.String(), name, lvl), nil
 }
@@ -222,7 +220,6 @@ func removeAdminCmndSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a 
 	}
 
 	c.RemoveCmndAuth(name)
-	s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
 	return sprintf("%s removed the authorization requirements for %s",
 		m.Author.String(), name), nil
 }
