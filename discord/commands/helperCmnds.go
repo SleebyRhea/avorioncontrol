@@ -24,7 +24,7 @@ func proxySubCmnd(s *discordgo.Session, m *discordgo.MessageCreate,
 	_, cmdlets := cmd.Subcommands()
 	for _, cmdlet := range cmdlets {
 		if a[1] == cmdlet.Name() {
-			return cmdlet.exec(s, m, a, c, cmd)
+			return cmdlet.exec(s, m, a, c, cmdlet)
 		}
 	}
 
