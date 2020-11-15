@@ -288,7 +288,7 @@ func (s *Server) Start(sendchat bool) error {
 
 		case <-s.close:
 			close(ready)
-			return errors.New("avorion died before initialization could complete")
+			return errors.New("avorion initialization failed")
 
 		case <-time.After(5 * time.Minute):
 			close(ready)
@@ -998,6 +998,13 @@ func superviseAvorionOut(s *Server, ready chan struct{},
 			case "Server startup complete.":
 				logger.LogInit(s, "Avorion server initialization completed")
 				close(ready)
+
+			case "Server startup FAILED.":
+				s.iscrashed = true
+
+			case "Server shutdown successful.":
+				logger.LogError(s, "Avorion server failed to initialize")
+				close(closech)
 
 			default:
 				e := events.GetFromString(out)
