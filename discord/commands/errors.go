@@ -31,57 +31,53 @@ func (e *ErrInvalidTimezone) Error() string {
 // ErrInvalidCommand describes an attempt to run a command that doesn't
 // exist
 type ErrInvalidCommand struct {
-	message string
+	command string
 }
 
 func (e *ErrInvalidCommand) Error() string {
-	if e.message == "" {
+	if e.command == "" {
 		return "Invalid command supplied"
 	}
 
-	return e.message
+	return sprintf("Command `%s` is invalid", e.command)
 }
 
 // ErrUnauthorizedUsage describes an attempt to run a command by someone
 // unauthorized to do so
 type ErrUnauthorizedUsage struct {
-	message string
+	command string
 }
 
 func (e *ErrUnauthorizedUsage) Error() string {
-	if e.message == "" {
-		return "Unauthorized usage of a command"
-	}
-
-	return e.message
+	return "You do not have permission to use that command"
 }
 
 // ErrInvalidAlias describes an attempt to use an alias that doesn't
 // exist
 type ErrInvalidAlias struct {
-	message string
+	alias string
 }
 
 func (e *ErrInvalidAlias) Error() string {
-	if e.message == "" {
+	if e.alias == "" {
 		return "Invalid command alias"
 	}
 
-	return e.message
+	return sprintf("Alias `%s` is invalid")
 }
 
 // ErrCommandDisabled describes an attempt to use a command that has
 // been disabled
 type ErrCommandDisabled struct {
-	message string
+	command string
 }
 
 func (e *ErrCommandDisabled) Error() string {
-	if e.message == "" {
-		return "Command has been disabled"
+	if e.command == "" {
+		return "That command has been disabled"
 	}
 
-	return e.message
+	return sprintf("The command `%s` has been disabled")
 }
 
 // ErrCommandError describes a generic non-fatal error that occurred
@@ -92,7 +88,7 @@ type ErrCommandError struct {
 
 func (e *ErrCommandError) Error() string {
 	if e.message == "" {
-		return "Command encountered a failure"
+		return "Command encountered an unspecified failure"
 	}
 
 	return e.message

@@ -54,8 +54,6 @@ func init() {
 
 // Conf is a struct representing a server configuration
 type Conf struct {
-	BotMention func() string
-
 	// Conf
 	ConfigFile string
 
@@ -600,7 +598,7 @@ func (c *Conf) SetChatChannel(id string) chan ifaces.ChatData {
 
 	logger.LogInfo(c, sprintf("Setting chat channel to: %s", id))
 
-	c.chatpipe = make(chan ifaces.ChatData)
+	c.chatpipe = make(chan ifaces.ChatData, 100)
 	return c.chatpipe
 }
 

@@ -30,8 +30,7 @@ func helpCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	}
 
 	if c.CommandDisabled(maincmd.Name()) {
-		msg := sprintf("`%s` is not a valid command", a[1])
-		return "", &ErrCommandDisabled{msg}
+		return "", &ErrCommandDisabled{a[1]}
 	}
 
 	if len(a[1:]) > 1 {

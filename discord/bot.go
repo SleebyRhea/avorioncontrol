@@ -172,7 +172,7 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 
 				case *commands.ErrUnauthorizedUsage:
 					logger.LogWarning(b, fmt.Sprintf(
-						"%s attempted to run [%s], but wasn't authorized",
+						"%s attempted to run [%s], but wasn't authorized do so",
 						m.Author.String(), name))
 					s.ChannelMessageSend(m.ChannelID, err.Error())
 

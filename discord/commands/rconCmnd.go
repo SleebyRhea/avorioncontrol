@@ -68,5 +68,8 @@ func rconCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 			"**Output %d: `%s`**\n```\n%s```\n", cnt, rcmd, msg))
 	}
 
-	return "", err
+	out = sprintf("%s ran the rcon command: [%s]", m.Author.String(),
+		strings.Join(a[1:], " "))
+
+	return out, err
 }

@@ -191,20 +191,18 @@ func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
 	if cmd, err = reg.Command(name); err != nil {
 		if b, ac := c.GetAliasedCommand(name); b == true {
 			if cmd, err = reg.Command(ac); err != nil {
-				return ac, &ErrInvalidAlias{sprintf(
-					"Configured command alias is invalid: " + ac)}
+				logger.LogError(reg, "Invalid alias: "+ac)
+				return ac, &ErrInvalidAlias{ac}
 			}
 		} else {
-			return name, &ErrInvalidCommand{sprintf(
-				"`%s` is not a valid command", name)}
+			return name, &ErrInvalidCommand{name}
 		}
 	}
 
 	if c.CommandDisabled(cmd.Name()) {
 		logger.LogInfo(cmd, sprintf(
 			"%s attempted to run the disabled command: %s", m.Author.String, cmd.Name()))
-		return cmd.Name(), &ErrInvalidCommand{sprintf(`%s is not a valid command`,
-			cmd.Name())}
+		return cmd.Name(), &ErrInvalidCommand{cmd.Name()}
 	}
 
 	if member, err = s.GuildMember(reg.GuildID, m.Author.ID); err != nil {
@@ -222,16 +220,14 @@ func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
 		}
 
 		if authlvl < authreq {
-			return cmd.Name(), &ErrUnauthorizedUsage{
-				"You do not have permission to run that command"}
+			return cmd.Name(), &ErrUnauthorizedUsage{cmd.Name()}
 		}
 	}
 
 	if cmd.exec == nil {
 		logger.LogError(cmd, sprintf("Can't execute %s (missing exec field)",
 			cmd.Name()))
-		return cmd.Name(), &ErrInvalidCommand{sprintf(`%s is not a valid command`,
-			cmd.Name())}
+		return cmd.Name(), &ErrInvalidCommand{cmd.Name()}
 	}
 
 	// Update our arguments with the full command name
