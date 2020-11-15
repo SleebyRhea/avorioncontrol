@@ -1,5 +1,5 @@
 // Sections of this file were adapted from the code present under the following
-// repositoty: https://github.com/bwmarrin/discordgo/blob/master/examples/
+// repository: https://github.com/bwmarrin/discordgo/blob/master/examples/
 // As such, this file is subject to the terms provided by the following license:
 // https://github.com/bwmarrin/discordgo/blob/master/LICENSE
 // Copyright (c) 2015, Bruce Marriner
@@ -200,6 +200,9 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 					s.ChannelMessageSend(m.ChannelID, cmderr.Error())
 					if cmderr.Subcommand() != nil {
 						help, _ := cmderr.Subcommand().Help()
+						s.ChannelMessageSend(m.ChannelID, help)
+					} else if cmderr.Command() != nil {
+						help, _ := cmderr.Command().Help()
 						s.ChannelMessageSend(m.ChannelID, help)
 					}
 
