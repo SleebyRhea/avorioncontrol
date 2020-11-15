@@ -12,12 +12,12 @@ import (
 func showAdminRolesSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	c ifaces.IConfigurator, cmd *CommandRegistrant) (string, ICommandError) {
 	var (
-		out   string
-		cnt   int
-		guild *discordgo.Guild
+		out string
+		cnt int
 	)
 
-	if _, err := s.Guild(m.GuildID); err != nil {
+	guild, err := s.Guild(m.GuildID)
+	if err != nil {
 		return "", &ErrCommandError{
 			message: "Could not find guild: " + err.Error(),
 			cmd:     cmd}
@@ -84,7 +84,7 @@ func addAdminRoleSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 	//	a slice of the args removing the first argument
 	if !HasNumArgs(a[1:], 2, -1) {
 		return "", &ErrInvalidArgument{
-			message: sprintf(`%s was passed the wrong number of arguments`, a[0]),
+			message: sprintf("`%s` was passed the wrong number of arguments", cmd.Name()),
 			cmd:     cmd}
 	}
 
@@ -114,7 +114,7 @@ func addAdminRoleSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 	}
 
 	return "", &ErrCommandError{
-		message: sprintf("`%s` is not a valid role"),
+		message: sprintf("`%s` is not a valid role", role),
 		cmd:     cmd}
 }
 
@@ -130,7 +130,7 @@ func removeAdminRoleSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a 
 	//	HasNumArgs function a slice of the args removing the first argument
 	if !HasNumArgs(a[1:], 1, -1) {
 		return "", &ErrInvalidArgument{
-			message: sprintf(`%s was passed the wrong number of arguments`, a[0]),
+			message: sprintf("`%s` was passed the wrong number of arguments", cmd.Name()),
 			cmd:     cmd}
 	}
 
@@ -169,20 +169,19 @@ func addAdminCmndSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 		lvl int
 	)
 
-	name := a[3]
-
 	// Account for the fact that this is a subcommand by passing the
 	//	HasNumArgs function a slice of the args removing the first argument
 	if !HasNumArgs(a[1:], 2, 2) {
 		return "", &ErrInvalidArgument{
-			message: sprintf("`%s:%s` was passed the wrong number of arguments (%d)",
-				a[0], a[1], len(a[1:])),
-			cmd: cmd}
+			message: sprintf("`%s` was passed the wrong number of arguments", cmd.Name()),
+			cmd:     cmd}
 	}
+
+	name := a[3]
 
 	if lvl, err = strconv.Atoi(a[2]); err != nil {
 		return "", &ErrInvalidArgument{
-			message: sprintf("%s is not a valid number", a[3]),
+			message: sprintf("%s is not a valid number", a[2]),
 			cmd:     cmd}
 	}
 
