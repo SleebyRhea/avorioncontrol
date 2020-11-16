@@ -69,8 +69,7 @@ func (c *CommandRegistrant) Name() string {
 //    2: sub1 - Description
 //    ```
 func (c *CommandRegistrant) Help() (out string, _ error) {
-	out = fmt.Sprintf("**`%s`** - %s\n```\n%s\n```\n", c.name,
-		c.description, c.usage)
+	out = fmt.Sprintf("```\n%s\n```\n", c.usage)
 
 	if len(c.args) > 0 {
 		out = fmt.Sprintf("%s**Arguments:**\n```\n", out)

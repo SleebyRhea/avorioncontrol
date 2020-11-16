@@ -10,45 +10,41 @@ import (
 )
 
 func showAdminRolesSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c ifaces.IConfigurator, cmd *CommandRegistrant) (string, ICommandError) {
+	c ifaces.IConfigurator, cmd *CommandRegistrant) (*CommandOutput, ICommandError) {
 	var (
-		out string
-		cnt int
+		out = newCommandOutput(cmd, "Admin Role List")
+		cnt = 0
 	)
 
 	guild, err := s.Guild(m.GuildID)
 	if err != nil {
-		return "", &ErrCommandError{
+		return nil, &ErrCommandError{
 			message: "Could not find guild: " + err.Error(),
 			cmd:     cmd}
 	}
 
 	cnt = 0
-	out = ""
 	for _, r := range guild.Roles {
 		if l := c.GetRoleAuth(r.ID); l > 0 {
-			out += sprintf("%s - Auth level: %d\n", r.Name, l)
+			out.AddLine(sprintf("_**%s's**_ authorization Level: **%d**", r.Name, l))
 			cnt++
 		}
 	}
 
-	if cnt > 0 {
-		s.ChannelMessageSend(m.ChannelID, sprintf(
-			"**_Role Authorizations:_**```\n%s```", out))
-		return "", nil
+	if cnt == 0 {
+		out.AddLine("No roles have received authorization levels")
 	}
 
-	s.ChannelMessageSend(m.ChannelID,
-		"No roles have received authorization levels")
-	return "", nil
+	out.Quoted = true
+	out.Construct()
+	return out, nil
 }
 
 func showAdminCmndsSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c ifaces.IConfigurator, cmd *CommandRegistrant) (string, ICommandError) {
+	c ifaces.IConfigurator, cmd *CommandRegistrant) (*CommandOutput, ICommandError) {
 	var (
 		reg = cmd.Registrar()
-		out string
-
+		out = newCommandOutput(cmd, "Admin Command List")
 		cnt = 0
 	)
 
@@ -56,23 +52,22 @@ func showAdminCmndsSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a B
 	for _, name := range commands {
 		l := c.GetCmndAuth(name)
 		if l > 0 {
-			out += sprintf("%s - Auth level requirement: %d\n", name, l)
+			out.AddLine(sprintf("_**%s**_ authorization level requirement: **%d**", name, l))
 			cnt++
 		}
 	}
 
-	if cnt > 0 {
-		s.ChannelMessageSend(m.ChannelID, sprintf(
-			"**_Command Auth Levels:_**\n```%s```\n", out))
-		return "", nil
+	if cnt == 0 {
+		out.AddLine("No commands require admin privileges")
 	}
 
-	s.ChannelMessageSend(m.ChannelID, "No commands require admin privileges")
-	return "", nil
+	out.Quoted = true
+	out.Construct()
+	return out, nil
 }
 
 func addAdminRoleSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c ifaces.IConfigurator, cmd *CommandRegistrant) (string, ICommandError) {
+	c ifaces.IConfigurator, cmd *CommandRegistrant) (*CommandOutput, ICommandError) {
 	var (
 		guild *discordgo.Guild
 		level int
@@ -83,13 +78,13 @@ func addAdminRoleSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 	// Account for the fact that this is a subcommand by passing the HasNumArgs
 	//	a slice of the args removing the first argument
 	if !HasNumArgs(a[1:], 2, -1) {
-		return "", &ErrInvalidArgument{
+		return nil, &ErrInvalidArgument{
 			message: sprintf("`%s` was passed the wrong number of arguments", cmd.Name()),
 			cmd:     cmd}
 	}
 
 	if level, err = strconv.Atoi(a[2]); err != nil {
-		return "", &ErrInvalidArgument{
+		return nil, &ErrInvalidArgument{
 			message: sprintf("`%s` is not a valid number", a[2]),
 			cmd:     cmd}
 	}
@@ -98,7 +93,7 @@ func addAdminRoleSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 	role = strings.Join(a[3:], " ")
 
 	if guild, err = s.Guild(m.GuildID); err != nil {
-		return "", &ErrCommandError{
+		return nil, &ErrCommandError{
 			message: "Could not find guild: " + err.Error(),
 			cmd:     cmd}
 	}
@@ -109,17 +104,17 @@ func addAdminRoleSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 			c.AddRoleAuth(r.ID, level)
 			logger.LogInfo(cmd, sprintf("%s set the authorization level for %s to %d",
 				m.Author.String(), r.Name, level))
-			return "", nil
+			return nil, nil
 		}
 	}
 
-	return "", &ErrCommandError{
+	return nil, &ErrCommandError{
 		message: sprintf("`%s` is not a valid role", role),
 		cmd:     cmd}
 }
 
 func removeAdminRoleSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c ifaces.IConfigurator, cmd *CommandRegistrant) (string, ICommandError) {
+	c ifaces.IConfigurator, cmd *CommandRegistrant) (*CommandOutput, ICommandError) {
 	var (
 		guild *discordgo.Guild
 		level int
@@ -129,7 +124,7 @@ func removeAdminRoleSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a 
 	// Account for the fact that this is a subcommand by passing the
 	//	HasNumArgs function a slice of the args removing the first argument
 	if !HasNumArgs(a[1:], 1, -1) {
-		return "", &ErrInvalidArgument{
+		return nil, &ErrInvalidArgument{
 			message: sprintf("`%s` was passed the wrong number of arguments", cmd.Name()),
 			cmd:     cmd}
 	}
@@ -137,7 +132,7 @@ func removeAdminRoleSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a 
 	role := strings.Join(a[2:], " ")
 
 	if guild, err = s.Guild(m.GuildID); err != nil {
-		return "", &ErrCommandError{
+		return nil, &ErrCommandError{
 			message: "Could not find guild: " + err.Error(),
 			cmd:     cmd}
 	}
@@ -145,24 +140,24 @@ func removeAdminRoleSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a 
 	for _, r := range guild.Roles {
 		if r.ID == role || r.Name == role || r.Mention() == role {
 			if err = c.RemoveRoleAuth(r.ID); err != nil {
-				msg := sprintf("%s is not assigned an authorization level", role)
-				s.ChannelMessageSend(m.ChannelID, msg)
-				return "", nil
+				return nil, &ErrCommandError{
+					message: sprintf("%s is not assigned an authorization level", role),
+					cmd:     cmd}
 			}
 
 			logger.LogInfo(cmd, sprintf("%s removed authorization for %s",
 				m.Author.Mention(), r.Name, level))
-			return "", nil
+			return nil, nil
 		}
 	}
 
-	return "", &ErrInvalidArgument{
+	return nil, &ErrInvalidArgument{
 		message: sprintf("`%s` is not a valid role", role),
 		cmd:     cmd}
 }
 
 func addAdminCmndSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c ifaces.IConfigurator, cmd *CommandRegistrant) (string, ICommandError) {
+	c ifaces.IConfigurator, cmd *CommandRegistrant) (*CommandOutput, ICommandError) {
 	var (
 		err error
 		lvl int
@@ -171,7 +166,7 @@ func addAdminCmndSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 	// Account for the fact that this is a subcommand by passing the
 	//	HasNumArgs function a slice of the args removing the first argument
 	if !HasNumArgs(a[1:], 2, 2) {
-		return "", &ErrInvalidArgument{
+		return nil, &ErrInvalidArgument{
 			message: sprintf("`%s` was passed the wrong number of arguments", cmd.Name()),
 			cmd:     cmd}
 	}
@@ -179,7 +174,7 @@ func addAdminCmndSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 	name := a[3]
 
 	if lvl, err = strconv.Atoi(a[2]); err != nil {
-		return "", &ErrInvalidArgument{
+		return nil, &ErrInvalidArgument{
 			message: sprintf("%s is not a valid number", a[2]),
 			cmd:     cmd}
 	}
@@ -187,17 +182,18 @@ func addAdminCmndSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 	if lvl > 0 {
 		c.AddCmndAuth(name, lvl)
 	} else {
-		return "", &ErrInvalidArgument{
+		return nil, &ErrInvalidArgument{
 			message: "Please specify a value higher than 0",
 			cmd:     cmd}
 	}
 
-	return sprintf("%s set the authorization level for [%s] to %d",
-		m.Author.String(), name, lvl), nil
+	logger.LogInfo(cmd, sprintf("%s set the authorization level for [%s] to %d",
+		m.Author.String(), name, lvl))
+	return nil, nil
 }
 
 func removeAdminCmndSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c ifaces.IConfigurator, cmd *CommandRegistrant) (string, ICommandError) {
+	c ifaces.IConfigurator, cmd *CommandRegistrant) (*CommandOutput, ICommandError) {
 	var (
 		reg = cmd.Registrar()
 		err error
@@ -206,7 +202,7 @@ func removeAdminCmndSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a 
 	// Account for the fact that this is a subcommand by passing the
 	//	HasNumArgs function a slice of the args removing the first argument
 	if !HasNumArgs(a[1:], 1, 1) {
-		return "", &ErrInvalidArgument{
+		return nil, &ErrInvalidArgument{
 			message: sprintf(`%s was passed the wrong number of arguments`, cmd.Name()),
 			cmd:     cmd}
 	}
@@ -214,12 +210,13 @@ func removeAdminCmndSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a 
 	name := a[2]
 
 	if _, err = reg.Command(name); err != nil {
-		return "", &ErrInvalidArgument{
+		return nil, &ErrInvalidArgument{
 			message: sprintf("%s is not a valid command", name),
 			cmd:     cmd}
 	}
 
 	c.RemoveCmndAuth(name)
-	return sprintf("%s removed the authorization requirements for %s",
-		m.Author.String(), name), nil
+	logger.LogInfo(cmd, sprintf("%s removed the authorization requirements for %s",
+		m.Author.String(), name))
+	return nil, nil
 }

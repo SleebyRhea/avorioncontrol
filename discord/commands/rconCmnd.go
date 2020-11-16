@@ -4,71 +4,50 @@ import (
 	"avorioncontrol/ifaces"
 	"avorioncontrol/logger"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/bwmarrin/discordgo"
 )
 
 func rconCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c ifaces.IConfigurator, cmd *CommandRegistrant) (string, ICommandError) {
+	c ifaces.IConfigurator, cmd *CommandRegistrant) (*CommandOutput, ICommandError) {
 	var (
 		reg = cmd.Registrar()
 		srv = reg.server
+		out = newCommandOutput(cmd, "RCON")
 
-		rcmd string
-		out  string
-		msg  string
-		err  error
-		cnt  int
+		rconout string
+		rcmd    string
+		err     error
 	)
 
 	if !HasNumArgs(a, 1, -1) {
-		return "", &ErrInvalidArgument{
+		return nil, &ErrInvalidArgument{
 			message: sprintf(`%s was passed the wrong number of arguments`, cmd.Name()),
 			cmd:     cmd}
 	}
 
 	rcmd = strings.Join(a[1:], " ")
+	out.Description =  rcmd
 
-	if out, err = srv.RunCommand(rcmd); err != nil {
-		return "", &ErrCommandError{
+	if rconout, err = srv.RunCommand(rcmd); err != nil {
+		return nil, &ErrCommandError{
 			message: sprintf("Failed to run `%s`. Error:\n```%s```", rcmd, err.Error()),
 			cmd:     cmd}
 	}
 
-	if strings.ReplaceAll(out, " ", "") == "" {
-		return "", nil
+	if strings.ReplaceAll(rconout, " ", "") == "" {
+		return nil, nil
 	}
 
-	if utf8.RuneCountInString(out) <= 1900 {
-		msg = sprintf("**Output: `%s`**\n```\n%s\n```", rcmd, out)
-		if _, err := s.ChannelMessageSend(m.ChannelID, msg); err != nil {
-			logger.LogError(cmd, "discordgo: "+err.Error())
-		}
-		return "", nil
+	for _, line := range strings.Split(rconout, "\n") {
+		logger.LogDebug(cmd, "RCON: "+line)
+		out.AddLine(line)
 	}
 
-	cnt = 1
-	msg = ""
-	for _, line := range strings.Split(out, "\n") {
-		msg += line
-		msg += "\n"
-		if utf8.RuneCountInString(msg) >= 1900 {
-			_, err = s.ChannelMessageSend(m.ChannelID, sprintf(
-				"**Output %d: `%s`**\n```\n%s```\n", cnt, rcmd, msg))
-			cnt++
-			msg = ""
-		}
-	}
+	logger.LogInfo(cmd, sprintf("%s ran the rcon command: [%s]", m.Author.String(),
+		strings.Join(a[1:], " ")))
 
-	if msg != "" {
-		_, err = s.ChannelMessageSend(m.ChannelID, sprintf(
-			"**Output %d: `%s`**\n```\n%s```\n", cnt, rcmd, msg))
-		if err != nil {
-			logger.LogError(cmd, "discordgo: "+err.Error())
-		}
-	}
-
-	return sprintf("%s ran the rcon command: [%s]", m.Author.String(),
-		strings.Join(a[1:], " ")), nil
+	out.Monospace = true
+	out.Construct()
+	return out, nil
 }

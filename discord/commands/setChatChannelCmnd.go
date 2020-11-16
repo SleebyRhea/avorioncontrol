@@ -8,21 +8,21 @@ import (
 )
 
 func setChatChannelCmnd(s *discordgo.Session, m *discordgo.MessageCreate,
-	a BotArgs, c ifaces.IConfigurator, cmd *CommandRegistrant) (string, ICommandError) {
+	a BotArgs, c ifaces.IConfigurator, cmd *CommandRegistrant) (*CommandOutput, ICommandError) {
 	var (
 		channels []*discordgo.Channel
 		err      error
 	)
 
 	if !HasNumArgs(a, 1, 1) {
-		return "", &ErrInvalidArgument{
+		return nil, &ErrInvalidArgument{
 			message: sprintf(`%s was passed the wrong number of arguments`, cmd.Name()),
 			cmd:     cmd}
 	}
 
 	if channels, err = s.GuildChannels(m.GuildID); err != nil {
 		logger.LogError(cmd, err.Error())
-		return "", &ErrCommandError{
+		return nil, &ErrCommandError{
 			message: "Server error getting channels",
 			cmd:     cmd}
 	}
@@ -32,11 +32,13 @@ func setChatChannelCmnd(s *discordgo.Session, m *discordgo.MessageCreate,
 		if dch.ID == a[1] && dch.Type == discordgo.ChannelTypeGuildText {
 			c.SetChatChannel(a[1])
 			c.SaveConfiguration()
-			return sprintf("%s set the chat channel to %s", m.Author.String(), dch.ID), nil
+			logger.LogInfo(cmd, sprintf(
+				"%s set the chat channel to %s", m.Author.String(), dch.ID))
+			return nil, nil
 		}
 	}
 
-	return "", &ErrInvalidArgument{
+	return nil, &ErrInvalidArgument{
 		message: sprintf("Invalid channel ID: `%s`", a[1]),
 		cmd:     cmd}
 }

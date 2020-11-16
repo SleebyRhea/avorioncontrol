@@ -11,15 +11,16 @@ import (
 )
 
 func getCoordHistoryCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c ifaces.IConfigurator, cmd *CommandRegistrant) (string, ICommandError) {
+	c ifaces.IConfigurator, cmd *CommandRegistrant) (*CommandOutput, ICommandError) {
 	var (
+		out   = newCommandOutput(cmd, "Coordinate History")
 		reg   = cmd.Registrar()
 		match []string
 	)
 
 	// Require at least one set of coords
 	if !HasNumArgs(a, 1, -1) {
-		return "", &ErrInvalidArgument{
+		return nil, &ErrInvalidArgument{
 			message: sprintf(`%s was passed the wrong number of arguments`, cmd.Name()),
 			cmd:     cmd}
 	}
@@ -32,8 +33,9 @@ func getCoordHistoryCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 	//	comparison
 	for _, c := range a[1:] {
 		logger.LogDebug(cmd, "Operating on: "+c)
+		out.AddLine("**_Sector " + c + "_**")
 		if match = coordRe.FindStringSubmatch(c); match == nil {
-			return "", &ErrInvalidArgument{
+			return nil, &ErrInvalidArgument{
 				message: sprintf("Invalid coordinate given: `%s`", c),
 				cmd:     cmd}
 		}
@@ -43,14 +45,14 @@ func getCoordHistoryCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 
 		// Make sure our coordinates are actually between -500 and 500
 		if x > 500 || x < -500 {
-			return "", &ErrInvalidArgument{
+			return nil, &ErrInvalidArgument{
 				message: sprintf("Coordinate **x** is out of range: `%d`", x),
 				cmd:     cmd}
 		}
 
 		// Make sure our coordinates are actually between -500 and 500
 		if y > 500 || y < -500 {
-			return "", &ErrInvalidArgument{
+			return nil, &ErrInvalidArgument{
 				message: sprintf("Coordinate **y** is out of range: `%d`", y),
 				cmd:     cmd}
 		}
@@ -73,31 +75,25 @@ func getCoordHistoryCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 	}
 
 	if len(jumps) == 0 {
-		msg := "No results found"
-		s.ChannelMessageSend(m.ChannelID, msg)
-		return "", nil
+		out.AddLine("No results found")
+		out.Construct()
+		return out, nil
 	}
 
 	loc, _ := time.LoadLocation(c.TimeZone())
 
-	// TODO: This really should use an embed for paginated output
-	msg := "**Jump history search results:**\n```"
 	for _, j := range jumps {
-		var (
-			obj ifaces.IHaveShips
-		)
-
+		var obj ifaces.IHaveShips
 		fid := strconv.FormatInt(int64(j.FID), 10)
-
 		tl := j.Time.In(loc)
-		t := sprintf("%d/%02d/%02d %02d:%02d:%02d", tl.Year(), tl.Month(), tl.Day(),
-			tl.Hour(), tl.Minute(), tl.Second())
+		t := sprintf("%d/%02d/%02d %02d:%02d", tl.Year(), tl.Month(), tl.Day(),
+			tl.Hour(), tl.Minute())
 
 		switch j.Kind {
 		case "player":
 			if obj = reg.server.Player(fid); obj == nil {
 				logger.LogError(cmd, "Got an invalid ifaces.IHaveShips object")
-				return "", &ErrCommandError{
+				return nil, &ErrCommandError{
 					message: "Error, bad data type encountered. Please review the logs.",
 					cmd:     cmd}
 			}
@@ -105,33 +101,25 @@ func getCoordHistoryCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 		case "alliance":
 			if obj = reg.server.Alliance(fid); obj == nil {
 				logger.LogError(cmd, "Got an invalid ifaces.IHaveShips object")
-				return "", &ErrCommandError{
+				return nil, &ErrCommandError{
 					message: "Error, bad data type encountered. Please review the logs.",
 					cmd:     cmd}
 			}
 
-			logger.LogError(cmd, "Got an invalid ifaces.IHaveShips object")
-			return "", &ErrCommandError{
-				message: "Error, bad data type encountered. Please review the logs.",
-				cmd:     cmd}
-
 		default:
 			logger.LogError(cmd, "Got an invalid ifaces.IHaveShips object")
-			return "", &ErrCommandError{
+			return nil, &ErrCommandError{
 				message: "Error, bad data type encountered. Please review the logs.",
 				cmd:     cmd}
 		}
 
-		suffix := sprintf("\n%s (%d:%d) %s/%s \"%s\"",
-			t, j.X, j.Y, obj.Name(), j.Kind, j.Name)
-		if len(suffix+msg) > 1900 {
-			msg += "\n...(truncated due to length)"
-		} else {
-			msg = msg + suffix
-		}
+		out.AddLine(sprintf("_%s %s/%s \"%s\"_",
+			t, obj.Name(), j.Kind, j.Name))
 	}
 
-	msg = msg + "\n```"
-	s.ChannelMessageSend(m.ChannelID, msg)
-	return "", nil
+		out.Header = "Coordinate History"
+	out.Quoted = true
+	out.Construct()
+
+	return out, nil
 }

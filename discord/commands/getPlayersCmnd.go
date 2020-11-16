@@ -7,27 +7,30 @@ import (
 )
 
 func getPlayersCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c ifaces.IConfigurator, cmd *CommandRegistrant) (string, ICommandError) {
-	var reg = cmd.Registrar()
+	c ifaces.IConfigurator, cmd *CommandRegistrant) (*CommandOutput, ICommandError) {
+	var (
+		reg = cmd.Registrar()
+		out = newCommandOutput(cmd, "Players")
+	)
 
+	
 	if reg.server == nil || !reg.server.IsUp() {
-		return "", &ErrCommandError{
+		return nil, &ErrCommandError{
 			message: "Server has not finished initializing",
 			cmd:     cmd}
 	}
 
 	players := reg.server.Players()
 	if len(players) == 0 {
-		s.ChannelMessageSend(m.ChannelID, "No tracked players")
-		return "", nil
+		out.AddLine("No tracked players available")
+		out.Construct()
+		return out, nil
 	}
 
-	msg := "**Tracked Players:**\n```"
 	for _, p := range players {
-		msg = sprintf("\n%s\n%s", msg, p.Name())
+		out.AddLine(sprintf("%s", p.Name()))
 	}
-	msg += "```"
 
-	s.ChannelMessageSend(m.ChannelID, msg)
-	return "", nil
+	out.Construct()
+	return out, nil
 }

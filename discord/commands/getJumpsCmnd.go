@@ -10,9 +10,10 @@ import (
 )
 
 func getJumpsCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c ifaces.IConfigurator, cmd *CommandRegistrant) (string, ICommandError) {
+	c ifaces.IConfigurator, cmd *CommandRegistrant) (*CommandOutput, ICommandError) {
 	var (
 		reg = cmd.Registrar()
+		out = newCommandOutput(cmd, "Get Jump History")
 		obj ifaces.IHaveShips
 		err error
 		cnt int
@@ -20,16 +21,17 @@ func getJumpsCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 
 	// Make sure we have the args we need
 	if !HasNumArgs(a, 2, -1) {
-		return "", &ErrInvalidArgument{
+		return nil, &ErrInvalidArgument{
 			message: sprintf("`%s` was passed the wrong number of arguments", a[0]),
 			cmd:     cmd}
 	}
 
 	ref := strings.Join(a[2:], " ")
+	out.Quoted = true
 
 	// FIXME: Prevent overflows here
 	if cnt, err = strconv.Atoi(a[1]); err != nil {
-		return "", &ErrInvalidArgument{
+		return nil, &ErrInvalidArgument{
 			message: sprintf("`%s` is not a valid number.", a[1]),
 			cmd:     cmd}
 	}
@@ -47,41 +49,34 @@ func getJumpsCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	}
 
 	if obj == nil {
-		return "", &ErrInvalidArgument{
+		return nil, &ErrInvalidArgument{
 			message: sprintf("`%s` is not a valid player or alliance reference", ref),
 			cmd:     cmd}
 	}
 
 	loc, err := time.LoadLocation(c.TimeZone())
 	if err != nil {
-		return "", &ErrInvalidTimezone{
+		return nil, &ErrInvalidTimezone{
 			tz:  c.TimeZone(),
 			cmd: cmd}
 	}
 
-	if cnt > 25 {
-		cnt = 25
+	out.Header = "Jumps for " + obj.Name()
+	if cnt > 250 {
+		cnt = 250
 	}
 
 	if jumps := obj.GetLastJumps(cnt); len(jumps) > 0 {
-		msg := sprintf("**Jumps for %s**:```", obj.Name())
 		for _, j := range jumps {
 			t := j.Time.In(loc)
-			msg = sprintf("%s\n%d/%02d/%02d %02d:%02d:%02d - (%d:%d) %s", msg,
+			out.AddLine(sprintf("%d/%02d/%02d %02d:%02d:%02d  (%d:%d) %s",
 				t.Year(), t.Month(), t.Day(),
-				t.Hour(), t.Minute(), t.Second(), j.X, j.Y, j.Name)
-			if len(msg) > 1900 {
-				msg += "\n...(truncated due to length)"
-				break
-			}
+				t.Hour(), t.Minute(), t.Second(), j.X, j.Y, j.Name))
 		}
-
-		msg += "```"
-		s.ChannelMessageSend(m.ChannelID, msg)
 	} else {
-		msg := sprintf("Player **%s** has no recorded jump history", ref)
-		s.ChannelMessageSend(m.ChannelID, msg)
+		out.AddLine(sprintf("Player **%s** has no recorded jump history", ref))
 	}
 
-	return "", nil
+	out.Construct()
+	return out, nil
 }

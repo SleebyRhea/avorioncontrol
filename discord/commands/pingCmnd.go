@@ -8,9 +8,10 @@ import (
 )
 
 func pingCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
-	c ifaces.IConfigurator, cmd *CommandRegistrant) (string, ICommandError) {
-	if _, err := s.ChannelMessageSend(m.ChannelID, "Pong!"); err != nil {
-		logger.LogError(cmd, "discordgo: "+err.Error())
-	}
-	return "Ping request received", nil
+	c ifaces.IConfigurator, cmd *CommandRegistrant) (*CommandOutput, ICommandError) {
+	logger.LogInfo(cmd, "Pong request received")
+	out := newCommandOutput(cmd, "Ping")
+		out.AddLine("Pong!")
+	out.Construct()
+	return out, nil
 }

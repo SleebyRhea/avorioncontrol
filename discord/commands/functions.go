@@ -86,7 +86,7 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 		make([]CommandArgument, 0),
 		listCmd)
 
-	// Debug Commands
+	// // Debug Commands
 	r.Register("ping",
 		"Get a \"Pong!\" response",
 		"ping",
@@ -99,7 +99,7 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 		make([]CommandArgument, 0),
 		pongCmd)
 
-	// Admin Commands
+	// // Admin Commands
 	r.Register("loglevel",
 		"Set the log level for a given command(s) or object(s)",
 		"loglevel <number> <object> <object> <object> ...",
@@ -185,7 +185,7 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 
 	r.Register("server",
 		"Control the state of the Avorion server",
-		"server <start|stop|restart>",
+		"server <subcommand>",
 		make([]CommandArgument, 0),
 		proxySubCmnd)
 	r.Register("stop",
@@ -206,16 +206,16 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 
 	r.Register("admin",
 		"Configure admin level privileges",
-		"admin <roles|commands|addrole|delrole|addcommand|delcommand>",
+		"admin <subcommand>",
 		make([]CommandArgument, 0),
 		proxySubCmnd)
 	r.Register("roles",
-		"Show the current roles that have admin privileges",
+		"List admin level roles",
 		"roles",
 		make([]CommandArgument, 0),
 		showAdminRolesSubCmnd, "admin")
 	r.Register("commands",
-		"Show the commands that require admin privileges",
+		"List commands that need admin",
 		"commands",
 		make([]CommandArgument, 0),
 		showAdminCmndsSubCmnd, "admin")
@@ -233,45 +233,45 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 			arg("role", "role to add auth privileges to")},
 		removeAdminRoleSubCmnd, "admin")
 	r.Register("addcommand",
-		"Require the given command to have a set level of authorization",
+		"Require authorization for a command",
 		"addcommand <command> <level>",
 		[]CommandArgument{
 			arg("level", "number representing authorization level (max 10)"),
 			arg("command", "role to add auth privileges to")},
 		addAdminCmndSubCmnd, "admin")
 	r.Register("delcommand",
-		"Remove the authorization requirements from a command",
+		"Remove the auth requirements from a command",
 		"delcommand <command>",
 		[]CommandArgument{
 			arg("command", "command to have remove requirements from")},
 		removeAdminCmndSubCmnd, "admin")
 
-	r.Register("mod",
-		"Configure mods installed on the Avorion server",
-		"mod <add|remove|list>",
-		make([]CommandArgument, 0),
-		proxySubCmnd)
-	r.Register("add",
-		"Add a mod or mods to the server configuration",
-		"add <workshopid> <workshopid> ...",
-		[]CommandArgument{
-			arg("workshopid", "Steam workshop ID of a mod to add")},
-		modAddSubCmnd, "mod")
-	r.Register("remove",
-		"Remove a mod or mods from the server configuration",
-		"remove <workshopid> <workshopid> ...",
-		[]CommandArgument{
-			arg("workshopid", "Steam workshop ID of a mod to add")},
-		modRemoveSubCmnd, "mod")
-	r.Register("list",
-		"List the workshop mods that are currently configured to be installed",
-		"list",
-		make([]CommandArgument, 0),
-		listModsSubCmnd, "mod")
+	// r.Register("mod",
+	// 	"Configure mods installed on the Avorion server",
+	// 	"mod <add|remove|list>",
+	// 	make([]CommandArgument, 0),
+	// 	proxySubCmnd)
+	// r.Register("add",
+	// 	"Add a mod or mods to the server configuration",
+	// 	"add <workshopid> <workshopid> ...",
+	// 	[]CommandArgument{
+	// 		arg("workshopid", "Steam workshop ID of a mod to add")},
+	// 	modAddSubCmnd, "mod")
+	// r.Register("remove",
+	// 	"Remove a mod or mods from the server configuration",
+	// 	"remove <workshopid> <workshopid> ...",
+	// 	[]CommandArgument{
+	// 		arg("workshopid", "Steam workshop ID of a mod to add")},
+	// 	modRemoveSubCmnd, "mod")
+	// r.Register("list",
+	// 	"List the workshop mods that are currently configured to be installed",
+	// 	"list",
+	// 	make([]CommandArgument, 0),
+	// 	listModsSubCmnd, "mod")
 
-	r.Register("modlist",
-		"List the workshop mods that are currently configured to be installed",
-		"list",
-		make([]CommandArgument, 0),
-		listModsSubCmnd)
+	// r.Register("modlist",
+	// 	"List the workshop mods that are currently configured to be installed",
+	// 	"list",
+	// 	make([]CommandArgument, 0),
+	// 	listModsSubCmnd)
 }
