@@ -69,9 +69,9 @@ func getJumpsCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	if jumps := obj.GetLastJumps(cnt); len(jumps) > 0 {
 		for _, j := range jumps {
 			t := j.Time.In(loc)
-			out.AddLine(sprintf("%d/%02d/%02d %02d:%02d:%02d  (%d:%d) %s",
+			out.AddLine(sprintf("**%d/%02d/%02d %02d:%02d | %d:%d** %s",
 				t.Year(), t.Month(), t.Day(),
-				t.Hour(), t.Minute(), t.Second(), j.X, j.Y, j.Name))
+				t.Hour(), t.Minute(), j.X, j.Y, j.Name))
 		}
 	} else {
 		out.AddLine(sprintf("Player **%s** has no recorded jump history", ref))

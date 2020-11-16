@@ -2,7 +2,6 @@ package commands
 
 import (
 	"avorioncontrol/logger"
-	"fmt"
 )
 
 // CommandRegistrant - Command definition
@@ -68,27 +67,29 @@ func (c *CommandRegistrant) Name() string {
 //    1: sub1 - Description
 //    2: sub1 - Description
 //    ```
-func (c *CommandRegistrant) Help() (out string, _ error) {
-	out = fmt.Sprintf("```\n%s\n```\n", c.usage)
+func (c *CommandRegistrant) Help() *CommandOutput {
+	out := newCommandOutput(c, "Command Help")
+	out.Description = c.description
+	out.Header = "Usage"
+	out.AddLine(sprintf("> %s", c.usage))
 
 	if len(c.args) > 0 {
-		out = fmt.Sprintf("%s**Arguments:**\n```\n", out)
+		out.AddLine("**Arguments**")
 		for _, a := range c.args {
-			out = fmt.Sprintf("%s%s - %s\n", out, a[0], a[1])
+			out.AddLine(sprintf("> %s - %s", a[0], a[1]))
 		}
-		out = fmt.Sprintf("%s```\n", out)
 	}
 
 	if len(c.cmdlets) > 0 {
-		out = fmt.Sprintf("%s**Subcommands:**\n```\n", out)
+		out.AddLine("**Subcommands:**")
 		for _, sc := range c.cmdlets {
-			out = fmt.Sprintf("%s%s - %s\n", out, sc.Name(),
-				sc.description)
+			out.AddLine(sprintf("> %s - %s", out, sc.Name(),
+				sc.description))
 		}
-		out = fmt.Sprintf("%s```\n", out)
 	}
 
-	return out, nil
+	out.Construct()
+	return out
 }
 
 // Subcommands - Return all the count of the subcommands added to a command, and

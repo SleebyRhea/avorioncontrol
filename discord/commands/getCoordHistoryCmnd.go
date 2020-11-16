@@ -33,7 +33,6 @@ func getCoordHistoryCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 	//	comparison
 	for _, c := range a[1:] {
 		logger.LogDebug(cmd, "Operating on: "+c)
-		out.AddLine("**_Sector " + c + "_**")
 		if match = coordRe.FindStringSubmatch(c); match == nil {
 			return nil, &ErrInvalidArgument{
 				message: sprintf("Invalid coordinate given: `%s`", c),
@@ -113,11 +112,11 @@ func getCoordHistoryCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 				cmd:     cmd}
 		}
 
-		out.AddLine(sprintf("_%s %s/%s \"%s\"_",
-			t, obj.Name(), j.Kind, j.Name))
+		out.AddLine(sprintf("**%s | %d:%d** _%s/%s \"%s\"_",
+			t, j.X, j.Y, obj.Name(), j.Kind, j.Name))
 	}
 
-		out.Header = "Coordinate History"
+	out.Header = "Results"
 	out.Quoted = true
 	out.Construct()
 

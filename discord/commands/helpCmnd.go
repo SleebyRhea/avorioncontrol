@@ -2,8 +2,6 @@ package commands
 
 import (
 	"avorioncontrol/ifaces"
-	"avorioncontrol/logger"
-	"strings"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -12,10 +10,8 @@ func helpCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	c ifaces.IConfigurator, cmd *CommandRegistrant) (*CommandOutput, ICommandError) {
 	var (
 		maincmd *CommandRegistrant
-		out     = newCommandOutput(cmd, "Command Help")
 		reg     = cmd.Registrar()
 		err     error
-		help    string
 	)
 
 	if len(a[1:]) < 1 && a[0] == "help" {
@@ -54,19 +50,5 @@ func helpCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 		}
 	}
 
-	if help, err = maincmd.Help(); err != nil {
-		logger.LogError(maincmd, err.Error())
-		return nil, &ErrCommandError{
-			message: "Error getting help",
-			cmd:     cmd}
-	}
-
-	for _, line := range strings.Split(help, "\n") {
-		out.AddLine(line)
-	}
-
-	out.Description = sprintf("_%s_", maincmd.description)
-	out.Header = "Usage"
-	out.Construct()
-	return out, nil
+	return maincmd.Help(), nil
 }

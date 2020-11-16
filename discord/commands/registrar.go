@@ -8,7 +8,6 @@ import (
 	"log"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -222,7 +221,6 @@ func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
 				authlvl = l
 			}
 		}
-
 		if authlvl < authreq {
 			return cmd.Name(), &ErrUnauthorizedUsage{cmd: cmd}
 		}
@@ -237,94 +235,25 @@ func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
 	// Update our arguments with the full command name
 	args[0] = cmd.Name()
 
-	if len(args) > 1 {
-		if args[1] == "help" && cmd.Name() != "rcon" {
-			out, cmderr = helpCmd(s, m, args, c, cmd)
-		} else {
-			out, cmderr = cmd.exec(s, m, args, c, cmd)
-		}
+	if len(args) > 1 && args[1] == "help" && cmd.Name() != "rcon" {
+		out = cmd.Help()
 	} else {
 		out, cmderr = cmd.exec(s, m, args, c, cmd)
 	}
 
-	if cmderr == nil && out != nil {
-		if _, max := out.Index(); max > 1 {
-			nextReact := "⏭️"
-			prevReact := "⏮️"
-
-			go func() {
-				defer func() {
-					logger.LogInfo(out, "Multi-page embed has expired")
-					out = nil
-				}()
-
-				timer := time.NewTimer(time.Second * 10)
-				embed, doP, doN := generateOutputEmbed(out, out.ThisPage())
-				u, err := s.ChannelMessageSendEmbed(m.ChannelID, embed)
-
-				cid := u.ChannelID
-				uid := u.ID
-
-				if doN {
-					s.MessageReactionAdd(cid, uid, nextReact)
-				}
-
-				if err != nil {
+	if cmderr != nil {
+		s.MessageReactionAdd(m.ChannelID, m.ID, "🚫")
+	} else {
+		s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
+		if out != nil {
+			// Get the number of pages and use that to determine if we need a pager
+			if _, max := out.Index(); max > 1 {
+				go CreatePagedEmbed(out, s, m)
+			} else {
+				embed, _, _ := GenerateOutputEmbed(out, out.ThisPage())
+				if _, err := s.ChannelMessageSendEmbed(m.ChannelID, embed); err != nil {
 					logger.LogError(cmd, "discordgo: "+err.Error())
-					return
 				}
-
-				for {
-					select {
-					case <-time.After(time.Minute * 10):
-						return
-
-					case <-timer.C:
-						return
-
-					case <-time.After(time.Second / 2):
-						logger.LogDebug(cmd, "Checking for update on multi-page embed")
-						m, _ := s.ChannelMessage(cid, uid)
-						for _, r := range m.Reactions {
-							logger.LogDebug(cmd, "Found emoji: "+r.Emoji.ID)
-							if r.Emoji.MessageFormat() == nextReact && r.Count > 1 && r.Me {
-								embed, doP, doN = generateOutputEmbed(out, out.NextPage())
-								s.ChannelMessageEditEmbed(cid, uid, embed)
-								s.MessageReactionsRemoveAll(cid, uid)
-
-								if doP {
-									s.MessageReactionAdd(cid, uid, prevReact)
-								}
-
-								if doN {
-									s.MessageReactionAdd(cid, uid, nextReact)
-								}
-
-								timer.Reset(time.Second * 10)
-							} else if r.Emoji.MessageFormat() == prevReact && r.Count > 1 && r.Me {
-								embed, doP, doN = generateOutputEmbed(out, out.PreviousPage())
-								s.ChannelMessageEditEmbed(cid, uid, embed)
-								s.MessageReactionsRemoveAll(cid, uid)
-
-								if doP {
-									s.MessageReactionAdd(cid, uid, prevReact)
-								}
-
-								if doN {
-									s.MessageReactionAdd(cid, uid, nextReact)
-								}
-
-								timer.Reset(time.Second * 10)
-							}
-						}
-					}
-				}
-			}()
-
-		} else {
-			embed, _, _ := generateOutputEmbed(out, out.ThisPage())
-			if _, err := s.ChannelMessageSendEmbed(m.ChannelID, embed); err != nil {
-				logger.LogError(cmd, "discordgo: "+err.Error())
 			}
 		}
 	}

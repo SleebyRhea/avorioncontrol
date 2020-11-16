@@ -133,6 +133,7 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 	dg.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
 		var (
 			reg    *commands.CommandRegistrar
+			cmdhlp *commands.CommandOutput
 			cmderr commands.ICommandError
 			err    error
 		)
@@ -168,8 +169,11 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 				case *commands.ErrInvalidArgument:
 					s.ChannelMessageSend(m.ChannelID, cmderr.Error())
 					if cmderr.Command() != nil {
-						help, _ := cmderr.Command().Help()
-						s.ChannelMessageSend(m.ChannelID, help)
+						cmdhlp = cmderr.Command().Help()
+					}
+					if cmdhlp != nil {
+						embed, _, _ := commands.GenerateOutputEmbed(cmdhlp, cmdhlp.ThisPage())
+						s.ChannelMessageSendEmbed(m.ChannelID, embed)
 					}
 
 				case *commands.ErrUnauthorizedUsage:
@@ -199,11 +203,13 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 				case *commands.ErrInvalidSubcommand:
 					s.ChannelMessageSend(m.ChannelID, cmderr.Error())
 					if cmderr.Subcommand() != nil {
-						help, _ := cmderr.Subcommand().Help()
-						s.ChannelMessageSend(m.ChannelID, help)
+						cmdhlp = cmderr.Subcommand().Help()
 					} else if cmderr.Command() != nil {
-						help, _ := cmderr.Command().Help()
-						s.ChannelMessageSend(m.ChannelID, help)
+						cmdhlp = cmderr.Command().Help()
+					}
+					if cmdhlp != nil {
+						embed, _, _ := commands.GenerateOutputEmbed(cmdhlp, cmdhlp.ThisPage())
+						s.ChannelMessageSendEmbed(m.ChannelID, embed)
 					}
 
 				default:

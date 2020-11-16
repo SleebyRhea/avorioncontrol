@@ -1,12 +1,15 @@
 package commands
 
 import (
+	"avorioncontrol/logger"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
 
-func generateOutputEmbed(out *CommandOutput, page *Page) (*discordgo.MessageEmbed, bool, bool) {
+// GenerateOutputEmbed creates a Discord embed from a CommandOutput, and outputs
+// booleans depicting whether or not the Next or Previous page of output is available
+func GenerateOutputEmbed(out *CommandOutput, page *Page) (*discordgo.MessageEmbed, bool, bool) {
 	_, m := out.Index()
 	p, n := false, false
 	output := "Output"
@@ -46,4 +49,89 @@ func generateOutputEmbed(out *CommandOutput, page *Page) (*discordgo.MessageEmbe
 	})
 
 	return embed, p, n
+}
+
+// CreatePagedEmbed is used to create paginated embeds under a goroutine that
+// will eventually expire and return. The operates by paging the provided
+// *CommandOutput linked list, so long as the correct react is added to the
+// initial embed message. To detect which reacts need to be added, the function
+// generateOutputEmbed returns two boolean values.
+//
+// The first boolean denotes previous, the second denotes next. These variables
+// are doP and doN respectively.
+func CreatePagedEmbed(out *CommandOutput, s *discordgo.Session,
+	m *discordgo.MessageCreate) {
+
+	defer func() {
+		logger.LogInfo(out, "Multi-page embed has expired")
+		out = nil
+	}()
+
+	nextReact := "▶️"
+	prevReact := "◀️"
+
+	// Inactivity timer
+	inactive := time.NewTimer(time.Minute)
+
+	// Initial embed, and reactions
+	embed, doP, doN := GenerateOutputEmbed(out, out.ThisPage())
+	u, err := s.ChannelMessageSendEmbed(m.ChannelID, embed)
+
+	cid := u.ChannelID
+	uid := u.ID
+
+	if doN {
+		s.MessageReactionAdd(cid, uid, nextReact)
+	}
+
+	if err != nil {
+		logger.LogError(out, "discordgo: "+err.Error())
+		return
+	}
+
+	for {
+		select {
+		case <-time.After(time.Minute * 10):
+			return
+
+		case <-inactive.C:
+			return
+
+		case <-time.After(time.Second / 2):
+			logger.LogDebug(out, "Checking for update on multi-page embed")
+			m, _ := s.ChannelMessage(cid, uid)
+			for _, r := range m.Reactions {
+				logger.LogDebug(out, "Found emoji: "+r.Emoji.ID)
+				if r.Emoji.MessageFormat() == nextReact && r.Count > 1 && r.Me {
+					embed, doP, doN = GenerateOutputEmbed(out, out.NextPage())
+					s.ChannelMessageEditEmbed(cid, uid, embed)
+					s.MessageReactionsRemoveAll(cid, uid)
+
+					if doP {
+						s.MessageReactionAdd(cid, uid, prevReact)
+					}
+
+					if doN {
+						s.MessageReactionAdd(cid, uid, nextReact)
+					}
+
+					inactive.Reset(time.Minute)
+				} else if r.Emoji.MessageFormat() == prevReact && r.Count > 1 && r.Me {
+					embed, doP, doN = GenerateOutputEmbed(out, out.PreviousPage())
+					s.ChannelMessageEditEmbed(cid, uid, embed)
+					s.MessageReactionsRemoveAll(cid, uid)
+
+					if doP {
+						s.MessageReactionAdd(cid, uid, prevReact)
+					}
+
+					if doN {
+						s.MessageReactionAdd(cid, uid, nextReact)
+					}
+
+					inactive.Reset(time.Minute)
+				}
+			}
+		}
+	}
 }

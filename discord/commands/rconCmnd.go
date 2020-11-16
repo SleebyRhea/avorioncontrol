@@ -27,7 +27,7 @@ func rconCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	}
 
 	rcmd = strings.Join(a[1:], " ")
-	out.Description =  rcmd
+	out.Description = rcmd
 
 	if rconout, err = srv.RunCommand(rcmd); err != nil {
 		return nil, &ErrCommandError{
@@ -47,7 +47,7 @@ func rconCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	logger.LogInfo(cmd, sprintf("%s ran the rcon command: [%s]", m.Author.String(),
 		strings.Join(a[1:], " ")))
 
-	out.Monospace = true
+	out.Quoted = true
 	out.Construct()
 	return out, nil
 }
