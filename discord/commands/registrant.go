@@ -81,7 +81,7 @@ func (c *CommandRegistrant) Help() *CommandOutput {
 	}
 
 	if len(c.cmdlets) > 0 {
-		out.AddLine("**Subcommands:**")
+		out.AddLine("**Subcommands**")
 		for _, sc := range c.cmdlets {
 			out.AddLine(sprintf("> %s - %s", sc.Name(), sc.description))
 		}
