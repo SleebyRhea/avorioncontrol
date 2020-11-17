@@ -163,7 +163,7 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 
 		// Process a command if the prefix is used
 		if strings.HasPrefix(m.Content, b.config.Prefix()) {
-			if _, cmderr = reg.ProcessCommand(s, m, b.config); cmderr != nil {
+			if _, cmderr = reg.ProcessCommand(s, m, b.config, b.exit); cmderr != nil {
 				s.MessageReactionAdd(m.ChannelID, m.ID, "🚫")
 				cmderr.Emit(s, m.ChannelID)
 				switch cmderr.(type) {

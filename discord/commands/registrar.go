@@ -158,7 +158,8 @@ func (reg *CommandRegistrar) AllCommands() (_ int, cs []string) {
 //  @m *discordgo.MessageCreate    Discordgo message event
 //  @c IConfigurator               Bot configuration pointer
 func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
-	m *discordgo.MessageCreate, c ifaces.IConfigurator) (string, ICommandError) {
+	m *discordgo.MessageCreate, c ifaces.IConfigurator,
+	exitch chan struct{}) (string, ICommandError) {
 	var (
 		err    error
 		out    *CommandOutput
@@ -248,7 +249,7 @@ func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
 		if out != nil {
 			// Get the number of pages and use that to determine if we need a pager
 			if _, max := out.Index(); max > 1 {
-				go CreatePagedEmbed(out, s, m)
+				go CreatePagedEmbed(out, s, m, exitch)
 			} else {
 				embed, _, _ := GenerateOutputEmbed(out, out.ThisPage())
 				if _, err := s.ChannelMessageSendEmbed(m.ChannelID, embed); err != nil {
