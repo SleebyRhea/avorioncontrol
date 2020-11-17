@@ -115,8 +115,7 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 		onGuildJoin(g.ID, dg, b, gs)
 	}
 
-	b.processDirectMsg = func(s *discordgo.Session,
-		m *discordgo.MessageCreate) {
+	b.processDirectMsg = func(s *discordgo.Session, m *discordgo.MessageCreate) {
 		v := regexp.MustCompile("^[0-9]+:[0-9]{10}$")
 		in := strings.TrimSpace(m.Content)
 
