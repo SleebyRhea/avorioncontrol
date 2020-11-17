@@ -188,6 +188,17 @@ func (s *Server) Start(sendchat bool) error {
 
 	logger.LogInit(s, "Beginning Avorion startup sequence")
 
+	if _, err := os.Stat(s.config.DataPath() + "/" + s.config.Galaxy()); os.IsNotExist(err) {
+		err := os.Mkdir(s.config.DataPath()+"/"+s.config.Galaxy(), 0700)
+		if err != nil {
+			logger.LogError(s, "os.Mkdir: "+err.Error())
+		}
+	}
+
+	if err := s.config.BuildModConfig(); err != nil {
+		return errors.New("Failed to generate modconfig.lua file")
+	}
+
 	s.tracking, err = gamedb.New(sprintf("%s/%s", s.config.DataPath(),
 		s.config.DBName()))
 	if err != nil {
@@ -211,9 +222,6 @@ func (s *Server) Start(sendchat bool) error {
 	s.tracking.SetLoglevel(s.loglevel)
 	logger.LogInfo(s, "Syncing mods to data directory")
 	cp.Copy("./mods", s.config.DataPath()+"/mods")
-	if err := s.config.BuildModConfig(); err != nil {
-		return errors.New("Failed to generate modconfig.lua file")
-	}
 	s.name = s.config.Galaxy()
 
 	s.Cmd = exec.Command(
