@@ -1,0 +1,28 @@
+[Unit]
+Description=Discord Bot for Avorion
+ConditionPathExists=/srv/avorion/config.yaml
+After=network.target
+
+[Service]
+Type=simple
+User=steam
+Group=steam
+ConditionPathExists=/srv/avorion/config.yaml
+ExecStart=/usr/local/bin/avorionbot -c /srv/avorion/config.yaml
+TimeoutStopSec=300
+
+PrivateTmp=yes
+ProtectHome=tmpfs
+PrivateDevices=yes
+
+ProtectControlGroups=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target
