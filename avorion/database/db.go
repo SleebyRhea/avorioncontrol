@@ -81,11 +81,17 @@ func (t *TrackingDB) Init() ([]*ifaces.Sector, error) {
 		"ID" INTEGER PRIMARY KEY AUTOINCREMENT,
 		"X"  INTEGER,
 		"Y"  INTEGER);`)
+	if err != nil {
+		return nil, err
+	}
 
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS "integrations" (
 		"ID" INTEGER PRIMARY KEY AUTOINCREMENT,
 		"FACTION"		INTEGER,
 		"DISCORD"		TEXT);`)
+	if err != nil {
+		return nil, err
+	}
 
 	if err != nil {
 		return nil, err
@@ -289,8 +295,8 @@ func (t *TrackingDB) TrackPlayer(p ifaces.IPlayer) error {
 		fid int64
 		tid int64
 
-		addQ = `INSERT INTO factions (NAME,KIND,GAMEID) VALUES (?,?,?);`
-		selQ = `SELECT ID FROM factions WHERE GAMEID=? LIMIT 1;`
+		addQ = `INSERT INTO factions ("NAME","KIND","GAMEID") VALUES (?,?,?);`
+		selQ = `SELECT (ID, NAME) FROM factions WHERE GAMEID=? LIMIT 1;`
 	)
 
 	fid, err = strconv.ParseInt(p.Index(), 10, 64)
@@ -301,6 +307,11 @@ func (t *TrackingDB) TrackPlayer(p ifaces.IPlayer) error {
 	row := db.QueryRow(selQ, fid)
 	row.Scan(&tid)
 	if row.Err() == nil {
+		return nil
+	}
+
+	if tid > 0 {
+		logger.LogInfo(t, "Found player in DB: %d|%s")
 		return nil
 	}
 
@@ -325,7 +336,7 @@ func (t *TrackingDB) TrackAlliance(a ifaces.IAlliance) error {
 		fid int64
 		tid int64
 
-		addQ = `INSERT INTO factions (NAME,KIND,GAMEID) VALUES (?,?,?);`
+		addQ = `INSERT INTO factions ("NAME","KIND","GAMEID") VALUES (?,?,?);`
 		selQ = `SELECT ID FROM factions WHERE GAMEID=? LIMIT 1;`
 	)
 
@@ -358,7 +369,7 @@ func (t *TrackingDB) AddIntegration(discordid string, p ifaces.IPlayer) error {
 
 	var (
 		fid  int64
-		addQ = `INSERT INTO integrations (FACTION, DISCORD) VALUES (?,?);`
+		addQ = `INSERT INTO integrations ("FACTION", "DISCORD") VALUES (?,?);`
 	)
 
 	fid, err = strconv.ParseInt(p.Index(), 10, 64)
