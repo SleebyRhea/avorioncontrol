@@ -59,6 +59,7 @@ func modAddSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	}
 
 	if len(failed) > 0 {
+		out.Status = ifaces.CommandWarning
 		out.AddLine("**Failed to Add**")
 		for i, id := range failed {
 			if len(reason) >= i {
@@ -126,6 +127,7 @@ func modRemoveSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArg
 	}
 
 	if len(failed) > 0 {
+		out.Status = ifaces.CommandWarning
 		out.AddLine("**Failed to Remove**")
 		for i, id := range failed {
 			if len(reason) >= i {

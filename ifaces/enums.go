@@ -9,6 +9,10 @@ const (
 	ServerRestarting = 4
 	ServerCrashed    = 255
 
+	CommandSuccess = 0
+	CommandFailure = 1
+	CommandWarning = 2
+
 	difficultyBeginner = -3
 	difficultyEasy     = -2
 	difficultyNormal   = -1

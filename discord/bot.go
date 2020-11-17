@@ -165,9 +165,9 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 		if strings.HasPrefix(m.Content, b.config.Prefix()) {
 			if _, cmderr = reg.ProcessCommand(s, m, b.config); cmderr != nil {
 				s.MessageReactionAdd(m.ChannelID, m.ID, "🚫")
+				cmderr.Emit(s, m.ChannelID)
 				switch cmderr.(type) {
 				case *commands.ErrInvalidArgument:
-					s.ChannelMessageSend(m.ChannelID, cmderr.Error())
 					if cmderr.Command() != nil {
 						cmdhlp = cmderr.Command().Help()
 					}
@@ -182,26 +182,19 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 							"%s attempted to run [%s], but wasn't authorized do so",
 							m.Author.String(), cmderr.Command().Name()))
 					}
-					s.ChannelMessageSend(m.ChannelID, cmderr.Error())
 
 				case *commands.ErrInvalidTimezone:
-					s.ChannelMessageSend(m.ChannelID, cmderr.Error())
 					logger.LogError(reg, cmderr.Error())
 
 				case *commands.ErrInvalidCommand:
-					s.ChannelMessageSend(m.ChannelID, cmderr.Error())
 
 				case *commands.ErrCommandDisabled:
-					s.ChannelMessageSend(m.ChannelID, cmderr.Error())
 
 				case *commands.ErrInvalidAlias:
-					s.ChannelMessageSend(m.ChannelID, cmderr.Error())
 
 				case *commands.ErrCommandError:
-					s.ChannelMessageSend(m.ChannelID, cmderr.Error())
 
 				case *commands.ErrInvalidSubcommand:
-					s.ChannelMessageSend(m.ChannelID, cmderr.Error())
 					if cmderr.Subcommand() != nil {
 						cmdhlp = cmderr.Subcommand().Help()
 					} else if cmderr.Command() != nil {

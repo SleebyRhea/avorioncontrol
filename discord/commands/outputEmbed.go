@@ -1,11 +1,21 @@
 package commands
 
 import (
+	"avorioncontrol/ifaces"
 	"avorioncontrol/logger"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
+
+var embedStatusColors map[int]int
+
+func init() {
+	embedStatusColors = make(map[int]int, 0)
+	embedStatusColors[ifaces.CommandSuccess] = 6749952
+	embedStatusColors[ifaces.CommandFailure] = 16711680
+	embedStatusColors[ifaces.CommandWarning] = 16776960
+}
 
 // GenerateOutputEmbed creates a Discord embed from a CommandOutput, and outputs
 // booleans depicting whether or not the Next or Previous page of output is available
@@ -32,7 +42,7 @@ func GenerateOutputEmbed(out *CommandOutput, page *Page) (*discordgo.MessageEmbe
 
 	var embed = &discordgo.MessageEmbed{
 		Type:      discordgo.EmbedTypeRich,
-		Color:     6749952,
+		Color:     embedStatusColors[out.Status],
 		Timestamp: time.Now().Format(time.RFC3339),
 		Fields:    make([]*discordgo.MessageEmbedField, 0)}
 

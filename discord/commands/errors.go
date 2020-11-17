@@ -1,5 +1,11 @@
 package commands
 
+import (
+	"avorioncontrol/ifaces"
+
+	"github.com/bwmarrin/discordgo"
+)
+
 // ErrInvalidArgument describes an invalid attempt to use a command
 // due to incorrect arguments
 type ErrInvalidArgument struct {
@@ -24,6 +30,30 @@ func (e *ErrInvalidArgument) Error() string {
 	}
 
 	return e.message
+}
+
+// Emit creates and outputs a CommandOutput with error formatting for the given
+// error object.
+func (e *ErrInvalidArgument) Emit(s *discordgo.Session, channel string) {
+	var cmd = e.cmd
+
+	// Do not run if there is no command object to generate an error for. This is
+	// an error.
+	if e.cmd == nil {
+		if e.sub != nil {
+			cmd = e.sub
+		} else {
+			return
+		}
+	}
+
+	out := newCommandOutput(cmd, "Command Error")
+	out.Status = ifaces.CommandFailure
+	out.AddLine(e.Error())
+	out.Construct()
+
+	embed, _, _ := GenerateOutputEmbed(out, out.ThisPage())
+	s.ChannelMessageSendEmbed(channel, embed)
 }
 
 // ErrInvalidTimezone describes an attempt to use an invalid timezone
@@ -52,6 +82,30 @@ func (e *ErrInvalidTimezone) Error() string {
 	return sprintf("Configured timezone `%s` is invalid", e.tz)
 }
 
+// Emit creates and outputs a CommandOutput with error formatting for the given
+// error object.
+func (e *ErrInvalidTimezone) Emit(s *discordgo.Session, channel string) {
+	var cmd = e.cmd
+
+	// Do not run if there is no command object to generate an error for. This is
+	// an error.
+	if e.cmd == nil {
+		if e.sub != nil {
+			cmd = e.sub
+		} else {
+			return
+		}
+	}
+
+	out := newCommandOutput(cmd, "Command Error")
+	out.Status = ifaces.CommandFailure
+	out.AddLine(e.Error())
+	out.Construct()
+
+	embed, _, _ := GenerateOutputEmbed(out, out.ThisPage())
+	s.ChannelMessageSendEmbed(channel, embed)
+}
+
 // ErrInvalidCommand describes an attempt to run a command that doesn't
 // exist
 type ErrInvalidCommand struct {
@@ -78,6 +132,30 @@ func (e *ErrInvalidCommand) Error() string {
 	return sprintf("Command `%s` is invalid", e.name)
 }
 
+// Emit creates and outputs a CommandOutput with error formatting for the given
+// error object.
+func (e *ErrInvalidCommand) Emit(s *discordgo.Session, channel string) {
+	var cmd = e.cmd
+
+	// Do not run if there is no command object to generate an error for. This is
+	// an error.
+	if e.cmd == nil {
+		if e.sub != nil {
+			cmd = e.sub
+		} else {
+			return
+		}
+	}
+
+	out := newCommandOutput(cmd, "Command Error")
+	out.Status = ifaces.CommandFailure
+	out.AddLine(e.Error())
+	out.Construct()
+
+	embed, _, _ := GenerateOutputEmbed(out, out.ThisPage())
+	s.ChannelMessageSendEmbed(channel, embed)
+}
+
 // ErrUnauthorizedUsage describes an attempt to run a command by someone
 // unauthorized to do so
 type ErrUnauthorizedUsage struct {
@@ -97,6 +175,30 @@ func (e *ErrUnauthorizedUsage) Subcommand() *CommandRegistrant {
 
 func (e *ErrUnauthorizedUsage) Error() string {
 	return "You do not have permission to use that command"
+}
+
+// Emit creates and outputs a CommandOutput with error formatting for the given
+// error object.
+func (e *ErrUnauthorizedUsage) Emit(s *discordgo.Session, channel string) {
+	var cmd = e.cmd
+
+	// Do not run if there is no command object to generate an error for. This is
+	// an error.
+	if e.cmd == nil {
+		if e.sub != nil {
+			cmd = e.sub
+		} else {
+			return
+		}
+	}
+
+	out := newCommandOutput(cmd, "Command Error")
+	out.Status = ifaces.CommandFailure
+	out.AddLine(e.Error())
+	out.Construct()
+
+	embed, _, _ := GenerateOutputEmbed(out, out.ThisPage())
+	s.ChannelMessageSendEmbed(channel, embed)
 }
 
 // ErrInvalidAlias describes an attempt to use an alias that doesn't
@@ -125,6 +227,30 @@ func (e *ErrInvalidAlias) Error() string {
 	return sprintf("Alias `%s` is invalid", e.alias)
 }
 
+// Emit creates and outputs a CommandOutput with error formatting for the given
+// error object.
+func (e *ErrInvalidAlias) Emit(s *discordgo.Session, channel string) {
+	var cmd = e.cmd
+
+	// Do not run if there is no command object to generate an error for. This is
+	// an error.
+	if e.cmd == nil {
+		if e.sub != nil {
+			cmd = e.sub
+		} else {
+			return
+		}
+	}
+
+	out := newCommandOutput(cmd, "Command Error")
+	out.Status = ifaces.CommandFailure
+	out.AddLine(e.Error())
+	out.Construct()
+
+	embed, _, _ := GenerateOutputEmbed(out, out.ThisPage())
+	s.ChannelMessageSendEmbed(channel, embed)
+}
+
 // ErrCommandDisabled describes an attempt to use a command that has
 // been disabled
 type ErrCommandDisabled struct {
@@ -148,6 +274,30 @@ func (e *ErrCommandDisabled) Error() string {
 	}
 
 	return sprintf("The command `%s` has been disabled", e.cmd.Name())
+}
+
+// Emit creates and outputs a CommandOutput with error formatting for the given
+// error object.
+func (e *ErrCommandDisabled) Emit(s *discordgo.Session, channel string) {
+	var cmd = e.cmd
+
+	// Do not run if there is no command object to generate an error for. This is
+	// an error.
+	if e.cmd == nil {
+		if e.sub != nil {
+			cmd = e.sub
+		} else {
+			return
+		}
+	}
+
+	out := newCommandOutput(cmd, "Command Error")
+	out.Status = ifaces.CommandFailure
+	out.AddLine(e.Error())
+	out.Construct()
+
+	embed, _, _ := GenerateOutputEmbed(out, out.ThisPage())
+	s.ChannelMessageSendEmbed(channel, embed)
 }
 
 // ErrCommandError describes a generic non-fatal error that occurred
@@ -176,6 +326,30 @@ func (e *ErrCommandError) Error() string {
 	return e.message
 }
 
+// Emit creates and outputs a CommandOutput with error formatting for the given
+// error object.
+func (e *ErrCommandError) Emit(s *discordgo.Session, channel string) {
+	var cmd = e.cmd
+
+	// Do not run if there is no command object to generate an error for. This is
+	// an error.
+	if e.cmd == nil {
+		if e.sub != nil {
+			cmd = e.sub
+		} else {
+			return
+		}
+	}
+
+	out := newCommandOutput(cmd, "Command Error")
+	out.Status = ifaces.CommandFailure
+	out.AddLine(e.Error())
+	out.Construct()
+
+	embed, _, _ := GenerateOutputEmbed(out, out.ThisPage())
+	s.ChannelMessageSendEmbed(channel, embed)
+}
+
 // ErrInvalidSubcommand describes an error in which a provided subcommand
 // does not exist
 type ErrInvalidSubcommand struct {
@@ -201,4 +375,28 @@ func (e *ErrInvalidSubcommand) Error() string {
 
 	return sprintf("%s does not have the subcommand `%s` registered",
 		e.cmd.Name(), e.subname)
+}
+
+// Emit creates and outputs a CommandOutput with error formatting for the given
+// error object.
+func (e *ErrInvalidSubcommand) Emit(s *discordgo.Session, channel string) {
+	var cmd = e.cmd
+
+	// Do not run if there is no command object to generate an error for. This is
+	// an error.
+	if e.cmd == nil {
+		if e.sub != nil {
+			cmd = e.sub
+		} else {
+			return
+		}
+	}
+
+	out := newCommandOutput(cmd, "Command Error")
+	out.Status = ifaces.CommandFailure
+	out.AddLine(e.Error())
+	out.Construct()
+
+	embed, _, _ := GenerateOutputEmbed(out, out.ThisPage())
+	s.ChannelMessageSendEmbed(channel, embed)
 }

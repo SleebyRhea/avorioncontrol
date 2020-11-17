@@ -10,6 +10,7 @@ import (
 type ICommandError interface {
 	Command() *CommandRegistrant
 	Subcommand() *CommandRegistrant
+	Emit(*discordgo.Session, string)
 	error
 }
 

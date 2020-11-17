@@ -19,6 +19,8 @@ type CommandOutput struct {
 	Header      string
 	Quoted      bool
 	Monospace   bool
+	Status      int
+	Color       int
 
 	current int
 	pages   []*Page
