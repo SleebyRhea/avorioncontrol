@@ -256,6 +256,10 @@ func (s *Server) Start(sendchat bool) error {
 		return err
 	}
 
+	// TODO: Determine what to do with Stderr. Either pipe it into a file, or setup
+	// sometime to process it much like Stdout. Preferably keep it out of the Stdout
+	// processing pipeline.
+	s.Cmd.Stderr = os.Stderr
 	ready := make(chan struct{})
 	s.stop = make(chan struct{})
 	s.close = make(chan struct{})
@@ -906,7 +910,6 @@ func (s *Server) addIntegration(index, discordID string) {
 // server is still accessible, and restarting it when needed. In addition, this
 // goroutine also updates various server related data values at set intervals
 func updateAvorionStatus(s *Server, closech chan struct{}) {
-	defer logger.LogInfo(s, "Stopped status supervisor")
 	defer s.wg.Done()
 	s.wg.Add(1)
 
