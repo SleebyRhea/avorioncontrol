@@ -252,6 +252,11 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 		[]CommandArgument{
 			arg("command", "command to have remove requirements from")},
 		removeAdminCmndSubCmnd, "admin")
+	r.Register("self",
+		"Output your authorization level",
+		"delcommand <command>",
+		make([]CommandArgument, 0),
+		showSelfCmndSubCmnd, "admin")
 
 	r.Register("mod",
 		"Configure mods installed on the Avorion server",

@@ -39,7 +39,6 @@ func helpCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	}
 
 	authreq := c.GetCmndAuth(maincmd.Name())
-
 	if c.CommandDisabled(maincmd.Name()) || authlvl < authreq {
 		return nil, &ErrCommandDisabled{cmd: maincmd}
 	}

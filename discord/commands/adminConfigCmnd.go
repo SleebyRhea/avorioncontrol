@@ -220,3 +220,26 @@ func removeAdminCmndSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a 
 		m.Author.String(), name))
 	return nil, nil
 }
+
+func showSelfCmndSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
+	c ifaces.IConfigurator, cmd *CommandRegistrant) (*CommandOutput, ICommandError) {
+	var (
+		reg     = cmd.Registrar()
+		out     = newCommandOutput(cmd, "Display the users command authorization level")
+		authlvl = 0
+	)
+
+	// Get the users authorization level
+	member, _ := s.GuildMember(reg.GuildID, m.Author.ID)
+	for _, r := range member.Roles {
+		if l := c.GetRoleAuth(r); l > authlvl {
+			authlvl = l
+		}
+	}
+
+	out.Header = "Result"
+	out.Quoted = true
+	out.AddLine(sprintf("Your authorization level is: **%d**", authlvl))
+	out.Construct()
+	return out, nil
+}
