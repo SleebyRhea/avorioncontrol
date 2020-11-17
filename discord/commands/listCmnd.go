@@ -13,6 +13,9 @@ func listCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 		reg = cmd.Registrar()
 	)
 
+	// Setting the description manually here, as helpCmd references this function
+	// directly when there are no commands provided.
+	out.Description = "List available commands for this user"
 	out.Header = "Available Commands"
 	out.Quoted = true
 
