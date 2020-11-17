@@ -93,10 +93,6 @@ func (t *TrackingDB) Init() ([]*ifaces.Sector, error) {
 		return nil, err
 	}
 
-	if err != nil {
-		return nil, err
-	}
-
 	// Get all of the sectors that have been tracked
 	sectors := make([]*ifaces.Sector, 0)
 
@@ -295,8 +291,8 @@ func (t *TrackingDB) TrackPlayer(p ifaces.IPlayer) error {
 		fid int64
 		tid int64
 
+		selQ = `SELECT ID, NAME FROM factions WHERE GAMEID=? LIMIT 1;`
 		addQ = `INSERT INTO factions ("NAME","KIND","GAMEID") VALUES (?,?,?);`
-		selQ = `SELECT (ID, NAME) FROM factions WHERE GAMEID=? LIMIT 1;`
 	)
 
 	fid, err = strconv.ParseInt(p.Index(), 10, 64)
