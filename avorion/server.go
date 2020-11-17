@@ -7,6 +7,7 @@ import (
 	"avorioncontrol/ifaces"
 	"avorioncontrol/logger"
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -184,6 +185,9 @@ func (s *Server) Start(sendchat bool) error {
 
 	defer func() { s.isstarting = false }()
 	s.isstarting = true
+	s.iscrashed = false
+
+	logger.LogInit(s, "Beginning Avorion startup sequence")
 
 	s.tracking, err = gamedb.New(sprintf("%s/%s", s.config.DataPath(),
 		s.config.DBName()))
@@ -312,9 +316,17 @@ func (s *Server) Stop(sendchat bool) error {
 
 	logger.LogOutput(s, "Stopping Avorion server and waiting for it to exit")
 
-	s.stop <- struct{}{}
-	s.RunCommand("save")
-	s.RunCommand("stop")
+	go func() {
+		s.stop <- struct{}{}
+		_, err := s.RunCommand("save")
+		if err == nil {
+			s.RunCommand("stop")
+			return
+		}
+
+		logger.LogError(s, err.Error())
+	}()
+
 	s.players = nil
 
 	select {
@@ -334,7 +346,7 @@ func (s *Server) Restart() error {
 	s.isrestarting = true
 
 	if err := s.Stop(false); err != nil {
-		return err
+		logger.LogError(s, err.Error())
 	}
 
 	if err := s.Start(false); err != nil {
@@ -519,9 +531,11 @@ func (s *Server) SetLoglevel(l int) {
 func (s *Server) RunCommand(c string) (string, error) {
 	if s.IsUp() {
 		logger.LogDebug(s, "Running: "+c)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
 
 		// TODO: Make this use an rcon lib
-		ret, err := exec.Command(s.config.RCONBin(), "-H",
+		ret, err := exec.CommandContext(ctx, s.config.RCONBin(), "-H",
 			s.rconaddr, "-p", sprintf("%d", s.rconport),
 			"-P", s.rconpass, c).Output()
 		out := string(ret)
@@ -917,37 +931,14 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 				continue
 			}
 
-			done := make(chan error)
-
-			go func() {
-				_, err := s.RunCommand("status")
-				done <- err
-			}()
-
-			// Wait for 60 seconds and restart the server if Avorion is taking too long
-			select {
-			case <-time.After(60 * time.Second):
-				logger.LogWarning(s, warnGameLagging)
+			if _, err := s.RunCommand("status"); err != nil {
 				s.iscrashed = true
+				logger.LogError(s, err.Error())
 				if err := s.Restart(); err != nil {
 					logger.LogError(s, err.Error())
 				} else {
 					s.iscrashed = false
 				}
-
-			// If rcon couldn't connect, restart.
-			case err := <-done:
-				if err != nil {
-					s.iscrashed = true
-					logger.LogError(s, err.Error())
-					if err := s.Restart(); err != nil {
-						logger.LogError(s, err.Error())
-					} else {
-						s.iscrashed = false
-					}
-				}
-
-				continue
 			}
 
 		// Update our playerinfo db
