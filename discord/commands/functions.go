@@ -303,4 +303,10 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 		"showuserintegrations",
 		make([]CommandArgument, 0),
 		getIntegratedCmnd)
+
+	r.Register("broadcast",
+		"Send all players an email, with an attachment used as the message body",
+		"broadcast",
+		make([]CommandArgument, 0),
+		sendBroadcastCmnd)
 }
