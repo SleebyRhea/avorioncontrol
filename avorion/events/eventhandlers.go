@@ -151,6 +151,7 @@ func handleDiscordIntegrationRequest(srv ifaces.IGameServer, e *Event, in string
 	oc chan string) {
 	m := e.Capture.FindStringSubmatch(in)
 	srv.AddIntegrationRequest(m[1], m[2])
+	logger.LogInfo(srv, "Received Discord integration request")
 }
 
 func handleLongTickEvent(srv ifaces.IGameServer, e *Event, in string,

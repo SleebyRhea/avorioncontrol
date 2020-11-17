@@ -117,15 +117,14 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 
 	b.processDirectMsg = func(s *discordgo.Session,
 		m *discordgo.MessageCreate) {
-		v := regexp.MustCompile("^[0-9]+:[0-9]{6}$")
+		v := regexp.MustCompile("^[0-9]+:[0-9]{10}$")
 		in := strings.TrimSpace(m.Content)
 
-		if !v.MatchString(in) {
-			return
-		}
-
-		if gs.ValidateIntegrationPin(in, m.Author.ID) {
-			s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
+		if v.MatchString(in) {
+			if gs.ValidateIntegrationPin(in, m.Author.ID) {
+				s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
+				s.ChannelMessageSend(m.ID, "Thanks for validating!")
+			}
 		}
 	}
 
@@ -138,7 +137,7 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 			err    error
 		)
 
-		// Stop DMs
+		// Stop DMs, and handle Discord integrations with Avorion
 		if m.GuildID == "" {
 			b.processDirectMsg(s, m)
 			return

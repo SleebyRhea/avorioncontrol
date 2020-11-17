@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -42,8 +41,8 @@ const (
 	warnGameLagging   = `Avorion is lagging, performing restart`
 
 	noticeDBUpate       = `Updating player data DB. Potential lag incoming.`
-	regexIntegration    = `^([0-9]+):([0-9]{6})$`
-	rconPlayerDiscord   = `run Player(%s):setValue("discorduserid", %s)`
+	regexIntegration    = `^([0-9]+):([0-9]{10})$`
+	rconPlayerDiscord   = `linkdiscordacct %s %s`
 	rconGetPlayerData   = `getplayerdata -p %s`
 	rconGetAllianceData = `getplayerdata -a %s`
 	rconGetAllData      = `getplayerdata`
@@ -438,6 +437,7 @@ func (s *Server) UpdatePlayerDatabase(notify bool) error {
 	s.alliancecount = allianceCount
 
 	for _, p := range s.players {
+		s.tracking.SetDiscordToPlayer(p)
 		logger.LogDebug(s, "Processed player: "+p.Name())
 	}
 
@@ -814,18 +814,6 @@ func (s *Server) DCOutput() chan ifaces.ChatData {
 // TODO: Move this to our sqlite DB
 func (s *Server) AddIntegrationRequest(index, pin string) {
 	s.requests[index] = pin
-	path := sprintf("%s/%s/discordrequests", s.config.DataPath(),
-		s.config.Galaxy())
-
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		os.Mkdir(path, 0755)
-	}
-
-	// For tracking when the server goes down and needs this rebuilt
-	if err := ioutil.WriteFile(path+"/"+index, []byte(pin), 0644); err != nil {
-		logger.LogError(s, "Failed to write Discord integration request to "+
-			path+"/"+index)
-	}
 }
 
 // ValidateIntegrationPin confirms that a given pin was indeed a valid request
@@ -833,19 +821,15 @@ func (s *Server) AddIntegrationRequest(index, pin string) {
 //  TODO: Move this to sqlite3
 func (s *Server) ValidateIntegrationPin(in, discordID string) bool {
 	m := regexpDiscordPin.FindStringSubmatch(in)
+	if len(m) < 2 {
+		logger.LogError(s, sprintf("Invalid integration request provided: [%s]/[%s]",
+			in, discordID))
+		return false
+	}
 
 	if val, ok := s.requests[m[1]]; ok {
-		path := sprintf("%s/%s/discordrequests/%s",
-			s.config.DataPath(), s.config.Galaxy(), m[1])
 		if val == m[2] {
-			if _, err := os.Stat(path); err != nil {
-				os.Remove(path)
-			} else {
-				logger.LogError(s, sprintf("Failed to remove request file (%s)",
-					err))
-			}
-
-			delete(s.requests, m[1])
+			s.tracking.AddIntegration(discordID, s.Player(m[1]))
 			s.addIntegration(m[1], discordID)
 			return true
 		}

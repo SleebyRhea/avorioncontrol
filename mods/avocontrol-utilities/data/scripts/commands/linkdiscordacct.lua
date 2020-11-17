@@ -32,11 +32,20 @@ end
 -- execute is the main function that is run when this command is run
 function execute(user, cmnd, ...)
   if type(user) == "nil" then
-    args = {...}
-    user=args[1]
-    if type(user) ~= "number" or Player(user) == nil then
-      return 1, "Please supply a valid user index"
+    args    = {...}
+    id      = args[1]
+    discord = args[2]
+    if type(id) == "nil" or type(Player(id)) == "nil" then
+      print("Invalid: "..tostring(id)..tostring(Player(id)))
+      return 1, "Please supply a valid user index", ""
     end
+
+    if type(discord) == "nil" then
+      return 1, "Please supply a valid discord ID", ""
+    end
+
+    Player(id):setValue("discorduserid", discord)
+    return 0, "Set user integration", ""
   end
 
   package.path = package.path .. ";data/scripts/lib/?.lua"
@@ -52,7 +61,7 @@ function execute(user, cmnd, ...)
     return 0, "Failed to get playerdata"
   end
 
-  for i=1, 5, 1 do
+  for i=1, 10, 1 do
     pin = pin .. getInt(0,9)
   end
 

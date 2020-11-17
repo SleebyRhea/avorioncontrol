@@ -82,6 +82,11 @@ func (t *TrackingDB) Init() ([]*ifaces.Sector, error) {
 		"X"  INTEGER,
 		"Y"  INTEGER);`)
 
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS "integrations" (
+		"ID" INTEGER PRIMARY KEY AUTOINCREMENT,
+		"FACTION"		INTEGER,
+		"DISCORD"		TEXT);`)
+
 	if err != nil {
 		return nil, err
 	}
@@ -340,6 +345,85 @@ func (t *TrackingDB) TrackAlliance(a ifaces.IAlliance) error {
 		return err
 	}
 
+	return nil
+}
+
+// AddIntegration adds a tracked integration request to our database
+func (t *TrackingDB) AddIntegration(discordid string, p ifaces.IPlayer) error {
+	db, err := sql.Open("sqlite3", t.dbpath)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	var (
+		fid  int64
+		addQ = `INSERT INTO integrations (FACTION, DISCORD) VALUES (?,?);`
+	)
+
+	fid, err = strconv.ParseInt(p.Index(), 10, 64)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec(addQ, fid, discordid)
+	if err != nil {
+		return err
+	}
+
+	logger.LogInfo(t, fmt.Sprintf("Added Discord integration for the user [%s]",
+		p.Name()))
+	return nil
+}
+
+// RemoveIntegration removes an existing discord integration from the database
+func (t *TrackingDB) RemoveIntegration(p ifaces.IPlayer) error {
+	db, err := sql.Open("sqlite3", t.dbpath)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	var (
+		fid  int64
+		delQ = `DELETE FROM integrations WHERE DISCORD=? AND FACTION=?;`
+	)
+
+	fid, err = strconv.ParseInt(p.Index(), 10, 64)
+	_, err = db.Exec(delQ, fid, p.DiscordUID())
+	if err != nil {
+		return err
+	}
+
+	logger.LogInfo(t, fmt.Sprintf("Cleared Discord integration for the user [%s]",
+		p.Name()))
+	return nil
+}
+
+// SetDiscordToPlayer gets the Discord UID from the faction ID and sets the
+// DiscordUID for the player
+func (t *TrackingDB) SetDiscordToPlayer(p ifaces.IPlayer) error {
+	db, err := sql.Open("sqlite3", t.dbpath)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	var (
+		fid  int64
+		did  string
+		selQ = `SELECT DISCORD FROM integrations WHERE FACTION=? LIMIT 1;`
+	)
+
+	fid, err = strconv.ParseInt(p.Index(), 10, 64)
+	row := db.QueryRow(selQ, fid)
+	row.Scan(&did)
+	if err := row.Err(); err != nil {
+		return err
+	}
+
+	p.SetDiscordUID(did)
+	logger.LogInfo(t, fmt.Sprintf("Processed integration for [%s]", p.Name()))
 	return nil
 }
 
