@@ -118,7 +118,6 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 	b.processDirectMsg = func(s *discordgo.Session, m *discordgo.MessageCreate) {
 		v := regexp.MustCompile("^[0-9]+:[0-9]{10}$")
 		in := strings.TrimSpace(m.Content)
-
 		if v.MatchString(in) {
 			if gs.ValidateIntegrationPin(in, m.Author.ID) {
 				s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
