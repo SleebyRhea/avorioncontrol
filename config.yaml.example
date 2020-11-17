@@ -1,0 +1,58 @@
+Core:
+  log_level: 1
+  time_zone: America/New_York
+  log_timestamps: false
+  log_directory: /srv/avorion/logs
+  db_filename: data.db
+Game:
+  galaxy_name: Galaxy
+  install_dir: /srv/avorion/server_files/
+  data_dir: /srv/avorion/
+  ping_port: 27020
+  port: 27000
+RCON:
+  address: 127.0.0.1
+  binary: /usr/local/bin/rcon
+  port: 27015
+Discord:
+  bots_allowed: false
+  channel:
+  status_channel:
+  invite:
+  prefix: '!!'
+  token: "$TOKEN"
+  disabled_commands:
+  - rcon
+  aliased_commands:
+    getcoordhistory:
+    - gch
+    - hist
+    getjumps:
+    - jumps
+    getplayers:
+    - players
+    loglevel:
+    - ll
+    modlist:
+    - showmods
+    - mods
+    server:
+    - srv
+    setchatchannel:
+    - scc
+    setstatuschannel:
+    - ssc
+    settimezone:
+    - stz
+  role_auth_levels:
+  command_auth_levels:
+    rcon: 9
+  status_channel_clear: true
+Mods:
+  enforce: false
+  allowed:
+  # - 1231231212
+  enabled:
+  # - 1231231212
+  modpaths:
+  - avocontrol-utilities
