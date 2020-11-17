@@ -24,7 +24,7 @@ func getIntegratedCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotAr
 			logger.LogDebug(cmd, sprintf("Processing player %s [%s] ", p.Name(),
 				p.DiscordUID()))
 			if member, err := s.GuildMember(reg.GuildID, p.DiscordUID()); err == nil {
-				out.AddLine(sprintf("%s - Linked to %s", p.Name(),
+				out.AddLine(sprintf("**%s** - Linked to %s", p.Name(),
 					member.User.String()))
 				cnt++
 				break
