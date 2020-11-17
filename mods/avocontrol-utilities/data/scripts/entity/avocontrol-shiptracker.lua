@@ -18,16 +18,20 @@ package.path = package.path .. ";data/scripts/lib/?.lua"
 include("stringutility")
 
 function AvorionControlShipTracker.initialize()
-  local ship = Entity()
-  local x, y = Sector():getCoordinates()
-  index = Uuid(ship.index).number
-  print("shipTrackInitEvent: ${oi} ${x}:${y} ${sn}"%_T % {
-    oi=ship.factionIndex, x=x, y=y, sn=ship.name})
+  if onServer() then
+    local ship = Entity()
+    local x, y = Sector():getCoordinates()
+    index = Uuid(ship.index).number
+    print("shipTrackInitEvent: ${oi} ${x}:${y} ${sn}"%_T % {
+      oi=ship.factionIndex, x=x, y=y, sn=ship.name})
+  end
 end
 
 function AvorionControlShipTracker.onSectorChanged()
-  local ship  = Entity()
-  local x, y  = Sector():getCoordinates()
-  print("shipJumpEvent: ${oi} ${x}:${y} ${sn}"%_T % {
-    oi=ship.factionIndex, x=x, y=y, sn=ship.name})
+  if onServer() then
+    local ship  = Entity()
+    local x, y  = Sector():getCoordinates()
+    print("shipJumpEvent: ${oi} ${x}:${y} ${sn}"%_T % {
+      oi=ship.factionIndex, x=x, y=y, sn=ship.name})
+  end
 end
