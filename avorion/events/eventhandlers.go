@@ -41,10 +41,6 @@ func initB() {
 		`^\s*discordIntegrationRequestEvent: ([0-9]+) ([0-9]+)`,
 		handleDiscordIntegrationRequest)
 
-	New("NilCommandEvent",
-		`^\s*nilCommandEvent: (.*)$`,
-		handleNilCommand)
-
 	New("EventLongTick",
 		`^\s*Warning: Sector (\(-?[0-9]+:-?[0-9]+\)) had a very long tick `+
 			`of over ([0-9]+)ms. To gather info, use /profile, or enable `+
