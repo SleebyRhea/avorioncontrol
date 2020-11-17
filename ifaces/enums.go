@@ -2,12 +2,16 @@ package ifaces
 
 // enums describing the status of a server
 const (
-	ServerOffline    = 0
-	ServerOnline     = 1
-	ServerStarting   = 2
-	ServerStopping   = 3
-	ServerRestarting = 4
-	ServerCrashed    = 255
+	ServerOffline           = 0
+	ServerOnline            = 1
+	ServerStarting          = 2
+	ServerStopping          = 3
+	ServerRestarting        = 4
+	ServerCrashedOffline    = 255
+	ServerCrashedRecovered  = 256
+	ServerCrashedStarting   = 257
+	ServerCrashedStopping   = 258
+	ServerCrashedRestarting = 259
 
 	CommandSuccess = 0
 	CommandFailure = 1

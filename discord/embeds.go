@@ -32,15 +32,23 @@ func init() {
 	embedStatusColors[ifaces.ServerOnline] = 6749952
 	embedStatusColors[ifaces.ServerStarting] = 3381759
 	embedStatusColors[ifaces.ServerStopping] = 16776960
-	embedStatusColors[ifaces.ServerCrashed] = 15158332
 	embedStatusColors[ifaces.ServerRestarting] = 3381759
+	embedStatusColors[ifaces.ServerCrashedOffline] = 15158332
+	embedStatusColors[ifaces.ServerCrashedRecovered] = 15158332
+	embedStatusColors[ifaces.ServerCrashedStarting] = 15158332
+	embedStatusColors[ifaces.ServerCrashedStopping] = 15158332
+	embedStatusColors[ifaces.ServerCrashedRestarting] = 15158332
 
 	embedStatusStrings[ifaces.ServerOffline] = "Offline"
 	embedStatusStrings[ifaces.ServerOnline] = "Online"
 	embedStatusStrings[ifaces.ServerStarting] = "Initializing"
 	embedStatusStrings[ifaces.ServerStopping] = "Stopping"
-	embedStatusStrings[ifaces.ServerCrashed] = "Crashed"
 	embedStatusStrings[ifaces.ServerRestarting] = "Re-Initializing"
+	embedStatusStrings[ifaces.ServerCrashedOffline] = "Crashed (Dead)"
+	embedStatusStrings[ifaces.ServerCrashedRecovered] = "Crashed (Recovered)"
+	embedStatusStrings[ifaces.ServerCrashedStarting] = "Crashed (Recovering)"
+	embedStatusStrings[ifaces.ServerCrashedStopping] = "Crashed (Attempting Graceful Exit)"
+	embedStatusStrings[ifaces.ServerCrashedRestarting] = "Crashed (Restarting)"
 
 	configOneFieldTemplate = "> • **Version**: _%s_\n" +
 		"> • **Seed**: _%s_\n" +
@@ -98,7 +106,7 @@ func generateEmbedStatus(s ifaces.ServerStatus, tz *time.Location) *discordgo.Me
 	)
 
 	if color, ok = embedStatusColors[s.Status]; !ok {
-		color = embedStatusColors[ifaces.ServerCrashed]
+		color = embedStatusColors[ifaces.ServerCrashedOffline]
 	}
 
 	if stat, ok = embedStatusStrings[s.Status]; !ok {

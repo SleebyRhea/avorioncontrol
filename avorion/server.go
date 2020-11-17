@@ -342,12 +342,12 @@ func (s *Server) Stop(sendchat bool) error {
 
 // Restart restarts the Avorion server
 func (s *Server) Restart() error {
-	defer func() { s.isrestarting = false }()
-	s.isrestarting = true
-
 	if err := s.Stop(false); err != nil {
 		logger.LogError(s, err.Error())
 	}
+
+	defer func() { s.isrestarting = false }()
+	s.isrestarting = true
 
 	if err := s.Start(false); err != nil {
 		return err
@@ -455,8 +455,6 @@ func (s *Server) Status() ifaces.ServerStatus {
 	var status = ifaces.ServerOffline
 
 	switch true {
-	case s.iscrashed:
-		status = ifaces.ServerCrashed
 	case s.isrestarting:
 		status = ifaces.ServerRestarting
 	case s.isstopping:
@@ -465,6 +463,10 @@ func (s *Server) Status() ifaces.ServerStatus {
 		status = ifaces.ServerStarting
 	case s.IsUp():
 		status = ifaces.ServerOnline
+	}
+
+	if s.iscrashed {
+		status = ifaces.ServerCrashedOffline + status
 	}
 
 	name := s.name
