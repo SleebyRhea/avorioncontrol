@@ -253,9 +253,6 @@ func (s *Server) Start(sendchat bool) error {
 	go updateAvorionStatus(s, s.close)
 
 	go func() {
-		defer close(s.close)
-		defer close(s.stop)
-
 		logger.LogInit(s, "Starting Server and waiting till ready")
 		if err := s.Cmd.Start(); err != nil {
 			logger.LogError(s, err.Error())
@@ -272,6 +269,11 @@ func (s *Server) Start(sendchat bool) error {
 			select {
 			case <-s.stop:
 				s.Cmd.Wait()
+				close(s.close)
+				return
+			case <-s.close:
+				s.Cmd.Wait()
+				close(s.stop)
 				return
 			}
 		}
