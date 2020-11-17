@@ -10,6 +10,7 @@ type IPlayer interface {
 	IDiscordIntegratedPlayer
 	IModeratablePlayer
 	ITrackedPlayer
+	ISteamPlayer
 
 	INetPlayer
 }
@@ -48,4 +49,9 @@ type IModeratablePlayer interface {
 type IDiscordIntegratedPlayer interface {
 	DiscordUID() string
 	SetDiscordUID(string)
+}
+
+// ISteamPlayer describes an interface to a player that has a SteamID
+type ISteamPlayer interface {
+	SteamUID() int64
 }

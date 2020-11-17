@@ -62,6 +62,7 @@ type ServerGameConfig struct {
 	Name                string
 	Collision           string
 	Seed                string
+	Steam               bool
 	Version             string
 	Difficulty          int
 	BlockLimit          int64

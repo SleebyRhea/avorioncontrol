@@ -801,6 +801,7 @@ func (c *Conf) LoadGameConfig() error {
 
 	section := cfg.Section("Game")
 	gcfg.Name = cfg.Section("Administration").Key("name").MustString("Avorion Server")
+	gcfg.Steam = cfg.Section("Networking").Key("useSteam").MustBool()
 	gcfg.Collision = section.Key("CollisionDamage").MustString("1")
 	gcfg.Version = section.Key("Version").MustString("1")
 	gcfg.PVP = section.Key("PlayerToPlayerDamage").MustBool()

@@ -446,6 +446,7 @@ func (s *Server) UpdatePlayerDatabase(notify bool) error {
 
 	for _, p := range s.players {
 		s.tracking.SetDiscordToPlayer(p)
+		p.SteamUID()
 		logger.LogDebug(s, "Processed player: "+p.Name())
 	}
 

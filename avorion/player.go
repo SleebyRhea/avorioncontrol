@@ -4,12 +4,20 @@ import (
 	"avorioncontrol/ifaces"
 	"avorioncontrol/logger"
 	"net"
+	"regexp"
 	"strconv"
 
 	"time"
 )
 
 var resourceMap map[string]int
+
+const (
+	steamUIDRegex   = `^\s*([0-9]+) .*$`
+	steamUIDCommand = `playerinfo %s -s -o`
+)
+
+var steamUIDRegexp = regexp.MustCompile(steamUIDRegex)
 
 // Player is a player that has connected to the server at some point, and has
 // data present in the game db
@@ -129,6 +137,7 @@ func (p *Player) SetOnline(o bool) {
 // SetDiscordUID sets a players Discord ID
 func (p *Player) SetDiscordUID(uid string) {
 	p.discordid = uid
+	p.server.RunCommand(sprintf(rconPlayerDiscord, p.index, uid))
 }
 
 // DiscordUID returns a players Discord ID
@@ -138,6 +147,39 @@ func (p *Player) DiscordUID() string {
 
 // Message messages a player
 func (p *Player) Message(string) {
+}
+
+/*****************************/
+/* IFace ifaces.ISteamPlayer */
+/*****************************/
+
+// SteamUID returns the steamUID or 0 of the player
+// TODO: Modify this function, as well as the GameDB to store this data
+// in the sqlite database
+func (p *Player) SteamUID() int64 {
+	if p.steam64 != 0 {
+		return p.steam64
+	}
+
+	cmd := sprintf(steamUIDCommand, p.Index())
+	out, err := p.server.RunCommand(cmd)
+	if err != nil {
+		return 0
+	}
+
+	m := steamUIDRegexp.FindStringSubmatch(out)
+	if len(m) < 2 {
+		return 0
+	}
+
+	sid, err := strconv.ParseInt(m[1], 10, 64)
+	if err != nil {
+		return 0
+	}
+
+	logger.LogDebug(p, "Setting player steamcmd to: "+m[1])
+	p.steam64 = sid
+	return sid
 }
 
 /************************/
