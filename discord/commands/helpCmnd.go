@@ -11,6 +11,7 @@ func helpCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	var (
 		maincmd *CommandRegistrant
 		reg     = cmd.Registrar()
+		authlvl = 0
 		err     error
 	)
 
@@ -29,7 +30,17 @@ func helpCmd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 		maincmd = cmd
 	}
 
-	if c.CommandDisabled(maincmd.Name()) {
+	// Get the users authorization level
+	member, _ := s.GuildMember(reg.GuildID, m.Author.ID)
+	for _, r := range member.Roles {
+		if l := c.GetRoleAuth(r); l > authlvl {
+			authlvl = l
+		}
+	}
+
+	authreq := c.GetCmndAuth(maincmd.Name())
+
+	if c.CommandDisabled(maincmd.Name()) || authlvl < authreq {
 		return nil, &ErrCommandDisabled{cmd: cmd}
 	}
 
