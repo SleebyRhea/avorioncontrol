@@ -298,4 +298,9 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 		"list",
 		make([]CommandArgument, 0),
 		listModsSubCmnd)
+	r.Register("showuserintegrations",
+		"Show the users that have integrated Discord and their in-game player",
+		"showuserintegrations",
+		make([]CommandArgument, 0),
+		getIntegratedCmnd)
 }
