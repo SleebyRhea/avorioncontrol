@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"os"
 	"strings"
@@ -22,6 +23,7 @@ const (
 	defaultModID = "123123123"
 
 	// Discord
+	defaultLogtime     = true
 	defaultLoglevel    = 1
 	defaultBotsAllowed = false
 	defaultDiscordLink = ""
@@ -58,6 +60,7 @@ type Conf struct {
 	ConfigFile string
 
 	// Logging
+	logtime  bool
 	loglevel int
 	timezone string
 	dbname   string
@@ -106,6 +109,7 @@ func New() *Conf {
 		dbname:     defaultDBName,
 		galaxyname: defaultGalaxyName,
 
+		logtime:    defaultLogtime,
 		installdir: defaultServerInstallation,
 		datadir:    defaultDataDirectory,
 		logdir:     defaultServerLogDirectory,
@@ -291,6 +295,13 @@ func (c *Conf) LoadConfiguration() {
 	//TODO: Make this not a bunch of if statements
 	//TODO: Add configuration validation
 
+	if !out.Core.LogTime {
+		c.logtime = false
+		log.SetFlags(0)
+	} else {
+		log.SetFlags(log.Ldate | log.Ltime)
+	}
+
 	if out.Core.LogDir != "" {
 		c.logdir = out.Core.LogDir
 	}
@@ -408,6 +419,7 @@ func (c *Conf) LoadConfiguration() {
 func (c *Conf) SaveConfiguration() {
 	y := &yamlData{
 		Core: yamlDataCore{
+			LogTime:  c.logtime,
 			TimeZone: c.timezone,
 			LogLevel: c.loglevel,
 			LogDir:   c.logdir,

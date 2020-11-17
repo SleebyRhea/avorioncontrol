@@ -3,6 +3,7 @@ package configuration
 type yamlDataCore struct {
 	LogLevel int    `yaml:"log_level"`
 	TimeZone string `yaml:"time_zone"`
+	LogTime  bool   `yaml:"log_timestamps"`
 	LogDir   string `yaml:"log_directory"`
 	DBName   string `yaml:"db_filename"`
 }
