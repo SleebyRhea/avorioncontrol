@@ -111,5 +111,8 @@ type IModConfigurator interface {
 	BuildModConfig() error
 	AddServerMod(int64) error
 	RemoveServerMod(int64) error
+	AddClientMod(int64) error
+	RemoveClientMod(int64) error
 	ListServerMods() []int64
+	ListClientMods() []int64
 }

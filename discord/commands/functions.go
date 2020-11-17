@@ -264,6 +264,18 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 		[]CommandArgument{
 			arg("workshopid", "Steam workshop ID of a mod to add")},
 		modAddSubCmnd, "mod")
+	r.Register("allow",
+		"Allow a mod to be installed on the client",
+		"add <workshopid> <workshopid> ...",
+		[]CommandArgument{
+			arg("workshopid", "Steam workshop ID of a mod to add")},
+		modAllowSubCmnd, "mod")
+	r.Register("disallow",
+		"Remove a mod from the allowed client mods list",
+		"add <workshopid> <workshopid> ...",
+		[]CommandArgument{
+			arg("workshopid", "Steam workshop ID of a mod to add")},
+		modDisallowSubCmnd, "mod")
 	r.Register("remove",
 		"Remove a mod or mods from the server configuration",
 		"remove <workshopid> <workshopid> ...",

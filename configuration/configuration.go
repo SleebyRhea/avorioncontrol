@@ -727,7 +727,7 @@ func (c *Conf) AddServerMod(id int64) error {
 	return nil
 }
 
-// RemoveServerMod adds a server mod to the config file and saves said config
+// RemoveServerMod removes a server mod to the config file and saves said config
 func (c *Conf) RemoveServerMod(id int64) error {
 	for i, found := range c.enabledMods {
 		if id == found {
@@ -742,11 +742,46 @@ func (c *Conf) RemoveServerMod(id int64) error {
 	return errors.New("Mod is not present in the configuration")
 }
 
+// AddClientMod adds an allowed mod to the config file and saves said config
+func (c *Conf) AddClientMod(id int64) error {
+	for _, found := range c.allowedMods {
+		if id == found {
+			return errors.New("Mod is already present in the configuration")
+		}
+	}
+	c.allowedMods = append(c.allowedMods, id)
+	return nil
+}
+
+// RemoveClientMod removes an allowed mod to the config file and saves said config
+func (c *Conf) RemoveClientMod(id int64) error {
+	for i, found := range c.allowedMods {
+		if id == found {
+			c.allowedMods[i] = c.allowedMods[len(c.allowedMods)-1]
+			c.allowedMods[len(c.allowedMods)-1] = 0
+			c.allowedMods = c.allowedMods[:len(c.allowedMods)-1]
+			c.SaveConfiguration()
+			return nil
+		}
+	}
+
+	return errors.New("Mod is not present in the configuration")
+}
+
 // ListServerMods returns a slice of all of the Workshop mods configured to be
 // installed
 func (c *Conf) ListServerMods() []int64 {
 	new := make([]int64, len(c.enabledMods))
 	copy(new, c.enabledMods)
+	c.SaveConfiguration()
+	return new
+}
+
+// ListClientMods returns a slice of all of the Workshop mods configured to be
+// allowed for clients
+func (c *Conf) ListClientMods() []int64 {
+	new := make([]int64, len(c.allowedMods))
+	copy(new, c.allowedMods)
 	c.SaveConfiguration()
 	return new
 }
