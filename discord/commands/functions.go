@@ -177,7 +177,7 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 		setChatChannelCmnd)
 
 	r.Register("setstatuschannel",
-		"Sets the channel that the server will update its status embed in",
+		"Sets the channel in which the server will update it's status embed",
 		"setstatuschannel channelid",
 		[]CommandArgument{
 			arg("channelid", "UID of the channel to send server chat messages to")},
