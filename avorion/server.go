@@ -24,7 +24,6 @@ import (
 	"time"
 
 	// This import overrides the copy function which is undesirable
-	cp "github.com/otiai10/copy"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -221,7 +220,6 @@ func (s *Server) Start(sendchat bool) error {
 
 	s.tracking.SetLoglevel(s.loglevel)
 	logger.LogInfo(s, "Syncing mods to data directory")
-	cp.Copy("./mods", s.config.DataPath()+"/mods")
 	s.name = s.config.Galaxy()
 
 	s.Cmd = exec.Command(
@@ -259,7 +257,7 @@ func (s *Server) Start(sendchat bool) error {
 	// TODO: Determine what to do with Stderr. Either pipe it into a file, or setup
 	// sometime to process it much like Stdout. Preferably keep it out of the Stdout
 	// processing pipeline.
-	s.Cmd.Stderr = os.Stderr
+	//s.Cmd.Stderr = os.Stderr
 	ready := make(chan struct{})
 	s.stop = make(chan struct{})
 	s.close = make(chan struct{})
