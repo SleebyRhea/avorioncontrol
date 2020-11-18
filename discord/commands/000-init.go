@@ -242,7 +242,7 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 
 	r.Register("broadcast",
 		"Send all players an email, with an attachment used as the message body",
-		"broadcast",
+		"broadcast <email subject header>",
 		make([]CommandArgument, 0),
 		sendBroadcastCmnd)
 }
