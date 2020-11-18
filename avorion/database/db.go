@@ -182,11 +182,11 @@ func (t *TrackingDB) Init() ([]*ifaces.Sector, error) {
 			count++
 		}
 
-		if err = jrows.Close(); err != nil {
+		if err := jrows.Close(); err != nil {
 			logger.LogError(t, err.Error())
 		}
 
-		if err = jrows.Err(); err != nil {
+		if err := jrows.Err(); err != nil {
 			return nil, err
 		}
 
