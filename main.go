@@ -13,9 +13,6 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
-
-	// Devel
-	"runtime/debug"
 )
 
 var (
@@ -112,16 +109,6 @@ func main() {
 		logger.LogError(core, "Avorion: "+err.Error())
 		os.Exit(1)
 	}
-
-	// On panic, recover, close Avorion gracefully, and emit our stacktrace
-	defer func() {
-		if r := recover(); r != nil {
-			logger.LogError(core, "Bot has entered a panic state, stopping Avorion")
-			server.Stop(false)
-			fmt.Println("stacktrace from panic: \n" + string(debug.Stack()))
-			os.Exit(1)
-		}
-	}()
 
 	logger.LogInit(server, "Completed init, awaiting termination signal.")
 	for sig := range sc {
