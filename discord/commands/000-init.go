@@ -30,7 +30,7 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 		pingCmd)
 
 	r.Register("pong",
-		"Get a \"Ping~\" respons",
+		"Get a \"Ping~\" response",
 		"pong",
 		make([]CommandArgument, 0),
 		pongCmd)
