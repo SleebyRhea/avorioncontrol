@@ -412,7 +412,7 @@ func (s *Server) UpdatePlayerDatabase(notify bool) error {
 	}
 
 	for _, info := range strings.Split(out, "\n") {
-		switch true {
+		switch {
 		case strings.HasPrefix(info, "player: "):
 			playerCount++
 			if m = rePlayerData.FindStringSubmatch(info); m != nil {
@@ -465,7 +465,7 @@ func (s *Server) UpdatePlayerDatabase(notify bool) error {
 func (s *Server) Status() ifaces.ServerStatus {
 	var status = ifaces.ServerOffline
 
-	switch true {
+	switch {
 	case s.isrestarting:
 		status = ifaces.ServerRestarting
 	case s.isstopping:
