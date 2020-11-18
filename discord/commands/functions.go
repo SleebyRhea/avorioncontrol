@@ -50,7 +50,7 @@ func reverseJumps(j []*ifaces.JumpInfo) []*ifaces.JumpInfo {
 	}
 
 	for {
-		if 0 > i {
+		if i < 0 {
 			break
 		}
 		jumps = append(jumps, j[i])

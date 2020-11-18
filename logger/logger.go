@@ -42,12 +42,12 @@ func formatResponseHeader(r int, m string) string {
 	yellowbg := color.BgYellow.Render
 
 	out := "[" + m + " " + strconv.Itoa(r) + "]"
-	switch true {
-	case 200 <= r && r <= 299:
+	switch {
+	case r >= 200 && r < 300:
 		return greenbg(black(out))
-	case 300 <= r && r <= 399:
+	case r >= 300 && r < 400:
 		return bluebg(black(out))
-	case 400 <= r && r <= 499:
+	case r >= 400 && r < 500:
 		return yellowbg(black(out))
 	default:
 		return white(redbg(out))

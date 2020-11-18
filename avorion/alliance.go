@@ -119,7 +119,7 @@ func (a *Alliance) GetLastJumps(limit int) []ifaces.ShipCoordData {
 	}
 
 	for n < limit {
-		if 0 > i {
+		if i < 0 {
 			break
 		}
 		jumps = append(jumps, a.jumphistory[i])
