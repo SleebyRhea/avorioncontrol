@@ -120,7 +120,7 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 		setStatusChannelCmnd)
 
 	r.Register("settimezone",
-		"Sets the channel to output server chat into",
+		"Sets the timezone that bot output will use",
 		"settimezone timezone",
 		[]CommandArgument{
 			arg("timezone", "Timezone to set (reference: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)")},
