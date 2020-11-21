@@ -430,7 +430,8 @@ func (t *TrackingDB) SetDiscordToPlayer(p ifaces.IPlayer) error {
 	}
 
 	p.SetDiscordUID(did)
-	logger.LogInfo(t, fmt.Sprintf("Processed integration for [%s]", p.Name()))
+	logger.LogInfo(t, fmt.Sprintf("Processed integration for [%s] (%s)", p.Name(),
+		did))
 	return nil
 }
 

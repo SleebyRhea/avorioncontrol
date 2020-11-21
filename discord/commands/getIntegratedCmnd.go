@@ -27,7 +27,6 @@ func getIntegratedCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotAr
 				out.AddLine(sprintf("**%s** - Linked to %s", p.Name(),
 					member.User.String()))
 				cnt++
-				break
 			}
 		}
 	}
