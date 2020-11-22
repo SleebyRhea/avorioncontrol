@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -23,10 +24,11 @@ func init() {
 //  TODO: Move away from separate structs for role authorization. Consider moving
 //  towards an int or int64 based approach
 type CommandRegistrar struct {
-	GuildID  string
-	commands map[string]*CommandRegistrant
-	loglevel int
-	server   ifaces.IGameServer
+	GuildID      string
+	commands     map[string]*CommandRegistrant
+	commandnames []string
+	loglevel     int
+	server       ifaces.IGameServer
 }
 
 // SetLoglevel - Set the current loglevel
@@ -118,6 +120,10 @@ func (reg *CommandRegistrar) Register(n, d, u string, a []CommandArgument,
 
 	// Otherwise, register the command to the registrar
 	reg.commands[n] = registrant
+	reg.commandnames = append(reg.commandnames, registrant.Name())
+
+	// Sort the slice
+	sort.Strings(reg.commandnames)
 
 	logger.LogDebug(reg, sprintf("Registered command [%s]", n))
 	return nil
@@ -145,11 +151,8 @@ func (reg *CommandRegistrar) Command(n string) (*CommandRegistrant, error) {
 
 // AllCommands - Return an int and a string slice. The int is how many commands
 // are currently registered, and the slice is list of their names
-func (reg *CommandRegistrar) AllCommands() (_ int, cs []string) {
-	for _, n := range reg.commands {
-		cs = append(cs, n.Name())
-	}
-	return len(cs), cs
+func (reg *CommandRegistrar) AllCommands() (int, []string) {
+	return len(reg.commandnames), reg.commandnames
 }
 
 // ProcessCommand - Processes a Discord message that has the configured prefix,
