@@ -13,7 +13,6 @@ func getPlayersCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 		out = newCommandOutput(cmd, "Players")
 	)
 
-	
 	if reg.server == nil || !reg.server.IsUp() {
 		return nil, &ErrCommandError{
 			message: "Server has not finished initializing",
@@ -31,6 +30,7 @@ func getPlayersCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 		out.AddLine(sprintf("%s", p.Name()))
 	}
 
+	out.Quoted = true
 	out.Construct()
 	return out, nil
 }
