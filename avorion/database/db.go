@@ -289,9 +289,10 @@ func (t *TrackingDB) TrackPlayer(p ifaces.IPlayer) error {
 
 	var (
 		fid int64
-		tid int64
+		rid int64
+		res sql.Result
 
-		selQ = `SELECT ID, NAME FROM factions WHERE GAMEID=? LIMIT 1;`
+		selQ = `SELECT ID FROM factions WHERE GAMEID=? LIMIT 1;`
 		addQ = `INSERT INTO factions ("NAME","KIND","GAMEID") VALUES (?,?,?);`
 	)
 
@@ -300,21 +301,30 @@ func (t *TrackingDB) TrackPlayer(p ifaces.IPlayer) error {
 		return err
 	}
 
+	logger.LogDebug(t, "Checking if player exists: "+p.Name())
 	row := db.QueryRow(selQ, fid)
-	row.Scan(&tid)
-	if row.Err() == nil {
+	row.Scan(&rid)
+	if row.Err() != nil {
+		return row.Err()
+	}
+
+	if rid > 0 {
+		logger.LogInfo(t, fmt.Sprintf("Found player in DB: %d|%s", fid, p.Name()))
 		return nil
 	}
 
-	if tid > 0 {
-		logger.LogInfo(t, "Found player in DB: %d|%s")
-		return nil
-	}
-
-	_, err = db.Exec(addQ, p.Name(), 0, fid)
+	logger.LogDebug(t, "Adding player to DB: "+p.Name())
+	res, err = db.Exec(addQ, p.Name(), 0, fid)
 	if err != nil {
 		return err
 	}
+
+	_, err = res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	logger.LogDebug(t, fmt.Sprintf("Added player to DB: %d|%s", fid, p.Name()))
 
 	return nil
 }
