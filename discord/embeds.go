@@ -3,7 +3,6 @@ package discord
 import (
 	"avorioncontrol/ifaces"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -73,8 +72,7 @@ func init() {
 	galaxyFieldTemplate = "> **Alliances**: _%d_\n" +
 		"> **Total Players**:  _%d_\n" +
 		"> **Total Sectors**:  _%d_\n" +
-		"> \n" +
-		"> **Online Players**%s"
+		"> **Players Online**: _%d_"
 }
 
 func generateEmbedStatus(s ifaces.ServerStatus, tz *time.Location) *discordgo.MessageEmbed {
@@ -82,7 +80,6 @@ func generateEmbedStatus(s ifaces.ServerStatus, tz *time.Location) *discordgo.Me
 		color          int
 		ok             bool
 		stat           string
-		plrs           string
 		statusField    *discordgo.MessageEmbedField
 		galaxyField    *discordgo.MessageEmbedField
 		configOneField *discordgo.MessageEmbedField
@@ -158,19 +155,11 @@ func generateEmbedStatus(s ifaces.ServerStatus, tz *time.Location) *discordgo.Me
 	configTwoField.Value = fmt.Sprintf(configTwoField.Value, pMaxSlots,
 		pMaxStations, pMaxShips, aMaxSlots, aMaxShips, aMaxStations)
 
-	if s.PlayersOnline >= 1 && s.Status == ifaces.ServerOnline {
-		plrs = strings.TrimSuffix(s.Players, "\n")
-		plrs = strings.TrimPrefix(plrs, "\n")
-		plrs = strings.ReplaceAll("\n"+plrs, "\n", "\n> • ")
-	} else {
-		plrs = "\n> _No players online_"
-	}
-
 	galaxyField = &discordgo.MessageEmbedField{
 		Inline: false, Name: "Galaxy Information", Value: galaxyFieldTemplate}
 
 	galaxyField.Value = fmt.Sprintf(galaxyField.Value, s.Alliances,
-		s.TotalPlayers, s.Sectors, plrs)
+		s.TotalPlayers, s.Sectors, s.PlayersOnline)
 
 	embed.Fields = append(embed.Fields, statusField, configOneField,
 		configTwoField, galaxyField)
