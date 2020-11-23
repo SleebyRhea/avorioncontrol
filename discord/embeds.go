@@ -146,7 +146,7 @@ func generateEmbedStatus(s ifaces.ServerStatus, tz *time.Location) *discordgo.Me
 	}
 
 	if !pvp {
-		pvpString = "disabled"
+		pvpString = "Disabled"
 	}
 
 	embed.Title = name + " Status"
