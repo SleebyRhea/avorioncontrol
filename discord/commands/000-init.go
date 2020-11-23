@@ -263,4 +263,10 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 		[]CommandArgument{
 			arg("reference", "Valid player name, index, or integrated discord user")},
 		playerBanCmnd, "player")
+
+	r.Register("showonline",
+		"Show the players that are currently online",
+		"showonline",
+		make([]CommandArgument, 0),
+		showOnlinePlayersCmnd)
 }

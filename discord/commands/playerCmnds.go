@@ -94,3 +94,30 @@ func playerBanCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 		message: sprintf("%s is an invalid reference to a player", ref),
 		cmd:     cmd}
 }
+
+func showOnlinePlayersCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
+	c ifaces.IConfigurator, cmd *CommandRegistrant) (*CommandOutput, ICommandError) {
+	var (
+		reg = cmd.Registrar()
+		srv = reg.server
+		out = newCommandOutput(cmd, "Players Online")
+		cnt = 0
+	)
+
+	out.Quoted = true
+
+	for _, p := range srv.Players() {
+		if p.Online() {
+			cnt++
+			out.AddLine(p.Name())
+		}
+	}
+
+	if cnt == 0 {
+		out.AddLine("No players online")
+		out.Construct()
+		return out, nil
+	}
+
+	return out, nil
+}
