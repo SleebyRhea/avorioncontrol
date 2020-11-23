@@ -340,10 +340,11 @@ func (t *TrackingDB) TrackAlliance(a ifaces.IAlliance) error {
 
 	var (
 		fid int64
-		tid int64
+		rid int64
+		res sql.Result
 
-		addQ = `INSERT INTO factions ("NAME","KIND","GAMEID") VALUES (?,?,?);`
 		selQ = `SELECT ID FROM factions WHERE GAMEID=? LIMIT 1;`
+		addQ = `INSERT INTO factions ("NAME","KIND","GAMEID") VALUES (?,?,?);`
 	)
 
 	fid, err = strconv.ParseInt(a.Index(), 10, 64)
@@ -351,16 +352,30 @@ func (t *TrackingDB) TrackAlliance(a ifaces.IAlliance) error {
 		return err
 	}
 
+	logger.LogDebug(t, "Checking if alliance exists: "+a.Name())
 	row := db.QueryRow(selQ, fid)
-	row.Scan(&tid)
-	if row.Err() == nil {
+	row.Scan(&rid)
+	if row.Err() != nil {
+		return row.Err()
+	}
+
+	if rid > 0 {
+		logger.LogInfo(t, fmt.Sprintf("Found alliance in DB: %d|%s", fid, a.Name()))
 		return nil
 	}
 
-	_, err = db.Exec(addQ, a.Name(), 1, fid)
+	logger.LogDebug(t, "Adding alliance to DB: "+a.Name())
+	res, err = db.Exec(addQ, a.Name(), 0, fid)
 	if err != nil {
 		return err
 	}
+
+	_, err = res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	logger.LogDebug(t, fmt.Sprintf("Added alliance to DB: %d|%s", fid, a.Name()))
 
 	return nil
 }
