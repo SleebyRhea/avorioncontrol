@@ -137,8 +137,8 @@ func generateEmbedStatus(s ifaces.ServerStatus, tz *time.Location) *discordgo.Me
 		difLevel = s.INI.Difficulty
 		blkLimit = s.INI.BlockLimit
 		volLimit = s.INI.VolumeLimit
-		pMaxSlots = s.INI.MaxPlayerShips
-		pMaxShips = s.INI.MaxPlayerSlots
+		pMaxSlots = s.INI.MaxPlayerSlots
+		pMaxShips = s.INI.MaxPlayerShips
 		pMaxStations = s.INI.MaxPlayerStations
 		aMaxSlots = s.INI.MaxAllianceSlots
 		aMaxShips = s.INI.MaxAllianceShips
@@ -156,7 +156,7 @@ func generateEmbedStatus(s ifaces.ServerStatus, tz *time.Location) *discordgo.Me
 		volLimit)
 
 	configTwoField.Value = fmt.Sprintf(configTwoField.Value, pMaxSlots,
-		pMaxShips, pMaxStations, aMaxSlots, aMaxShips, aMaxStations)
+		pMaxStations, pMaxShips, aMaxSlots, aMaxShips, aMaxStations)
 
 	if s.PlayersOnline >= 1 && s.Status == ifaces.ServerOnline {
 		plrs = strings.TrimSuffix(s.Players, "\n")
