@@ -245,4 +245,22 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 		"broadcast <email subject header>",
 		make([]CommandArgument, 0),
 		sendBroadcastCmnd)
+
+	r.Register("player",
+		"Moderate a given player",
+		"player <kick|ban>",
+		make([]CommandArgument, 0),
+		proxySubCmnd)
+	r.Register("kick",
+		"Kick the given player",
+		"kick <reference>",
+		[]CommandArgument{
+			arg("reference", "Valid player name, index, or integrated discord user")},
+		playerKickCmnd, "player")
+	r.Register("ban",
+		"Ban the given player",
+		"ban <reference>",
+		[]CommandArgument{
+			arg("reference", "Valid player name, index, or integrated discord user")},
+		playerBanCmnd, "player")
 }

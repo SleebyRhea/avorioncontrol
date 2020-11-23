@@ -116,7 +116,7 @@ func (p *Player) Name() string {
 
 // Kick kicks the player
 func (p *Player) Kick(r string) {
-	p.server.RunCommand("kick" + p.Name())
+	p.server.RunCommand("kick " + p.Name())
 }
 
 // Ban bans the player
