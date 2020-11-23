@@ -365,7 +365,7 @@ func (t *TrackingDB) TrackAlliance(a ifaces.IAlliance) error {
 	}
 
 	logger.LogDebug(t, "Adding alliance to DB: "+a.Name())
-	res, err = db.Exec(addQ, a.Name(), 0, fid)
+	res, err = db.Exec(addQ, a.Name(), 1, fid)
 	if err != nil {
 		return err
 	}
