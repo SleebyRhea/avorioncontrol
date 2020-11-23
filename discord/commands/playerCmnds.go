@@ -119,5 +119,6 @@ func showOnlinePlayersCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a B
 		return out, nil
 	}
 
+	out.Construct()
 	return out, nil
 }
