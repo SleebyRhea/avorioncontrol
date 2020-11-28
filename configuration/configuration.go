@@ -720,7 +720,7 @@ func (c *Conf) BuildModConfig() error {
 	modconfig += "}\n\nallowed = {\n"
 
 	for _, allowedid := range c.allowedMods {
-		modconfig += sprintf("  {workshopid = \"%d\"},\n", allowedid)
+		modconfig += sprintf("  {id = \"%d\"},\n", allowedid)
 	}
 
 	modconfig += "}\n"
