@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
-	"time"
 )
 
 var discChatRe = regexp.MustCompile(`^\s*<D> <.*?#[0-9]{4}> (.*)$`)
@@ -40,12 +39,6 @@ func initB() {
 	New("EventDiscordIntegrationRequest",
 		`^\s*discordIntegrationRequestEvent: ([0-9]+) ([0-9]+)`,
 		handleDiscordIntegrationRequest)
-
-	New("EventLongTick",
-		`^\s*Warning: Sector (\(-?[0-9]+:-?[0-9]+\)) had a very long tick `+
-			`of over ([0-9]+)ms. To gather info, use /profile, or enable `+
-			`profiling in your server.ini and run /status.`,
-		handleLongTickEvent)
 
 	New("EventModUpdate",
 		`^\s*Downloading ([0-9]+) \[[^\s]+ of [^\s]+ \| 100%\]\s*$`,
@@ -150,19 +143,6 @@ func handleDiscordIntegrationRequest(srv ifaces.IGameServer, e *Event, in string
 	m := e.Capture.FindStringSubmatch(in)
 	srv.AddIntegrationRequest(m[1], m[2])
 	logger.LogInfo(srv, "Received Discord integration request")
-}
-
-func handleLongTickEvent(srv ifaces.IGameServer, e *Event, in string,
-	oc chan string) {
-	logger.LogOutput(srv, in)
-	select {
-	case <-benchTimer.C:
-		logger.LogInfo(srv, "Starting benchmark")
-		srv.RunCommand("profile")
-		benchTimer.Reset(time.Minute * 5)
-	default:
-		logger.LogInfo(srv, "Benchmark timeout of at least 5 minutes has not passed")
-	}
 }
 
 func handleModUpdate(srv ifaces.IGameServer, e *Event, in string,
