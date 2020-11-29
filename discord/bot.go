@@ -22,6 +22,8 @@ import (
 	"avorioncontrol/logger"
 )
 
+var reCatchMention = regexp.MustCompile(`(<@!?\d+>)`)
+
 // Bot is an object representing a Discord bot
 type Bot struct {
 	processDirectMsg func(*discordgo.Session, *discordgo.MessageCreate)
@@ -178,6 +180,7 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 						logger.LogWarning(b, fmt.Sprintf(
 							"%s attempted to run [%s], but wasn't authorized do so",
 							m.Author.String(), cmderr.Command().Name()))
+
 					}
 
 				case *commands.ErrInvalidTimezone:
@@ -214,8 +217,10 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 
 		// Send messages from Discord to the ifaces as the user if its available
 		if gs.IsUp() && b.config.ChatChannel() == m.ChannelID {
+			// Make sure that doublequotes don't break Avorion command processing
 			author := strings.ReplaceAll(m.Author.String(), `"`, `“`)
 			content := strings.ReplaceAll(m.Content, `"`, `“`)
+			logger.LogDebug(reg, "Processing: "+content)
 
 			_, err = gs.RunCommand(fmt.Sprintf("discordsay \"%s\" \"%s\"",
 				author, content))
@@ -415,11 +420,25 @@ func onGuildJoin(gid string, s *discordgo.Session, b *Bot,
 						msg += "...(truncated)"
 					}
 
+					// Prevent mentions from in-game
+					msg = strings.ReplaceAll(msg, "@everyone", "everyone")
+					msg = strings.ReplaceAll(msg, "@here", "here")
+
+					if reCatchMention.MatchString(msg) {
+						logger.LogDebug(reg, "Found mention in chat string")
+						m := reCatchMention.FindStringSubmatch(msg)
+						for _, caught := range m {
+							logger.LogWarning(reg, "Player attempted to mention: "+caught)
+							msg = strings.ReplaceAll(msg, caught, "`(mention blocked)`")
+						}
+					}
+
 					if cm.UID != "" {
 						msg = fmt.Sprintf("<@%s>: %s", cm.UID, msg)
 					} else {
 						msg = fmt.Sprintf("▫️ **%s**: %s", cm.Name, msg)
 					}
+
 					s.ChannelMessageSend(b.config.ChatChannel(), msg)
 				}
 			case <-b.exit:
