@@ -3,6 +3,7 @@ package commands
 import (
 	"avorioncontrol/ifaces"
 	"avorioncontrol/logger"
+	"log"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -20,6 +21,11 @@ func init() {
 // GenerateOutputEmbed creates a Discord embed from a CommandOutput, and outputs
 // booleans depicting whether or not the Next or Previous page of output is available
 func GenerateOutputEmbed(out *CommandOutput, page *Page) (*discordgo.MessageEmbed, bool, bool) {
+	if out == nil || page == nil {
+		log.Output(0, "Attempt to use GenerateOutputEmbed without out or page")
+		return nil, false, false
+	}
+
 	_, m := out.Index()
 	p, n := false, false
 	output := "Output"
