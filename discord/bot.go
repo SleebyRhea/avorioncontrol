@@ -399,6 +399,38 @@ func onGuildJoin(gid string, s *discordgo.Session, b *Bot,
 
 		for {
 			select {
+			case lm := <-b.config.LogPipe():
+				logger.LogDebug(b, "Processing chat data from server for logging")
+				if b.config.ChatChannel() != "" {
+					// Don't bother with empty messages
+					if len(lm.Msg) == 0 {
+						continue
+					}
+
+					// Default to Avorion
+					if lm.Name == "" {
+						lm.Name = "Avorion"
+					}
+
+					// Truncate messages larger than 1900 to make sure we have enough room
+					//	for the rest of the message
+					msg := string(lm.Msg)
+					if len(msg) > 1900 {
+						msg = msg[0:1900]
+						msg += "...(truncated)"
+					}
+
+					// Prevent mentions from in-game
+					msg = strings.ReplaceAll(msg, "@everyone", "everyone")
+					msg = strings.ReplaceAll(msg, "@here", "here")
+
+					embed := &discordgo.MessageEmbed{
+						Title:       "Game Event Logged",
+						Description: msg}
+
+					s.ChannelMessageSendEmbed(b.config.LogChannel(), embed)
+				}
+
 			case cm := <-b.config.ChatPipe():
 				logger.LogDebug(b, "Processing chat data from server")
 				if b.config.ChatChannel() != "" {

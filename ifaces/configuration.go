@@ -12,6 +12,7 @@ type IConfigurator interface {
 	IDiscordConfigurator
 	ICommandConfigurator
 	IGalaxyConfigurator
+	IEventConfigurator
 	IAuthConfigurator
 	IGameConfigurator
 	ITimeConfigurator
@@ -115,4 +116,12 @@ type IModConfigurator interface {
 	RemoveClientMod(int64) error
 	ListServerMods() []int64
 	ListClientMods() []int64
+}
+
+// IEventConfigurator describes a configuration object that has LoggedServerEvents
+type IEventConfigurator interface {
+	GetEvents() []*LoggedServerEvent
+	LogPipe() chan ChatData
+	SetLogChannel(string) chan ChatData
+	LogChannel() string
 }

@@ -18,7 +18,8 @@ type yamlDataGame struct {
 
 type yamlDataDiscord struct {
 	BotsAllowed   bool   `yaml:"bots_allowed"`
-	ChatChannel   string `yaml:"channel"`
+	LogChannel    string `yaml:"log_channel"`
+	ChatChannel   string `yaml:"chat_channel"`
 	StatusChannel string `yaml:"status_channel"`
 	DiscordLink   string `yaml:"invite"`
 	Prefix        string `yaml:"prefix"`
@@ -47,9 +48,10 @@ type yamlDataMods struct {
 }
 
 type yamlData struct {
-	Core    yamlDataCore    `yaml:"Core"`
-	Game    yamlDataGame    `yaml:"Game"`
-	RCON    yamlDataRCON    `yaml:"RCON"`
-	Discord yamlDataDiscord `yaml:"Discord"`
-	Mods    yamlDataMods    `yaml:"Mods"`
+	Core    yamlDataCore         `yaml:"Core"`
+	Game    yamlDataGame         `yaml:"Game"`
+	RCON    yamlDataRCON         `yaml:"RCON"`
+	Discord yamlDataDiscord      `yaml:"Discord"`
+	Mods    yamlDataMods         `yaml:"Mods"`
+	Events  map[string][2]string `yaml:"Events"`
 }

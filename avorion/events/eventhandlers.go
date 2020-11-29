@@ -43,10 +43,6 @@ func initB() {
 	New("EventModUpdate",
 		`^\s*Downloading ([0-9]+) \[[^\s]+ of [^\s]+ \| 100%\]\s*$`,
 		handleModUpdate)
-
-	New("EventNone",
-		".*",
-		defaultEventHandler)
 }
 
 func handleEventConnection(srv ifaces.IGameServer, e *Event, in string,

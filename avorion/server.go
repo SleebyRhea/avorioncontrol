@@ -181,6 +181,40 @@ func (s *Server) Start(sendchat bool) error {
 		err     error
 	)
 
+	// Re-init our events and apply custom logged events
+	events.Initialize()
+	for _, ed := range s.config.GetEvents() {
+		event, err := events.New(ed.Name, ed.Regex.String(), func(srv ifaces.IGameServer, e *events.Event,
+			in string, oc chan string) {
+			logger.LogDebug(e, "Got event: "+ed.FString)
+			m := e.Capture.FindStringSubmatch(in)
+			s := make([]interface{}, 0)
+			for _, v := range m {
+				s = append(s, v)
+			}
+
+			// This is garbage, but if it works...
+			srv.SendLog(ifaces.ChatData{
+				Msg: sprintf(ed.FString, s[1:]...)})
+		})
+
+		if err != nil {
+			logger.LogWarning(s, "Failed to register event: "+err.Error())
+			continue
+		}
+
+		logger.LogInit(event, "Registered logged event regex: "+ed.Regex.String())
+	}
+
+	// Handle unmanaged text. We initilialize this last so that all other events
+	// are handled first.
+	events.New("EventNone", ".*", func(srv ifaces.IGameServer, e *events.Event,
+		in string, oc chan string) {
+		logger.LogOutput(srv, in)
+	})
+
+	logger.LogInit(s, "Completed event registration")
+
 	defer func() { s.isstarting = false }()
 	s.isstarting = true
 	s.iscrashed = false
@@ -257,7 +291,7 @@ func (s *Server) Start(sendchat bool) error {
 	// TODO: Determine what to do with Stderr. Either pipe it into a file, or setup
 	// sometime to process it much like Stdout. Preferably keep it out of the Stdout
 	// processing pipeline.
-	//s.Cmd.Stderr = os.Stderr
+	s.Cmd.Stderr = os.Stderr
 	ready := make(chan struct{})
 	s.stop = make(chan struct{})
 	s.close = make(chan struct{})
@@ -889,6 +923,25 @@ func (s *Server) SendChat(input ifaces.ChatData) {
 		select {
 		case s.Config().ChatPipe() <- input:
 			logger.LogDebug(s, "Sent chat data to bot")
+		case <-time.After(time.Second * 5):
+			logger.LogWarning(s, warnChatDiscarded)
+		}
+	}
+}
+
+// SendLog sends an ifaces.ChatData object to the discord bot if logging is
+//	currently enabled in the configuration
+func (s *Server) SendLog(input ifaces.ChatData) {
+	if s.config.LogPipe() != nil {
+		if len(input.Msg) >= 2000 {
+			logger.LogInfo(s, "Truncated log for sending")
+			input.Msg = input.Msg[0:1900]
+			input.Msg += "...(truncated)"
+		}
+
+		select {
+		case s.Config().LogPipe() <- input:
+			logger.LogDebug(s, "Sent event log to bot")
 		case <-time.After(time.Second * 5):
 			logger.LogWarning(s, warnChatDiscarded)
 		}

@@ -112,6 +112,13 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 			arg("channelid", "UID of the channel to send server chat messages to")},
 		setChatChannelCmnd)
 
+	r.Register("setlogchannel",
+		"Sets the channel to output logged server events to",
+		"setlogchannel channelid",
+		[]CommandArgument{
+			arg("channelid", "UID of the channel to send logged events to ")},
+		setLogChannelCmnd)
+
 	r.Register("setstatuschannel",
 		"Sets the channel in which the server will update it's status embed",
 		"setstatuschannel channelid",

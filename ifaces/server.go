@@ -91,4 +91,5 @@ type IDiscordIntegratedServer interface {
 	AddIntegrationRequest(string, string)
 	ValidateIntegrationPin(string, string) bool
 	SendChat(ChatData)
+	SendLog(ChatData)
 }

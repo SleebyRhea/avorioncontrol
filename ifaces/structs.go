@@ -1,6 +1,7 @@
 package ifaces
 
 import (
+	"regexp"
 	"time"
 )
 
@@ -73,4 +74,11 @@ type ServerGameConfig struct {
 	MaxAllianceSlots    int64
 	MaxAllianceShips    int64
 	MaxAllianceStations int64
+}
+
+// LoggedServerEvent describes an event that can be tracked and logged
+type LoggedServerEvent struct {
+	Name    string
+	FString string
+	Regex   *regexp.Regexp
 }

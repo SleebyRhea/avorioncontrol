@@ -1,6 +1,7 @@
 package events
 
 import (
+	"errors"
 	"regexp"
 	"time"
 )
@@ -9,7 +10,14 @@ var events []*Event             // Iteration
 var eventsMap map[string]*Event // Reference
 var benchTimer *time.Timer
 
-func init() {
+// Initialize handles event initialization and should be run before the
+// server starts
+func Initialize() {
+	// For re-init
+	events = nil
+	eventsMap = nil
+	benchTimer = nil
+
 	events = make([]*Event, 0)
 	eventsMap = make(map[string]*Event)
 	benchTimer = time.NewTimer(time.Minute * 5)
@@ -19,10 +27,10 @@ func init() {
 // New makes,registers, and returns a game event using the Regex that is used
 // to detect it. Panic if the Regexp that was provided matches the Regexp of a
 // previously registered Event. Returns the index of the registered event
-func New(n, re string, h EventHandler) *Event {
+func New(n, re string, h EventHandler) (*Event, error) {
 	for _, e := range events {
 		if e.Capture.String() == re || e.name == n {
-			panic("Cannot register the same event multiple times")
+			return nil, errors.New("Cannot register the same event multiple times")
 		}
 	}
 
@@ -35,7 +43,7 @@ func New(n, re string, h EventHandler) *Event {
 	events = append(events, ge)
 	eventsMap[n] = ge
 
-	return ge
+	return ge, nil
 }
 
 // Name returns the name of the Event
