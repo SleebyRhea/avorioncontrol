@@ -121,7 +121,7 @@ func CreatePagedEmbed(out *CommandOutput, s *discordgo.Session,
 			logger.LogDebug(out, "Checking for update on multi-page embed")
 			m, _ := s.ChannelMessage(cid, uid)
 			for _, r := range m.Reactions {
-				logger.LogDebug(out, "Found emoji: "+r.Emoji.ID)
+				logger.LogDebug(out, "Found emoji: "+r.Emoji.Name)
 				if r.Emoji.MessageFormat() == nextReact && r.Count > 1 && r.Me {
 					embed, doP, doN = GenerateOutputEmbed(out, out.NextPage())
 					s.ChannelMessageEditEmbed(cid, uid, embed)
