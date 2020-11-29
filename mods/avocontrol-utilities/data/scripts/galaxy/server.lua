@@ -13,10 +13,12 @@
 
 ]]
 
-do
-  local vanilla_onPlayerLogIn = onPlayerLogIn
-  function onPlayerLogIn (index)
-    vanilla_onPlayerLogIn(index)
-    Player(index):addScriptOnce("data/scripts/player/avorioncontrol-welcome.lua")
-  end
-end
+
+-- Disabled until the GoLang section of code is ready for this feature
+-- do
+--   local vanilla_onPlayerLogIn = onPlayerLogIn
+--   function onPlayerLogIn (index)
+--     vanilla_onPlayerLogIn(index)
+--     Player(index):addScriptOnce("data/scripts/player/avorioncontrol-welcome.lua")
+--   end
+-- end

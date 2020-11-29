@@ -13,6 +13,8 @@
 
 ]]
 
+--[[
+-- Disabled until the bot is ready to handle configuring this script
 
 --namespace WelcomeEmail
 WelcomeEmail = {}
@@ -181,3 +183,5 @@ end
 player:addMail(mail)
 print("Sent welcome email to ${p}. ${f}"%_T % {
   p=player.name, f=msgfooter})
+
+]]
