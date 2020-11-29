@@ -70,7 +70,7 @@ func GenerateOutputEmbed(out *CommandOutput, page *Page) (*discordgo.MessageEmbe
 // The first boolean denotes previous, the second denotes next. These variables
 // are doP and doN respectively.
 func CreatePagedEmbed(out *CommandOutput, s *discordgo.Session,
-	m *discordgo.MessageCreate, exitch chan struct{}) {
+	m *discordgo.MessageCreate, expirech chan struct{}, exitch chan struct{}) {
 
 	defer func() {
 		logger.LogInfo(out, "Multi-page embed has expired")
@@ -107,11 +107,14 @@ func CreatePagedEmbed(out *CommandOutput, s *discordgo.Session,
 		case <-inactive.C:
 			return
 
+		case <-expirech:
+			return
+
 		// Exit with the rest of the application
 		case <-exitch:
 			return
 
-		case <-time.After(time.Second / 2):
+		case <-time.After(time.Second / 1):
 			logger.LogDebug(out, "Checking for update on multi-page embed")
 			m, _ := s.ChannelMessage(cid, uid)
 			for _, r := range m.Reactions {

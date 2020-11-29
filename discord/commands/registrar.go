@@ -29,6 +29,7 @@ type CommandRegistrar struct {
 	commandnames []string
 	loglevel     int
 	server       ifaces.IGameServer
+	embeds       []chan struct{}
 }
 
 // SetLoglevel - Set the current loglevel
@@ -49,7 +50,8 @@ func NewRegistrar(gid string, gs ifaces.IGameServer) *CommandRegistrar {
 		GuildID:  gid,
 		commands: make(map[string]*CommandRegistrant, 10),
 		server:   gs,
-		loglevel: 1}
+		loglevel: 1,
+		embeds:   make([]chan struct{}, 0)}
 
 	return registrars[gid]
 }
@@ -252,7 +254,16 @@ func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
 		if out != nil {
 			// Get the number of pages and use that to determine if we need a pager
 			if _, max := out.Index(); max > 1 {
-				go CreatePagedEmbed(out, s, m, exitch)
+				if len(reg.embeds) > 4 {
+					close(reg.embeds[0])
+					reg.embeds[0] = nil
+					reg.embeds = reg.embeds[1:]
+				}
+
+				expirech := make(chan struct{})
+				reg.embeds = append(reg.embeds, expirech)
+
+				go CreatePagedEmbed(out, s, m, expirech, exitch)
 			} else {
 				embed, _, _ := GenerateOutputEmbed(out, out.ThisPage())
 				if _, err := s.ChannelMessageSendEmbed(m.ChannelID, embed); err != nil {
