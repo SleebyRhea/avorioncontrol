@@ -89,10 +89,13 @@ func CreatePagedEmbed(out *CommandOutput, s *discordgo.Session,
 	// before updating one final time.
 	defer func() {
 		logger.LogInfo(out, "Multi-page embed has expired")
-		embed.Footer = &discordgo.MessageEmbedFooter{Text: "(expired)"}
-		s.ChannelMessageEditEmbed(cid, uid, embed)
-		s.MessageReactionsRemoveAll(cid, uid)
-		out = nil
+		m, _ := s.ChannelMessage(cid, uid)
+		if m != nil {
+			embed.Footer = &discordgo.MessageEmbedFooter{Text: "(expired)"}
+			s.ChannelMessageEditEmbed(cid, uid, embed)
+			s.MessageReactionsRemoveAll(cid, uid)
+			out = nil
+		}
 	}()
 
 	if doN {
