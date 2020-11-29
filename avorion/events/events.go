@@ -1,6 +1,7 @@
 package events
 
 import (
+	"avorioncontrol/logger"
 	"errors"
 	"regexp"
 	"time"
@@ -24,7 +25,7 @@ func Initialize() {
 	initB()
 }
 
-// New makes,registers, and returns a game event using the Regex that is used
+// New makes, registers, and returns a game event using the Regex that is used
 // to detect it. Panic if the Regexp that was provided matches the Regexp of a
 // previously registered Event. Returns the index of the registered event
 func New(n, re string, h EventHandler) (*Event, error) {
@@ -36,14 +37,45 @@ func New(n, re string, h EventHandler) (*Event, error) {
 
 	ge := &Event{
 		name:     n,
-		loglevel: 3,
+		loglevel: 0,
 		Capture:  regexp.MustCompile(re),
 		Handler:  h}
 
 	events = append(events, ge)
 	eventsMap[n] = ge
 
+	logger.LogInit(ge, "Registered event regex: ["+ge.Capture.String()+"]")
+
 	return ge, nil
+}
+
+// Add takes a premade event and registers it to our event configuration
+func Add(n string, ge *Event) error {
+	if n == "" {
+		return errors.New("Event does not have valid name")
+	}
+
+	if ge.Capture == nil {
+		return errors.New("Event does not have a defined regex")
+	}
+
+	if ge.Handler == nil {
+		return errors.New("Event does not have a defined handler")
+	}
+
+	for _, e := range events {
+		if e.Capture.String() == ge.Capture.String() || e.name == n {
+			return errors.New("Cannot register the same event multiple times")
+		}
+	}
+
+	ge.name = n
+	events = append(events, ge)
+	eventsMap[n] = ge
+
+	logger.LogInit(ge, "Registered event regex: ["+ge.Capture.String()+"]")
+
+	return nil
 }
 
 // Name returns the name of the Event

@@ -13,6 +13,7 @@ type EventHandler func(ifaces.IGameServer, *Event, string, chan string)
 //
 // TODO: Have Event implement Logger
 type Event struct {
+	FString  string
 	name     string
 	loglevel int
 	Capture  *regexp.Regexp

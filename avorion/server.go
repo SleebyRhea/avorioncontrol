@@ -181,39 +181,7 @@ func (s *Server) Start(sendchat bool) error {
 		err     error
 	)
 
-	// Re-init our events and apply custom logged events
-	events.Initialize()
-	for _, ed := range s.config.GetEvents() {
-		event, err := events.New(ed.Name, ed.Regex.String(), func(srv ifaces.IGameServer, e *events.Event,
-			in string, oc chan string) {
-			logger.LogDebug(e, "Got event: "+ed.FString)
-			m := e.Capture.FindStringSubmatch(in)
-			s := make([]interface{}, 0)
-			for _, v := range m {
-				s = append(s, v)
-			}
-
-			// This is garbage, but if it works...
-			srv.SendLog(ifaces.ChatData{
-				Msg: sprintf(ed.FString, s[1:]...)})
-		})
-
-		if err != nil {
-			logger.LogWarning(s, "Failed to register event: "+err.Error())
-			continue
-		}
-
-		logger.LogInit(event, "Registered logged event regex: "+ed.Regex.String())
-	}
-
-	// Handle unmanaged text. We initilialize this last so that all other events
-	// are handled first.
-	events.New("EventNone", ".*", func(srv ifaces.IGameServer, e *events.Event,
-		in string, oc chan string) {
-		logger.LogOutput(srv, in)
-	})
-
-	logger.LogInit(s, "Completed event registration")
+	s.InitializeEvents()
 
 	defer func() { s.isstarting = false }()
 	s.isstarting = true
@@ -1090,4 +1058,43 @@ func (s *Server) loadSectors() {
 	for _, a := range s.alliances {
 		sort.Sort(jumpsByTime(a.jumphistory))
 	}
+}
+
+// InitializeEvents runs the event initializer
+func (s *Server) InitializeEvents() {
+	// Re-init our events and apply custom logged events
+	events.Initialize()
+
+	for _, ed := range s.config.GetEvents() {
+		ge := &events.Event{
+			FString: ed.FString,
+			Capture: ed.Regex,
+			Handler: func(srv ifaces.IGameServer, e *events.Event,
+				in string, oc chan string) {
+				logger.LogDebug(e, "Got event: "+e.FString)
+				m := e.Capture.FindStringSubmatch(in)
+				s := make([]interface{}, 0)
+				for _, v := range m {
+					s = append(s, v)
+				}
+				srv.SendLog(ifaces.ChatData{
+					Msg: sprintf(e.FString, s[1:]...)})
+			}}
+
+		ge.SetLoglevel(s.Loglevel())
+
+		if err := events.Add(ed.Name, ge); err != nil {
+			logger.LogWarning(s, "Failed to register event: "+err.Error())
+			continue
+		}
+	}
+
+	// Handle unmanaged text. We initilialize this last so that all other events
+	// are handled first.
+	events.New("EventNone", ".*", func(srv ifaces.IGameServer, e *events.Event,
+		in string, oc chan string) {
+		logger.LogOutput(srv, in)
+	})
+
+	logger.LogInit(s, "Completed event registration")
 }

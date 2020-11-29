@@ -27,6 +27,7 @@ type IServer interface {
 	CompareStatus(ServerStatus, ServerStatus) bool
 	Restart() error
 	Config() IConfigurator
+	InitializeEvents()
 
 	logger.ILogger
 }
