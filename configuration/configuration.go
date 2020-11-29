@@ -278,16 +278,18 @@ func (c *Conf) SetAliasCommand(r string, a string) error {
 }
 
 // LoadConfiguration loads the given configuration file
-func (c *Conf) LoadConfiguration() {
+func (c *Conf) LoadConfiguration() error {
 	if _, err := os.Stat(c.ConfigFile); err != nil {
 		if os.IsNotExist(err) {
-			return
+			fmt.Printf("Configuration file %s does not exist, proceeding with defaults\n",
+				c.ConfigFile)
+			return nil
 		}
 
 		fmt.Printf("Configuration file %s cannot be read (%s)",
 			c.ConfigFile, err.Error())
-		fmt.Printf("Proceeding with defaults\n")
-		return
+
+		return err
 	}
 
 	in, _ := ioutil.ReadFile(c.ConfigFile)
@@ -295,7 +297,7 @@ func (c *Conf) LoadConfiguration() {
 	if err := yaml.Unmarshal(in, out); err != nil {
 		fmt.Printf("Configuration file %s is invalid:\n%s\n", c.ConfigFile,
 			err.Error())
-		os.Exit(1)
+		return err
 	}
 
 	//TODO: Make this not a bunch of if statements
@@ -444,10 +446,11 @@ func (c *Conf) LoadConfiguration() {
 	}
 
 	c.enforceMods = out.Mods.Enforce
+	return nil
 }
 
 // SaveConfiguration saves our current configuration to a yaml file
-func (c *Conf) SaveConfiguration() {
+func (c *Conf) SaveConfiguration() error {
 	var events map[string][2]string
 	events = nil
 
@@ -509,15 +512,16 @@ func (c *Conf) SaveConfiguration() {
 	out, err := yaml.Marshal(y)
 	if err != nil {
 		logger.LogError(c, err.Error())
-		os.Exit(1)
+		return err
 	}
 
 	if err := ioutil.WriteFile(c.ConfigFile, out, 0644); err != nil {
 		logger.LogError(c, err.Error())
-		os.Exit(1)
+		return err
 	}
 
 	logger.LogInfo(c, "Saved configuration")
+	return nil
 }
 
 /*************************************/

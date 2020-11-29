@@ -11,7 +11,12 @@ func reloadConfigCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArg
 	var out = newCommandOutput(cmd, "Reload Configuration")
 	out.Quoted = true
 
-	c.LoadConfiguration()
+	if err := c.LoadConfiguration(); err != nil {
+		return nil, &ErrCommandError{
+			message: err.Error(),
+			cmd:     cmd}
+	}
+
 	out.AddLine("Reloaded bot configuration")
 
 	cmd.Registrar().server.InitializeEvents()

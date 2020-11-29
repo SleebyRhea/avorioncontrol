@@ -98,8 +98,8 @@ type IAuthConfigurator interface {
 // IConfigSaveLoader describes an interface to a an object that saves
 // and loads configuration
 type IConfigSaveLoader interface {
-	LoadConfiguration()
-	SaveConfiguration()
+	LoadConfiguration() error
+	SaveConfiguration() error
 }
 
 // IDatabaseConfigurator describes an interface to a db configurator

@@ -78,7 +78,9 @@ func main() {
 		os.Exit(0)
 	}
 
-	config.LoadConfiguration()
+	if err := config.LoadConfiguration(); err != nil {
+		os.Exit(1)
+	}
 
 	if token != "" {
 		config.SetToken(token)
