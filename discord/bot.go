@@ -235,7 +235,7 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 
 	go func() {
 		for {
-			time.Sleep(10 * time.Minute)
+			time.Sleep(30 * time.Minute)
 			gs.RunCommand(fmt.Sprintf("setdiscorddata \"%s\" \"%s\"",
 				dg.State.User.String(), b.config.DiscordLink()))
 		}
