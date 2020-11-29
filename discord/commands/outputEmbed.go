@@ -72,11 +72,6 @@ func GenerateOutputEmbed(out *CommandOutput, page *Page) (*discordgo.MessageEmbe
 func CreatePagedEmbed(out *CommandOutput, s *discordgo.Session,
 	m *discordgo.MessageCreate, expirech chan struct{}, exitch chan struct{}) {
 
-	defer func() {
-		logger.LogInfo(out, "Multi-page embed has expired")
-		out = nil
-	}()
-
 	nextReact := "▶️"
 	prevReact := "◀️"
 
@@ -89,6 +84,14 @@ func CreatePagedEmbed(out *CommandOutput, s *discordgo.Session,
 
 	cid := u.ChannelID
 	uid := u.ID
+
+	defer func() {
+		logger.LogInfo(out, "Multi-page embed has expired")
+		embed.Footer = &discordgo.MessageEmbedFooter{Text: "(expired)"}
+		s.ChannelMessageEditEmbed(cid, uid, embed)
+		s.MessageReactionsRemoveAll(cid, uid)
+		out = nil
+	}()
 
 	if doN {
 		s.MessageReactionAdd(cid, uid, nextReact)
