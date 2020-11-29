@@ -126,7 +126,19 @@ func CreatePagedEmbed(out *CommandOutput, s *discordgo.Session,
 		// Check the embed every second for new reacts
 		case <-time.After(time.Second / 1):
 			logger.LogDebug(out, "Checking for update on multi-page embed")
-			m, _ := s.ChannelMessage(cid, uid)
+			m, err := s.ChannelMessage(cid, uid)
+
+			// Return if there was an error
+			if err != nil {
+				logger.LogError(out, err.Error())
+				return
+			}
+
+			// Return if the embed is nil
+			if m == nil {
+				return
+			}
+
 			for _, r := range m.Reactions {
 				logger.LogDebug(out, "Found emoji: "+r.Emoji.Name)
 				if r.Emoji.MessageFormat() == nextReact && r.Count > 1 && r.Me {
