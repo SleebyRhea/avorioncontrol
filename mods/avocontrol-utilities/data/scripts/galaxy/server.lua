@@ -3,22 +3,28 @@
   AvorionControl - data/scripts/galaxy/server.lua
   -----------------------------------------------
 
-  Sends off an email to a newly joined player using either the defaults
-  provided below, or via a WelcomeEmail.txt file located in the Server
-  root directory. Also optionally (and by default) adds one or more
-  turrets of your spefication to the email as an attachment.
+  Add player LogIn/Off event output and bot related scripts
 
   License: BSD-3-Clause
   https://opensource.org/licenses/BSD-3-Clause
 
 ]]
 
+-- Create our own login event output for more reliable tracking
+vanillaOnPlayerLogIn = onPlayerLogIn
+function onPlayerLogIn(playerIndex)
+  vanillaOnPlayerLogIn(playerIndex)
 
--- Disabled until the GoLang section of code is ready for this feature
--- do
---   local vanilla_onPlayerLogIn = onPlayerLogIn
---   function onPlayerLogIn (index)
---     vanilla_onPlayerLogIn(index)
---     Player(index):addScriptOnce("data/scripts/player/avorioncontrol-welcome.lua")
---   end
--- end
+  local p = Player(playerIndex)
+  print("playerJoinEvent: ${i} ${n}"%_T % {i=p.index, n=p.name})
+  --p:addScriptOnce("data/scripts/player/avorioncontrol-welcome.lua")
+end
+
+-- Create our own logoff event output for more reliable tracking
+vanillaOnPlayerLogOff = onPlayerLogOff
+function onPlayerLogOff(playerIndex)
+  vanillaOnPlayerLogOff(playerIndex)
+
+  local p = Player(playerIndex)
+  print("playerLeftEvent: ${i} ${n}"%_T % {i=p.index, n=p.name})
+end

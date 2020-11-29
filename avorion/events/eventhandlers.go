@@ -26,11 +26,11 @@ func initB() {
 		handleEventShipJump)
 
 	New("EventPlayerJoin",
-		`^\s*Player logged in: (.+?), index: ([0-9]+)\s*$`,
+		`^\s*playerJoinEvent: ([0-9]+) (.+?)\s*$`,
 		handleEventPlayerJoin)
 
 	New("EventPlayerLeft",
-		`^\s*Player logged off: '(.+?)' \(([0-9]+)\) \([0-9]+\)\s*$`,
+		`^\s*playerLeftEvent: ([0-9]+) (.+?)\s*$`,
 		handleEventPlayerLeft)
 
 	New("EventServerLag",
@@ -65,9 +65,8 @@ func handleEventConnection(srv ifaces.IGameServer, e *Event, in string,
 func handleEventPlayerJoin(srv ifaces.IGameServer, e *Event, in string,
 	oc chan string) {
 	m := e.Capture.FindStringSubmatch(in)
-	logger.LogOutput(srv, in)
-	if p := srv.Player(m[2]); p == nil {
-		p = srv.NewPlayer(m[2], m)
+	if p := srv.Player(m[1]); p == nil {
+		p = srv.NewPlayer(m[1], m)
 		p.SetOnline(true)
 	} else {
 		p.Update()
@@ -80,9 +79,8 @@ func handleEventPlayerJoin(srv ifaces.IGameServer, e *Event, in string,
 func handleEventPlayerLeft(srv ifaces.IGameServer, e *Event, in string,
 	oc chan string) {
 	m := e.Capture.FindStringSubmatch(in)
-	logger.LogOutput(srv, in)
 
-	if p := srv.Player(m[2]); p != nil {
+	if p := srv.Player(m[1]); p != nil {
 		p.SetOnline(false)
 		srv.SubPlayerOnline()
 		return
