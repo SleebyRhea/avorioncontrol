@@ -123,7 +123,7 @@ command:SetExecute(function ()
   for _, player in ipairs(playerlist) do
     if doEveryAlliance then
       if player.alliance then
-        alliances[player.alliance] = player.alliance
+        alliances[player.alliance.index] = player.alliance
       end
     end
     
