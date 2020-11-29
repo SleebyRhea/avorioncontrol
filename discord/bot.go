@@ -214,8 +214,11 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 
 		// Send messages from Discord to the ifaces as the user if its available
 		if gs.IsUp() && b.config.ChatChannel() == m.ChannelID {
+			author := strings.ReplaceAll(m.Author.String(), `"`, `“`)
+			content := strings.ReplaceAll(m.Content, `"`, `“`)
+
 			_, err = gs.RunCommand(fmt.Sprintf("discordsay \"%s\" \"%s\"",
-				m.Author.String(), m.Content))
+				author, content))
 			if err != nil {
 				s.MessageReactionAdd(m.ChannelID, m.ID, "🚫")
 			} else {
