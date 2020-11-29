@@ -85,6 +85,8 @@ func CreatePagedEmbed(out *CommandOutput, s *discordgo.Session,
 	cid := u.ChannelID
 	uid := u.ID
 
+	// Output some logging information and add an expired footer to the embed,
+	// before updating one final time.
 	defer func() {
 		logger.LogInfo(out, "Multi-page embed has expired")
 		embed.Footer = &discordgo.MessageEmbedFooter{Text: "(expired)"}
@@ -104,12 +106,16 @@ func CreatePagedEmbed(out *CommandOutput, s *discordgo.Session,
 
 	for {
 		select {
+
+		// 10 minute timeout, no matter what.
 		case <-time.After(time.Minute * 10):
 			return
 
+		// Timeout if out inactivity timer ends up completing
 		case <-inactive.C:
 			return
 
+		// External expiration channel
 		case <-expirech:
 			return
 
@@ -117,6 +123,7 @@ func CreatePagedEmbed(out *CommandOutput, s *discordgo.Session,
 		case <-exitch:
 			return
 
+		// Check the embed every second for new reacts
 		case <-time.After(time.Second / 1):
 			logger.LogDebug(out, "Checking for update on multi-page embed")
 			m, _ := s.ChannelMessage(cid, uid)
