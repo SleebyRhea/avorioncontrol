@@ -21,7 +21,7 @@ import (
 const (
 	// Conf
 	defaultFile  = "config.yaml"
-	defaultModID = "123123123"
+	defaultModID = "2303642289"
 
 	// Discord
 	defaultLogtime     = true
@@ -758,6 +758,8 @@ func (c *Conf) BuildModConfig() error {
 		"forceEnabling = %t\n"+
 		"local prefix  = \"%s\"\n"+
 		"\nmods = {\n", c.enforceMods, c.datadir+"mods/")
+
+	modconfig += sprintf("  {workshopid = \"%d\"},\n", defaultModID)
 
 	for _, modid := range c.enabledMods {
 		modconfig += sprintf("  {workshopid = \"%d\"},\n", modid)
