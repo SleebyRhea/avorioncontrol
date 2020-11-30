@@ -227,7 +227,9 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 			if err != nil {
 				s.MessageReactionAdd(m.ChannelID, m.ID, "🚫")
 			} else {
-				s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
+				if b.config.ReactConfirm() {
+					s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
+				}
 			}
 			return
 		}

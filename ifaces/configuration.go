@@ -76,6 +76,7 @@ type IChatConfigurator interface {
 	ChatPipe() chan ChatData
 	SetChatChannel(string) chan ChatData
 	ChatChannel() string
+	ReactConfirm() bool
 }
 
 // ITimeConfigurator describes an interface to the configured timezone

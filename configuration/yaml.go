@@ -18,6 +18,7 @@ type yamlDataGame struct {
 
 type yamlDataDiscord struct {
 	BotsAllowed   bool   `yaml:"bots_allowed"`
+	SentReact     bool   `yaml:"confirm_chat_sent"`
 	LogChannel    string `yaml:"log_channel"`
 	ChatChannel   string `yaml:"chat_channel"`
 	StatusChannel string `yaml:"status_channel"`

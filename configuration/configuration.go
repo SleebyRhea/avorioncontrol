@@ -44,6 +44,7 @@ const (
 	defaultCommandPrefix      = "mention"
 	defaultStatusClear        = false
 	defaultEnforceMods        = false
+	defaultSentReact          = false
 
 	defaultTimeZone = "America/New_York"
 	defaultDBName   = "data.db"
@@ -96,6 +97,7 @@ type Conf struct {
 	disabledCommands []string
 
 	enforceMods     bool
+	sentreact       bool
 	enabledMods     []int64
 	allowedMods     []int64
 	enabledModPaths []string
@@ -131,6 +133,7 @@ func New() *Conf {
 		statuschannelclear: defaultStatusClear,
 
 		enforceMods:     defaultEnforceMods,
+		sentreact:       defaultSentReact,
 		enabledMods:     make([]int64, 0),
 		allowedMods:     make([]int64, 0),
 		enabledModPaths: make([]string, 0),
@@ -446,6 +449,7 @@ func (c *Conf) LoadConfiguration() error {
 	}
 
 	c.enforceMods = out.Mods.Enforce
+	c.sentreact = out.Discord.SentReact
 	return nil
 }
 
@@ -485,6 +489,7 @@ func (c *Conf) SaveConfiguration() error {
 
 		Discord: yamlDataDiscord{
 			ClearStatusChannel: c.statuschannelclear,
+			SentReact:          c.sentreact,
 			LogChannel:         c.logchannel,
 			ChatChannel:        c.chatchannel,
 			StatusChannel:      c.statuschannel,
@@ -672,6 +677,12 @@ func (c *Conf) ChatChannel() string {
 // ChatPipe returns a go channel for chat piping
 func (c *Conf) ChatPipe() chan ifaces.ChatData {
 	return c.chatpipe
+}
+
+// ReactConfirm returns a bool that determines whether or not to react to a
+// chat message that was transferred.
+func (c *Conf) ReactConfirm() bool {
+	return c.sentreact
 }
 
 /**************************************/
