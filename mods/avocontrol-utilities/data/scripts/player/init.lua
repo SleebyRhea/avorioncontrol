@@ -61,8 +61,8 @@ do
     print("${p}Ship: ${n}, ${b} Blocks, ${v}k m3"%_T % {
       p = prefix,
       n = (player.craft and player.craft.name or drone),
-      b = (plan and plan.numBlocks or "Error"),
-      v = (plan and plan.volume or "Error")})
+      b = (plan and plan.numBlocks or "0"),
+      v = (plan and plan.volume or "0")})
 
     print("${p}System: ${x}:${y} ${n1} objects, ${n2} players"%_T % {
       p  = prefix,

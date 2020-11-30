@@ -7,7 +7,7 @@ meta =
     authors =          {"@SleepyFugu#3611"},
     dependencies =     {{id = "Avorion", min = "1.0"}},
     version =          "1.0",
-    serverSideOnly =   true,
+    serverSideOnly =   false,
     clientSideOnly =   false,
     saveGameAltering = false,
     contact =          "@Sleepy Fugu#3611",

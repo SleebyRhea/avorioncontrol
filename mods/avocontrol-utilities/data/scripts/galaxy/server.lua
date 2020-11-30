@@ -17,7 +17,6 @@ function onPlayerLogIn(playerIndex)
 
   local p = Player(playerIndex)
   print("playerJoinEvent: ${i} ${n}"%_T % {i=p.index, n=p.name})
-  --p:addScriptOnce("data/scripts/player/avorioncontrol-welcome.lua")
 end
 
 -- Create our own logoff event output for more reliable tracking
