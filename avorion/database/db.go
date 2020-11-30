@@ -96,7 +96,7 @@ func (t *TrackingDB) Init() ([]*ifaces.Sector, error) {
 	// Get all of the sectors that have been tracked
 	sectors := make([]*ifaces.Sector, 0)
 
-	// TODO: This is only here until the major server refactor is begun.
+	// TODO: This is only here until the major server refactor is underway.
 	factions := make([]struct {
 		Index int64
 		Name  string

@@ -50,23 +50,6 @@ func (c *CommandRegistrant) Name() string {
 
 // Help - Return a commands help text with following markdown formatting
 // preapplied
-//  TODO: Convert this into an embed
-//  Current Format:
-//    **Command:**
-//    `cmdname` - Command description
-//    ```
-//    Command usage
-//    ```
-//    **Arguments:**
-//    ```
-//    1: Arg1 - Description
-//    2: Arg2 - Description
-//    ```
-//    **Subcommands:**
-//    ```
-//    1: sub1 - Description
-//    2: sub1 - Description
-//    ```
 func (c *CommandRegistrant) Help() *CommandOutput {
 	out := newCommandOutput(c, "Command Help")
 	out.Description = c.description

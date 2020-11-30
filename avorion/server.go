@@ -461,8 +461,6 @@ func (s *Server) UpdatePlayerDatabase(notify bool) error {
 }
 
 // Status returns a struct containing the current status of the server
-//
-//FIXME: Implement a function to properly compare two server states
 func (s *Server) Status() ifaces.ServerStatus {
 	var status = ifaces.ServerOffline
 
@@ -832,7 +830,6 @@ func (s *Server) AddIntegrationRequest(index, pin string) {
 
 // ValidateIntegrationPin confirms that a given pin was indeed a valid request
 //	and registers the integration
-//  TODO: Move this to sqlite3
 func (s *Server) ValidateIntegrationPin(in, discordID string) bool {
 	m := regexpDiscordPin.FindStringSubmatch(in)
 	if len(m) < 2 {
@@ -960,7 +957,7 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 			}
 
 		// Update our playerinfo db
-		// TODO: Move this into the configuration object
+		// TODO: Move the time into the configuration object
 		case <-time.After(1 * time.Hour):
 			s.UpdatePlayerDatabase(true)
 		}

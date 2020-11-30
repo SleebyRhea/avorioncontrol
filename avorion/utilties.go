@@ -6,7 +6,7 @@ import (
 )
 
 // REVIEW: These regexp objects need to be replaced with a function that produces
-// a parser object for the command that is provided. Ideallty, this would be replaced
+// a parser object for the command that is provided. Ideally, this would be replaced
 // with a *Server method that handles this.
 
 /**

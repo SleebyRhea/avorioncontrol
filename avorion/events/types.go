@@ -10,8 +10,6 @@ type EventHandler func(ifaces.IGameServer, *Event, string, chan string)
 
 // Event describes logged output that the ifaces.Server has output that can
 // be acted upon in some fashion
-//
-// TODO: Have Event implement Logger
 type Event struct {
 	FString  string
 	name     string

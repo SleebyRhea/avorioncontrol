@@ -21,8 +21,6 @@ func init() {
 
 // CommandRegistrar - Guild specific container for commands and authorization
 // level settings
-//  TODO: Move away from separate structs for role authorization. Consider moving
-//  towards an int or int64 based approach
 type CommandRegistrar struct {
 	GuildID      string
 	commands     map[string]*CommandRegistrant
