@@ -6,8 +6,8 @@
   Generates a pin that is output both on STDOUT with an identifying
   string for bot processing, and sends the player an email with
   instructions on how to link their discord user to their Avorion user.
-  If used by RCON, this command can be used to generate an Integration
-  request for a given user.
+  If used by RCON, this command can be used to configure a users discord
+  integration.
 
   License: BSD-3-Clause
   https://opensource.org/licenses/BSD-3-Clause
