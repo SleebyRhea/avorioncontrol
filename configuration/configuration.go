@@ -759,7 +759,7 @@ func (c *Conf) BuildModConfig() error {
 		"local prefix  = \"%s\"\n"+
 		"\nmods = {\n", c.enforceMods, c.datadir+"mods/")
 
-	modconfig += sprintf("  {workshopid = \"%d\"},\n", defaultModID)
+	modconfig += sprintf("  {workshopid = \"%s\"},\n", defaultModID)
 
 	for _, modid := range c.enabledMods {
 		modconfig += sprintf("  {workshopid = \"%d\"},\n", modid)
