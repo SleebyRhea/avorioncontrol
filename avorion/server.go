@@ -274,12 +274,6 @@ func (s *Server) Start(sendchat bool) error {
 			close(s.close)
 		}
 
-		if runtime.GOOS == "linux" {
-			// if s.config.AffinityMask() != nil {
-			// 	exec.Command("taskset" "-p", s.config.AffinityMask(), s.Cmd.Process.Pid)
-			// }
-		}
-
 		for {
 			select {
 			case <-s.stop:
