@@ -16,7 +16,8 @@ RCON:
   port: 27015
 Discord:
   bots_allowed: false
-  channel:
+  log_channel:
+  chat_channel:
   status_channel:
   invite:
   prefix: '!!'
@@ -50,9 +51,13 @@ Discord:
   status_channel_clear: true
 Mods:
   enforce: false
-  allowed:
-  # - 1231231212
-  enabled:
-  # - 1231231212
-  modpaths:
-  - avocontrol-utilities
+  allowed: []
+  enabled: []
+  modpaths: []
+Events:
+  EventConvoyMoved:
+  - The convoy is now in %s
+  - ^\s*<[^\s]*?> Convoy moving to (\(-?\d+:-?\d+\))\.\s*$
+  testingEvent:
+  - 'Got testing event: %s'
+  - '^\s*This is a test: (.+?)\s*$'
