@@ -139,6 +139,11 @@ func New(c ifaces.IConfigurator, wg *sync.WaitGroup, exit chan struct{},
 		log.Fatal(sprintf(errExecFailed, path, cmnd))
 	}
 
+	_, err = exec.Command(c.RCONBin(), "-h").Output()
+	if err != nil {
+		log.Fatal(sprintf(`Failed to run %s`, c.RCONBin()))
+	}
+
 	s := &Server{
 		wg:         wg,
 		exit:       exit,
@@ -1091,4 +1096,13 @@ func (s *Server) InitializeEvents() {
 	})
 
 	logger.LogInit(s, "Completed event registration")
+}
+
+// Check if a file exists or is a directory.
+func exists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
 }
