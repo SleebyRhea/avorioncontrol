@@ -144,11 +144,6 @@ func New() *Conf {
 		aliasedCommands: make(map[string][]string),
 		loggedevents:    make([]*ifaces.LoggedServerEvent, 0)}
 
-	rconhost := fmt.Sprintf("[%s]\nhostname = %s\nport = %d\npassword = %s\n",
-		c.Galaxy(), c.RCONAddr(), c.RCONPort(), c.RCONPass())
-
-	ioutil.WriteFile(fmt.Sprintf("%s/rconhost.conf", c.DataPath()),
-		[]byte(rconhost), 0644)
 	return c
 }
 
@@ -450,6 +445,11 @@ func (c *Conf) LoadConfiguration() error {
 
 	c.enforceMods = out.Mods.Enforce
 	c.sentreact = out.Discord.SentReact
+
+	rconhost := fmt.Sprintf("[%s]\nhostname = %s\nport = %d\npassword = %s\n",
+		c.Galaxy(), c.RCONAddr(), c.RCONPort(), c.RCONPass())
+	ioutil.WriteFile(fmt.Sprintf("%s/rconhost.conf", c.DataPath()),
+		[]byte(rconhost), 0644)
 	return nil
 }
 
