@@ -6,7 +6,7 @@ meta =
     description =      "Adds various mods that are used by AvorionControl",
     authors =          {"@SleepyFugu#3611"},
     dependencies =     {{id = "Avorion", min = "1.0"}},
-    version =          "0.1",
+    version =          "1.0",
     serverSideOnly =   true,
     clientSideOnly =   false,
     saveGameAltering = false,
