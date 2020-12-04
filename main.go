@@ -107,6 +107,19 @@ func main() {
 	signal.Notify(sc)
 	disbot.Start(server)
 
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Printf("Panic Enountered: %v", r)
+			if server.IsUp() {
+				fmt.Printf("Attempting to shut down Avorion safely...")
+				if err := server.Stop(true); err != nil {
+					logger.LogError(server, err.Error())
+				}
+				fmt.Printf("Avorion stopped gracefully.")
+			}
+		}
+	}()
+
 	if err := server.Start(true); err != nil {
 		logger.LogError(core, "Avorion: "+err.Error())
 		os.Exit(1)
