@@ -37,7 +37,6 @@ const (
 	defaultRconAddress        = "127.0.0.1"
 	defaultGalaxyName         = "Galaxy"
 	defaultDataDirectory      = "/srv/avorion/"
-	defaultServerLogDirectory = "/srv/avorion/logs"
 	defaultServerInstallation = "/srv/avorion/server_files/"
 	defaultTimeDatabaseUpdate = time.Minute * 60
 	defaultTimeHangCheck      = time.Minute * 5
@@ -71,7 +70,7 @@ type Conf struct {
 	galaxyname string
 	installdir string
 	datadir    string
-	logdir     string
+	logfile    string
 	gameconfig *ifaces.ServerGameConfig
 
 	rconbin  string
@@ -123,7 +122,6 @@ func New() *Conf {
 		logtime:    defaultLogtime,
 		installdir: defaultServerInstallation,
 		datadir:    defaultDataDirectory,
-		logdir:     defaultServerLogDirectory,
 
 		rconbin:     defaultRconBin,
 		rconpass:    makePass(),
@@ -312,8 +310,14 @@ func (c *Conf) LoadConfiguration() error {
 		log.SetFlags(log.Ldate | log.Ltime)
 	}
 
-	if out.Core.LogDir != "" {
-		c.logdir = out.Core.LogDir
+	if out.Core.LogFile != "" {
+		c.logfile = out.Core.LogFile
+		if err := touch(out.Core.LogFile); err == nil {
+			logger.SetFile(out.Core.LogFile)
+			logger.LogInfo(c, "Setting logfile to "+out.Core.LogFile)
+		} else {
+			logger.LogError(c, "LogFile: "+err.Error())
+		}
 	}
 
 	if out.Core.LogLevel != 0 {
@@ -478,7 +482,7 @@ func (c *Conf) SaveConfiguration() error {
 			LogTime:  c.logtime,
 			TimeZone: c.timezone,
 			LogLevel: c.loglevel,
-			LogDir:   c.logdir,
+			LogFile:  c.logfile,
 			DBName:   c.dbname},
 
 		Game: yamlDataGame{
@@ -964,4 +968,18 @@ func (c *Conf) LogPipe() chan ifaces.ChatData {
 // LogChannel returns the current chat channel ID string
 func (c *Conf) LogChannel() string {
 	return c.logchannel
+}
+
+func touch(file string) error {
+	f, err := os.OpenFile(file, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	if _, err := f.WriteString(""); err != nil {
+		return err
+	}
+
+	return nil
 }

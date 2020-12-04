@@ -2,8 +2,10 @@ package logger
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/gookit/color"
@@ -28,7 +30,10 @@ const (
 )
 
 // var logger log.Logger
-var spf = fmt.Sprintf
+var (
+	spf     = fmt.Sprintf
+	logfile *os.File
+)
 
 // func init() {
 // 	log.SetOutput(ioutil.Discard)
@@ -54,6 +59,21 @@ func formatResponseHeader(r int, m string) string {
 	default:
 		return white(redbg(out))
 	}
+}
+
+// Touch a file and make sure that it can be written to
+func touch(file string) error {
+	f, err := os.OpenFile(file, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	if _, err := f.WriteString(""); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // LogOutput logs the given string with a timestamp and no prefix. Logging does
@@ -124,5 +144,24 @@ func LogHTTP(l ILogger, rc int, r *http.Request, chs ...chan []byte) {
 			r.Host,
 			r.RequestURI)
 		log.Output(1, spf("[%s] %s %s", l.UUID(), rcs, rinfo))
+	}
+}
+
+// SetFile sets the programs logfile when provided a string
+func SetFile(path string) {
+	if err := touch(path); err != nil {
+		log.Output(1, path+":"+err.Error())
+	}
+
+	CloseLog()
+
+	logfile, _ = os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	log.SetOutput(io.MultiWriter(os.Stdout, logfile))
+}
+
+// CloseLog closes the open file handler for our current logfile
+func CloseLog() {
+	if logfile != nil {
+		logfile.Close()
 	}
 }
