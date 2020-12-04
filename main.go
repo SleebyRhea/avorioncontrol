@@ -123,7 +123,8 @@ func main() {
 			os.Exit(0)
 
 		case syscall.SIGUSR1:
-			logger.LogInfo(core, "Caught SIGUSR1, performing server restart")
+			logger.LogInfo(core, "Caught SIGUSR1, performing server reload+restart")
+			config.LoadConfiguration()
 			server.Restart()
 		}
 	}
