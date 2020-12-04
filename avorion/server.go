@@ -164,7 +164,7 @@ func New(c ifaces.IConfigurator, wg *sync.WaitGroup, exit chan struct{},
 		isstopping:   false,
 		isrestarting: false}
 
-	s.SetLoglevel(3)
+	s.SetLoglevel(s.config.Loglevel())
 	return s
 }
 
