@@ -137,7 +137,9 @@ func (p *Player) SetOnline(o bool) {
 // SetDiscordUID sets a players Discord ID
 func (p *Player) SetDiscordUID(uid string) {
 	p.discordid = uid
-	p.server.RunCommand(sprintf(rconPlayerDiscord, p.index, uid))
+	if uid != "" {
+		p.server.RunCommand(sprintf(rconPlayerDiscord, p.index, uid))
+	}
 }
 
 // DiscordUID returns a players Discord ID
