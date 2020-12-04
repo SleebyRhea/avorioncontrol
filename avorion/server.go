@@ -343,10 +343,11 @@ func (s *Server) Start(sendchat bool) error {
 			// stay online, it won't block the bot from continuing.
 			if upstring := strings.TrimSpace(s.config.PostUpCommand()); upstring != "" {
 				go func() {
-					defer s.wg.Done()
 					s.wg.Add(1)
+					defer s.wg.Done()
 
 					ctx, cancel := context.WithCancel(context.Background())
+					defer cancel()
 
 					c := make([]string, 0)
 					// Split our arguments and add them to the args slice
@@ -356,32 +357,54 @@ func (s *Server) Start(sendchat bool) error {
 					}
 
 					postup := exec.CommandContext(ctx, c[0], c[1:]...)
-
-					// Set the environment
+					postup.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 					postup.Env = append(os.Environ(),
 						"SAVEPATH="+strings.TrimSuffix(s.datapath, "/")+"/"+s.name,
 						"RCONADDR="+s.rconaddr,
 						"RCONPASS="+s.rconpass,
 						sprintf("RCONPORT=%d", s.rconport))
 
+					// Merge output with AvorionServer. This allows the bot to filter this
+					// output along with Avorions without any extra code
 					postup.Stdout = outw
 
-					logger.LogInit(s, "Starting post-start: "+upstring)
+					logger.LogInit(s, "Starting PostUp: "+upstring)
 					if err := postup.Start(); err != nil {
-						logger.LogError(s, "Failed to start configured post-start command: "+
+						logger.LogError(s, "Failed to start configured PostUp command: "+
 							upstring)
-						logger.LogError(s, "post-start: "+err.Error())
-						cancel()
+						logger.LogError(s, "PostUp: "+err.Error())
 						return
 					}
+
+					defer func() {
+						fin := make(chan struct{})
+
+						go func() {
+							select {
+							case <-fin:
+								return
+							case <-time.After(time.Minute):
+								syscall.Kill(-postup.Process.Pid, syscall.SIGKILL)
+							}
+						}()
+
+						if err := postup.Wait(); err != nil {
+							logger.LogError(s, "PostUp: "+err.Error())
+						}
+
+						close(fin)
+					}()
 
 					// Stop the script when we stop the game
 					select {
 					case <-s.stop:
-						cancel()
+						logger.LogInfo(s, "Stopping PostUp script")
+						syscall.Kill(-postup.Process.Pid, syscall.SIGTERM)
 						return
+
 					case <-s.close:
-						cancel()
+						logger.LogInfo(s, "Stopping PostUp script")
+						syscall.Kill(-postup.Process.Pid, syscall.SIGTERM)
 						return
 					}
 				}()
