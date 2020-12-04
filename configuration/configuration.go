@@ -157,7 +157,7 @@ func New() *Conf {
 
 // UUID - Return the objects name
 func (c *Conf) UUID() string {
-	return "configuration"
+	return "Configuration"
 }
 
 // Loglevel - Return the objects name
