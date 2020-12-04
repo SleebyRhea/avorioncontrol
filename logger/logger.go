@@ -10,13 +10,15 @@ import (
 )
 
 const (
-	verbosePrefix = "VERBOSE"
-	debugPrefix   = "DEBUG"
-	errorPrefix   = "ERROR"
+	verbosePrefix = "VERB"
+	debugPrefix   = "DEBG"
+	errorPrefix   = " ERR"
 	warnPrefix    = "WARN"
 	infoPrefix    = "INFO"
 	initPrefix    = "INIT"
 	chatPrefix    = "CHAT"
+	soutPrefix    = "SOUT"
+	serrPrefix    = "SERR"
 
 	debugLevel   = 2
 	verboseLevel = 2
@@ -57,7 +59,7 @@ func formatResponseHeader(r int, m string) string {
 // LogOutput logs the given string with a timestamp and no prefix. Logging does
 // not depend on the current loglevel of an object
 func LogOutput(l ILogger, m string, chs ...chan []byte) {
-	log.Output(1, spf("[%s] %s", l.UUID(), m))
+	log.Output(1, spf("[%s] [%s] %s", soutPrefix, l.UUID(), m))
 }
 
 // LogError logs an error.
