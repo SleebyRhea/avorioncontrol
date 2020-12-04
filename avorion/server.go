@@ -227,6 +227,7 @@ func (s *Server) Start(sendchat bool) error {
 
 	s.tracking.SetLoglevel(s.loglevel)
 	logger.LogInfo(s, "Syncing mods to data directory")
+	s.datapath = s.config.DataPath()
 	s.name = s.config.Galaxy()
 
 	s.Cmd = exec.Command(
@@ -257,9 +258,9 @@ func (s *Server) Start(sendchat bool) error {
 	}
 
 	logger.LogDebug(s, "Getting Stdout Pipe")
-	if s.stdout, err = s.Cmd.StdoutPipe(); err != nil {
-		return err
-	}
+	outr, outw := io.Pipe()
+	s.stdout = outr
+	s.Cmd.Stdout = outw
 
 	// TODO: Determine what to do with Stderr. Either pipe it into a file, or setup
 	// sometime to process it much like Stdout. Preferably keep it out of the Stdout
@@ -273,6 +274,42 @@ func (s *Server) Start(sendchat bool) error {
 	go updateAvorionStatus(s, s.close)
 
 	go func() {
+		defer func() {
+			downstring := strings.TrimSpace(s.config.PostDownCommand())
+
+			if downstring != "" {
+				c := make([]string, 0)
+				// Split our arguments and add them to the args slice
+				for _, m := range regexp.MustCompile(`[^\s]+`).
+					FindAllStringSubmatch(downstring, -1) {
+					c = append(c, m[0])
+				}
+
+				// Only allow the PostDown command to run for 1 minute
+				ctx, downcancel := context.WithTimeout(context.Background(), time.Minute)
+				defer downcancel()
+
+				postdown := exec.CommandContext(ctx, c[0], c[1:]...)
+
+				// Set the environment
+				postdown.Env = append(os.Environ(),
+					"SAVEPATH="+strings.TrimSuffix(s.datapath, "/")+"/"+s.name)
+
+				ret, err := postdown.CombinedOutput()
+				if err != nil {
+					logger.LogError(s, "PostDown: "+err.Error())
+				}
+
+				out := string(ret)
+
+				if out != "" {
+					for _, line := range strings.Split(strings.TrimSuffix(out, "\n"), "\n") {
+						logger.LogInfo(s, "PostDown: "+line)
+					}
+				}
+			}
+		}()
+
 		logger.LogInit(s, "Starting Server and waiting till ready")
 		if err := s.Cmd.Start(); err != nil {
 			logger.LogError(s, err.Error())
@@ -300,6 +337,56 @@ func (s *Server) Start(sendchat bool) error {
 			s.config.LoadGameConfig()
 			s.UpdatePlayerDatabase(false)
 			s.loadSectors()
+
+			// If we have a Post-Up command configured, start that script in a goroutine.
+			// We start it there, so that in the event that the script is intende to
+			// stay online, it won't block the bot from continuing.
+			if upstring := strings.TrimSpace(s.config.PostUpCommand()); upstring != "" {
+				go func() {
+					defer s.wg.Done()
+					s.wg.Add(1)
+
+					ctx, cancel := context.WithCancel(context.Background())
+
+					c := make([]string, 0)
+					// Split our arguments and add them to the args slice
+					for _, m := range regexp.MustCompile(`[^\s]+`).
+						FindAllStringSubmatch(upstring, -1) {
+						c = append(c, m[0])
+					}
+
+					postup := exec.CommandContext(ctx, c[0], c[1:]...)
+
+					// Set the environment
+					postup.Env = append(os.Environ(),
+						"SAVEPATH="+strings.TrimSuffix(s.datapath, "/")+"/"+s.name,
+						"RCONADDR="+s.rconaddr,
+						"RCONPASS="+s.rconpass,
+						sprintf("RCONPORT=%d", s.rconport))
+
+					postup.Stdout = outw
+
+					logger.LogInit(s, "Starting post-start: "+upstring)
+					if err := postup.Start(); err != nil {
+						logger.LogError(s, "Failed to start configured post-start command: "+
+							upstring)
+						logger.LogError(s, "post-start: "+err.Error())
+						cancel()
+						return
+					}
+
+					// Stop the script when we stop the game
+					select {
+					case <-s.stop:
+						cancel()
+						return
+					case <-s.close:
+						cancel()
+						return
+					}
+				}()
+			}
+
 			return nil
 
 		case <-s.close:

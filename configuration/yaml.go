@@ -14,6 +14,9 @@ type yamlDataGame struct {
 	DataDir    string `yaml:"data_dir"`
 	PingPort   int    `yaml:"ping_port"`
 	GamePort   int    `yaml:"port"`
+
+	PostUpCommand   string `yaml:"post_up_command"`
+	PostDownCommand string `yaml:"post_down_command"`
 }
 
 type yamlDataDiscord struct {

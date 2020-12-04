@@ -45,6 +45,8 @@ type IGameConfigurator interface {
 	InstallPath() string
 	LoadGameConfig() error
 	GameConfig() (*ServerGameConfig, bool)
+	PostUpCommand() string
+	PostDownCommand() string
 }
 
 // IGalaxyConfigurator describes an interface to an object that can configure a

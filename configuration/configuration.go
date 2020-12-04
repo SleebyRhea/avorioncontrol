@@ -81,6 +81,10 @@ type Conf struct {
 	gameport int
 	pingport int
 
+	// Custom Up/Down handling
+	postUpCmd   string
+	postDownCmd string
+
 	// Discord
 	token              string
 	prefix             string
@@ -202,7 +206,7 @@ func (c *Conf) Validate() error {
 }
 
 // CommandDisabled - Check if a given command is disabled
-//  @cmd string    Commmand to be checked
+//  @cmd string    Command to be checked
 func (c *Conf) CommandDisabled(cmd string) bool {
 	if len(c.disabledCommands) == 0 {
 		return false
@@ -445,6 +449,8 @@ func (c *Conf) LoadConfiguration() error {
 
 	c.enforceMods = out.Mods.Enforce
 	c.sentreact = out.Discord.SentReact
+	c.postUpCmd = out.Game.PostUpCommand
+	c.postDownCmd = out.Game.PostDownCommand
 
 	rconhost := fmt.Sprintf("[%s]\nhostname = %s\nport = %d\npassword = %s\n",
 		c.Galaxy(), c.RCONAddr(), c.RCONPort(), c.RCONPass())
@@ -476,11 +482,13 @@ func (c *Conf) SaveConfiguration() error {
 			DBName:   c.dbname},
 
 		Game: yamlDataGame{
-			GalaxyName: c.galaxyname,
-			InstallDir: c.installdir,
-			DataDir:    c.datadir,
-			GamePort:   c.gameport,
-			PingPort:   c.pingport},
+			GalaxyName:      c.galaxyname,
+			InstallDir:      c.installdir,
+			DataDir:         c.datadir,
+			GamePort:        c.gameport,
+			PingPort:        c.pingport,
+			PostUpCommand:   c.postUpCmd,
+			PostDownCommand: c.postDownCmd},
 
 		RCON: yamlDataRCON{
 			Address: c.rconaddr,
@@ -639,6 +647,18 @@ func (c *Conf) RCONAddr() string {
 // RCONPass returns the current RCON password
 func (c *Conf) RCONPass() string {
 	return c.rconpass
+}
+
+// PostUpCommand returns the command configured to be run when starting the
+// server
+func (c *Conf) PostUpCommand() string {
+	return c.postUpCmd
+}
+
+// PostDownCommand returns the command configured to be run when taking down
+// the server normally
+func (c *Conf) PostDownCommand() string {
+	return c.postDownCmd
 }
 
 /**********************************/
