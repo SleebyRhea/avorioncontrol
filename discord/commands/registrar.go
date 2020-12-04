@@ -99,7 +99,7 @@ func (reg *CommandRegistrar) Register(n, d, u string, a []CommandArgument,
 		exec:        f,
 		args:        a,
 		usage:       u,
-		loglevel:    3,
+		loglevel:    reg.Loglevel(),
 		registrar:   reg}
 
 	// Add cmdlets to owners if strings containing command names are both
