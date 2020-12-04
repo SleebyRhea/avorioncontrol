@@ -1177,12 +1177,16 @@ func (s *Server) InitializeEvents() {
 			Capture: ed.Regex,
 			Handler: func(srv ifaces.IGameServer, e *events.Event,
 				in string, oc chan string) {
+
+				logger.LogOutput(s, in)
 				logger.LogDebug(e, "Got event: "+e.FString)
 				m := e.Capture.FindStringSubmatch(in)
 				s := make([]interface{}, 0)
+
 				for _, v := range m {
 					s = append(s, v)
 				}
+
 				srv.SendLog(ifaces.ChatData{
 					Msg: sprintf(e.FString, s[1:]...)})
 			}}
