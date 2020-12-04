@@ -109,7 +109,7 @@ func main() {
 
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Printf("Panic Enountered: %v", r)
+			fmt.Printf("Panic Encountered: %v", r)
 			if server.IsUp() {
 				fmt.Printf("Attempting to shut down Avorion safely...")
 				if err := server.Stop(true); err != nil {
