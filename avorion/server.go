@@ -397,12 +397,12 @@ func (s *Server) Start(sendchat bool) error {
 					// Stop the script when we stop the game
 					select {
 					case <-s.stop:
-						logger.LogInfo(s, "Stopping PostUp script")
+						logger.LogInfo(s, "Stopping PostUp command")
 						syscall.Kill(-postup.Process.Pid, syscall.SIGTERM)
 						return
 
 					case <-s.close:
-						logger.LogInfo(s, "Stopping PostUp script")
+						logger.LogInfo(s, "Stopping PostUp command")
 						syscall.Kill(-postup.Process.Pid, syscall.SIGTERM)
 						return
 					}
