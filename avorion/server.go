@@ -262,6 +262,7 @@ func (s *Server) Start(sendchat bool) error {
 	logger.LogDebug(s, "Getting Stdout Pipe")
 	outr, outw := io.Pipe()
 	s.stdout = outr
+	s.Cmd.Stderr = outw
 	s.Cmd.Stdout = outw
 
 	// TODO: Determine what to do with Stderr. Either pipe it into a file, or setup
