@@ -35,10 +35,6 @@ var (
 	logfile *os.File
 )
 
-// func init() {
-// 	log.SetOutput(ioutil.Discard)
-// }
-
 // formatResponseCode return string formatting for the given response code
 func formatResponseHeader(r int, m string) string {
 	white := color.FgWhite.Render
