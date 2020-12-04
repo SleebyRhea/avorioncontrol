@@ -295,7 +295,7 @@ func (s *Server) Start(sendchat bool) error {
 
 				// Set the environment
 				postdown.Env = append(os.Environ(),
-					"SAVEPATH="+strings.TrimSuffix(s.datapath, "/")+"/"+s.name)
+					"SAVEPATH="+s.datapath+"/"+s.name)
 
 				ret, err := postdown.CombinedOutput()
 				if err != nil {
@@ -361,7 +361,7 @@ func (s *Server) Start(sendchat bool) error {
 					postup := exec.CommandContext(ctx, c[0], c[1:]...)
 					postup.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 					postup.Env = append(os.Environ(),
-						"SAVEPATH="+strings.TrimSuffix(s.datapath, "/")+"/"+s.name,
+						"SAVEPATH="+s.datapath+"/"+s.name,
 						"RCONADDR="+s.rconaddr,
 						"RCONPASS="+s.rconpass,
 						sprintf("RCONPORT=%d", s.rconport))
@@ -390,10 +390,7 @@ func (s *Server) Start(sendchat bool) error {
 							}
 						}()
 
-						if err := postup.Wait(); err != nil {
-							logger.LogError(s, "PostUp: "+err.Error())
-						}
-
+						postup.Wait()
 						close(fin)
 					}()
 
