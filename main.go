@@ -117,6 +117,7 @@ func main() {
 				}
 				fmt.Printf("Avorion stopped gracefully.")
 			}
+			os.Exit(1)
 		}
 	}()
 
