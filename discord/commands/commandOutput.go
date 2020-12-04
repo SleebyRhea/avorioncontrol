@@ -37,7 +37,7 @@ type CommandOutput struct {
 
 // Loglevel - Return the current loglevel for the CommandRegistrant
 func (o *CommandOutput) Loglevel() int {
-	return 3
+	return o.loglevel
 }
 
 // SetLoglevel - Set the current loglevel
@@ -179,5 +179,6 @@ func newCommandOutput(cmd *CommandRegistrant, title string) *CommandOutput {
 		Title:       title,
 		Description: cmd.description,
 		uuid:        cmd.UUID(),
-		mutable:     true}
+		mutable:     true,
+		loglevel:    cmd.Loglevel()}
 }
