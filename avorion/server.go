@@ -149,7 +149,7 @@ func New(c ifaces.IConfigurator, wg *sync.WaitGroup, exit chan struct{},
 		exit:       exit,
 		uuid:       logUUID,
 		config:     c,
-		serverpath: path,
+		serverpath: strings.TrimSuffix(path, "/"),
 		executable: cmnd,
 
 		version:  string(version),
@@ -194,8 +194,12 @@ func (s *Server) Start(sendchat bool) error {
 
 	logger.LogInit(s, "Beginning Avorion startup sequence")
 
-	if _, err := os.Stat(s.config.DataPath() + "/" + s.config.Galaxy()); os.IsNotExist(err) {
-		err := os.Mkdir(s.config.DataPath()+"/"+s.config.Galaxy(), 0700)
+	s.name = s.config.Galaxy()
+	s.datapath = strings.TrimSuffix(s.config.DataPath(), "/")
+	galaxydir := s.datapath + "/" + s.name
+
+	if _, err := os.Stat(galaxydir); os.IsNotExist(err) {
+		err := os.Mkdir(galaxydir, 0700)
 		if err != nil {
 			logger.LogError(s, "os.Mkdir: "+err.Error())
 		}
@@ -227,13 +231,11 @@ func (s *Server) Start(sendchat bool) error {
 
 	s.tracking.SetLoglevel(s.loglevel)
 	logger.LogInfo(s, "Syncing mods to data directory")
-	s.datapath = s.config.DataPath()
-	s.name = s.config.Galaxy()
 
 	s.Cmd = exec.Command(
 		s.serverpath+"/bin/"+s.executable,
 		"--galaxy-name", s.name,
-		"--datapath", s.config.DataPath(),
+		"--datapath", s.datapath,
 		"--admin", s.admin,
 		"--rcon-ip", s.config.RCONAddr(),
 		"--rcon-password", s.config.RCONPass(),
