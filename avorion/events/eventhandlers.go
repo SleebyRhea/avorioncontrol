@@ -102,7 +102,7 @@ func handleEventShipJump(srv ifaces.IGameServer, e *Event, in string,
 
 func handlePlayerChat(srv ifaces.IGameServer, e *Event, in string,
 	oc chan string) {
-	logger.LogOutput(srv, in)
+	logger.LogChat(srv, in)
 	// Catch our own discord messages
 	if discChatRe.MatchString(in) {
 		return
