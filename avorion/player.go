@@ -116,12 +116,13 @@ func (p *Player) Name() string {
 
 // Kick kicks the player
 func (p *Player) Kick(r string) {
-	p.server.RunCommand("kick " + p.Name())
+	logger.LogWarning(p, "Kicked: "+r)
+	p.server.RunCommand(sprintf(`kick %s "%s"`, p.Index(), r))
 }
 
 // Ban bans the player
 func (p *Player) Ban(r string) {
-	p.server.RunCommand("ban " + p.Name())
+	p.server.RunCommand(sprintf(`ban %s "%s"`, p.Index(), r))
 }
 
 // Online returns the current online status of the player

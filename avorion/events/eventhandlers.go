@@ -32,6 +32,10 @@ func initB() {
 		`^\s*playerLeftEvent: ([0-9]+) (.+?)\s*$`,
 		handleEventPlayerLeft)
 
+	New("EventPlayerKick",
+		`^\s*doPlayerKickEvent: ([0-9]+) (.*?)\s*$`,
+		handleEventPlayerKick)
+
 	New("EventServerLag",
 		`^\s*Server frame took over [0-9]+ seconds?\.?\s*$`,
 		handleEventServerLag)
@@ -139,6 +143,24 @@ func handleDiscordIntegrationRequest(srv ifaces.IGameServer, e *Event, in string
 	m := e.Capture.FindStringSubmatch(in)
 	srv.AddIntegrationRequest(m[1], m[2])
 	logger.LogInfo(srv, "Received Discord integration request")
+}
+
+func handleEventPlayerKick(srv ifaces.IGameServer, e *Event, in string,
+	oc chan string) {
+
+	m := e.Capture.FindStringSubmatch(in)
+	p := srv.Player(m[1])
+
+	if p == nil {
+		logger.LogError(srv, fmt.Sprintf("Failed to locate player index: %s", m[1]))
+		return
+	}
+
+	p.Kick(m[2])
+
+	srv.SendLog(ifaces.ChatData{
+		Msg: fmt.Sprintf("**Kicked player:** `%s`.\n**Reason:** _%s_",
+			p.Name(), m[2])})
 }
 
 func handleModUpdate(srv ifaces.IGameServer, e *Event, in string,
