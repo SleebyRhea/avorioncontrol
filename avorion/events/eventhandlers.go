@@ -159,7 +159,7 @@ func handleEventPlayerKick(srv ifaces.IGameServer, e *Event, in string,
 	p.Kick(m[2])
 
 	srv.SendLog(ifaces.ChatData{
-		Msg: fmt.Sprintf("**Kicked player:** `%s`.\n**Reason:** _%s_",
+		Msg: fmt.Sprintf("**Kicked Player:** `%s`\n**Reason:** _%s_",
 			p.Name(), m[2])})
 }
 
