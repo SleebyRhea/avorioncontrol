@@ -1050,8 +1050,8 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 		case <-closech:
 			return
 
-		// Check the server status every 5 minutes
-		case <-time.After(time.Second * 30):
+		// Check the server status after the configured duration of time has passed
+		case <-time.After(s.config.HangTimeDuration()):
 			if s.isrestarting || s.isstopping || s.isstarting {
 				continue
 			}
@@ -1066,9 +1066,8 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 				}
 			}
 
-		// Update our playerinfo db
-		// TODO: Move the time into the configuration object
-		case <-time.After(1 * time.Hour):
+		// Update our playerinfo db after the configured duration of time has passed
+		case <-time.After(s.config.DBUpdateTimeDuration()):
 			s.UpdatePlayerDatabase(true)
 		}
 	}

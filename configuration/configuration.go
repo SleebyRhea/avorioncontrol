@@ -38,8 +38,8 @@ const (
 	defaultGalaxyName         = "Galaxy"
 	defaultDataDirectory      = "/srv/avorion/"
 	defaultServerInstallation = "/srv/avorion/server_files/"
-	defaultTimeDatabaseUpdate = time.Minute * 60
-	defaultTimeHangCheck      = time.Minute * 5
+	defaultTimeDatabaseUpdate = int64(3600)
+	defaultTimeHangCheck      = int64(300)
 	defaultCommandPrefix      = "mention"
 	defaultStatusClear        = false
 	defaultEnforceMods        = false
@@ -67,11 +67,13 @@ type Conf struct {
 	dbname   string
 
 	// Avorion
-	galaxyname string
-	installdir string
-	datadir    string
-	logfile    string
-	gameconfig *ifaces.ServerGameConfig
+	galaxyname          string
+	installdir          string
+	datadir             string
+	logfile             string
+	gameconfig          *ifaces.ServerGameConfig
+	hangtimeseconds     int64
+	dbupdatetimeseconds int64
 
 	rconbin  string
 	rconpass string
@@ -119,9 +121,11 @@ func New() *Conf {
 		dbname:     defaultDBName,
 		galaxyname: defaultGalaxyName,
 
-		logtime:    defaultLogtime,
-		installdir: defaultServerInstallation,
-		datadir:    defaultDataDirectory,
+		logtime:             defaultLogtime,
+		installdir:          defaultServerInstallation,
+		datadir:             defaultDataDirectory,
+		dbupdatetimeseconds: defaultTimeDatabaseUpdate,
+		hangtimeseconds:     defaultTimeHangCheck,
 
 		rconbin:     defaultRconBin,
 		rconpass:    makePass(),
@@ -302,6 +306,14 @@ func (c *Conf) LoadConfiguration() error {
 
 	//TODO: Make this not a bunch of if statements
 	//TODO: Add configuration validation
+
+	if out.Game.SecondsTillDBUpdate > 0 {
+		c.dbupdatetimeseconds = out.Game.SecondsTillDBUpdate
+	}
+
+	if out.Game.SecondsTillHangCheck > 0 {
+		c.hangtimeseconds = out.Game.SecondsTillHangCheck
+	}
 
 	if !out.Core.LogTime {
 		c.logtime = false
@@ -486,13 +498,15 @@ func (c *Conf) SaveConfiguration() error {
 			DBName:   c.dbname},
 
 		Game: yamlDataGame{
-			GalaxyName:      c.galaxyname,
-			InstallDir:      c.installdir,
-			DataDir:         c.datadir,
-			GamePort:        c.gameport,
-			PingPort:        c.pingport,
-			PostUpCommand:   c.postUpCmd,
-			PostDownCommand: c.postDownCmd},
+			GalaxyName:           c.galaxyname,
+			InstallDir:           c.installdir,
+			DataDir:              c.datadir,
+			GamePort:             c.gameport,
+			PingPort:             c.pingport,
+			PostUpCommand:        c.postUpCmd,
+			PostDownCommand:      c.postDownCmd,
+			SecondsTillDBUpdate:  c.dbupdatetimeseconds,
+			SecondsTillHangCheck: c.hangtimeseconds},
 
 		RCON: yamlDataRCON{
 			Address: c.rconaddr,
@@ -663,6 +677,18 @@ func (c *Conf) PostUpCommand() string {
 // the server normally
 func (c *Conf) PostDownCommand() string {
 	return c.postDownCmd
+}
+
+// HangTimeDuration returns a time.Duration based on the configured seconds until
+// between hang checks
+func (c *Conf) HangTimeDuration() time.Duration {
+	return time.Duration(c.hangtimeseconds) * time.Second
+}
+
+// DBUpdateTimeDuration returns a time.Duration based on the configured seconds until
+// between dbupdates
+func (c *Conf) DBUpdateTimeDuration() time.Duration {
+	return time.Duration(c.dbupdatetimeseconds) * time.Second
 }
 
 /**********************************/

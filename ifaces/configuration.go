@@ -2,6 +2,7 @@ package ifaces
 
 import (
 	"avorioncontrol/logger"
+	"time"
 )
 
 // IConfigurator describes an interface to our configuration backend
@@ -47,6 +48,8 @@ type IGameConfigurator interface {
 	GameConfig() (*ServerGameConfig, bool)
 	PostUpCommand() string
 	PostDownCommand() string
+	HangTimeDuration() time.Duration
+	DBUpdateTimeDuration() time.Duration
 }
 
 // IGalaxyConfigurator describes an interface to an object that can configure a

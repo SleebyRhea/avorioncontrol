@@ -15,8 +15,10 @@ type yamlDataGame struct {
 	PingPort   int    `yaml:"ping_port"`
 	GamePort   int    `yaml:"port"`
 
-	PostUpCommand   string `yaml:"post_up_command"`
-	PostDownCommand string `yaml:"post_down_command"`
+	PostUpCommand        string `yaml:"post_up_command"`
+	PostDownCommand      string `yaml:"post_down_command"`
+	SecondsTillDBUpdate  int64  `yaml:"seconds_until_dbupdate"`
+	SecondsTillHangCheck int64  `yaml:"seconds_until_hangcheck"`
 }
 
 type yamlDataDiscord struct {
