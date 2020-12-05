@@ -36,6 +36,10 @@ func initB() {
 		`^\s*doPlayerKickEvent: ([0-9]+) (.*?)\s*$`,
 		handleEventPlayerKick)
 
+	New("EventPlayerBan",
+		`^\s*doPlayerBanEvent: ([0-9]+) (.*?)\s*$`,
+		handleEventPlayerBan)
+
 	New("EventDiscordIntegrationRequest",
 		`^\s*discordIntegrationRequestEvent: ([0-9]+) ([0-9]+)`,
 		handleDiscordIntegrationRequest)
@@ -142,12 +146,36 @@ func handleEventPlayerKick(srv ifaces.IGameServer, e *Event, in string,
 	m := e.Capture.FindStringSubmatch(in)
 	p := srv.Player(m[1])
 
+	// If the player cannot be found, we *do* still want to kick them, so just
+	// run the ban and output an error
 	if p == nil {
 		logger.LogError(srv, fmt.Sprintf("Failed to locate player index: %s", m[1]))
+		srv.RunCommand(fmt.Sprintf(`kick %s %s`, m[1], m[2]))
 		return
 	}
 
 	p.Kick(m[2])
+
+	srv.SendLog(ifaces.ChatData{
+		Msg: fmt.Sprintf("**Kicked Player:** `%s`\n**Reason:** _%s_",
+			p.Name(), m[2])})
+}
+
+func handleEventPlayerBan(srv ifaces.IGameServer, e *Event, in string,
+	oc chan string) {
+
+	m := e.Capture.FindStringSubmatch(in)
+	p := srv.Player(m[1])
+
+	// If the player cannot be found, we *do* still want to ban them, so just
+	// run the ban and output an error
+	if p == nil {
+		logger.LogError(srv, fmt.Sprintf("Failed to locate player index: %s", m[1]))
+		srv.RunCommand(fmt.Sprintf(`ban %s %s`, m[1], m[2]))
+		return
+	}
+
+	p.Ban(m[2])
 
 	srv.SendLog(ifaces.ChatData{
 		Msg: fmt.Sprintf("**Kicked Player:** `%s`\n**Reason:** _%s_",
