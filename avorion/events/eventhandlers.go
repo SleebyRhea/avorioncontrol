@@ -36,10 +36,6 @@ func initB() {
 		`^\s*doPlayerKickEvent: ([0-9]+) (.*?)\s*$`,
 		handleEventPlayerKick)
 
-	New("EventServerLag",
-		`^\s*Server frame took over [0-9]+ seconds?\.?\s*$`,
-		handleEventServerLag)
-
 	New("EventDiscordIntegrationRequest",
 		`^\s*discordIntegrationRequestEvent: ([0-9]+) ([0-9]+)`,
 		handleDiscordIntegrationRequest)
@@ -131,11 +127,6 @@ func handlePlayerChat(srv ifaces.IGameServer, e *Event, in string,
 
 func handleNilCommand(srv ifaces.IGameServer, e *Event, in string,
 	oc chan string) {
-}
-
-func handleEventServerLag(srv ifaces.IGameServer, e *Event, in string,
-	oc chan string) {
-	logger.LogWarning(srv, in)
 }
 
 func handleDiscordIntegrationRequest(srv ifaces.IGameServer, e *Event, in string,
