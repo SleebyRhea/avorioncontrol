@@ -1171,6 +1171,11 @@ func (s *Server) InitializeEvents() {
 	// Re-init our events and apply custom logged events
 	events.Initialize()
 
+	var (
+		regexPlayerIndex   = regexp.MustCompile(`^player:([0-9]+)$`)
+		regexAllianceIndex = regexp.MustCompile(`^alliance:([0-9]+)$`)
+	)
+
 	for _, ed := range s.config.GetEvents() {
 		ge := &events.Event{
 			FString: ed.FString,
@@ -1181,14 +1186,32 @@ func (s *Server) InitializeEvents() {
 				logger.LogOutput(s, in)
 				logger.LogDebug(e, "Got event: "+e.FString)
 				m := e.Capture.FindStringSubmatch(in)
-				s := make([]interface{}, 0)
+				strings := make([]interface{}, 0)
 
+				// Attempt to match against our player/alliance database and set that
+				// string to be the name of said object
 				for _, v := range m {
-					s = append(s, v)
+					switch {
+					case regexPlayerIndex.MatchString(v):
+						v = regexPlayerIndex.FindStringSubmatch(v)[1]
+						p := s.Player(v)
+						if p != nil {
+							v = p.Name()
+						}
+
+					case regexAllianceIndex.MatchString(v):
+						v = regexAllianceIndex.FindStringSubmatch(v)[1]
+						a := s.Alliance(v)
+						if a != nil {
+							v = a.Name()
+						}
+					}
+
+					strings = append(strings, v)
 				}
 
 				srv.SendLog(ifaces.ChatData{
-					Msg: sprintf(e.FString, s[1:]...)})
+					Msg: sprintf(e.FString, strings[1:]...)})
 			}}
 
 		ge.SetLoglevel(s.Loglevel())
