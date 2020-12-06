@@ -13,7 +13,7 @@ func checkHangCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	var (
 		reg = cmd.Registrar()
 		srv = reg.server
-		out = newCommandOutput(cmd, "Server Down Check")
+		out = newCommandOutput(cmd, "Server Hang Check")
 
 		state = srv.Status().Status
 	)
