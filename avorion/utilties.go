@@ -2,6 +2,7 @@ package avorion
 
 import (
 	"avorioncontrol/ifaces"
+	"os"
 	"regexp"
 )
 
@@ -64,4 +65,13 @@ func (t jumpsByTime) Less(i, j int) bool {
 
 func (t jumpsByTime) Swap(i, j int) {
 	t[i], t[j] = t[j], t[i]
+}
+
+// Check if a file exists or is a directory.
+func exists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
 }

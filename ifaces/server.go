@@ -23,11 +23,13 @@ type IServer interface {
 	IsUp() bool
 	Stop(bool) error
 	Start(bool) error
-	Status() ServerStatus
-	CompareStatus(ServerStatus, ServerStatus) bool
 	Restart() error
 	Config() IConfigurator
+	Status() ServerStatus
+	CompareStatus(ServerStatus, ServerStatus) bool
 	InitializeEvents()
+	IsCrashed() bool
+	Crashed()
 
 	logger.ILogger
 }

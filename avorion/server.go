@@ -6,7 +6,6 @@ import (
 	"avorioncontrol/discord"
 	"avorioncontrol/ifaces"
 	"avorioncontrol/logger"
-	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -114,7 +113,6 @@ type Server struct {
 
 	// Close goroutines
 	close chan struct{}
-	stop  chan struct{}
 	exit  chan struct{}
 	wg    *sync.WaitGroup
 }
@@ -176,21 +174,26 @@ func (s *Server) NotifyServer(in string) error {
 }
 
 /********************************/
-/* IFace ifaces.IGameServer */
+/* IFace ifaces.IServer */
 /********************************/
 
 // Start starts the Avorion server process
 func (s *Server) Start(sendchat bool) error {
+	logger.LogDebug(s, "Start() was called")
 	var (
 		sectors []*ifaces.Sector
 		err     error
 	)
 
+	// Catch cases where Avorion is already running
+	if s.IsUp() {
+		return errors.New("Cannot start server thats already running")
+	}
+
 	s.InitializeEvents()
 
 	defer func() { s.isstarting = false }()
 	s.isstarting = true
-	s.iscrashed = false
 
 	logger.LogInit(s, "Beginning Avorion startup sequence")
 
@@ -209,7 +212,8 @@ func (s *Server) Start(sendchat bool) error {
 		return errors.New("Failed to generate modconfig.lua file")
 	}
 
-	s.tracking, err = gamedb.New(sprintf("%s/%s", s.config.DataPath(),
+	s.tracking, err = gamedb.New(sprintf("%s/%s",
+		s.config.DataPath(),
 		s.config.DBName()))
 	if err != nil {
 		return err
@@ -254,24 +258,21 @@ func (s *Server) Start(sendchat bool) error {
 		}
 	}
 
+	// Doing this prevents errors, but is a stub
 	logger.LogDebug(s, "Getting Stdin Pipe")
 	if s.stdin, err = s.Cmd.StdinPipe(); err != nil {
 		return err
 	}
 
-	logger.LogDebug(s, "Getting Stdout Pipe")
+	// Set the STDOUT pipe, so that we can reuse that as needed later
 	outr, outw := io.Pipe()
-	s.stdout = outr
 	s.Cmd.Stderr = outw
 	s.Cmd.Stdout = outw
+	s.stdout = outr
 
-	// TODO: Determine what to do with Stderr. Either pipe it into a file, or setup
-	// sometime to process it much like Stdout. Preferably keep it out of the Stdout
-	// processing pipeline.
-	s.Cmd.Stderr = os.Stderr
-	ready := make(chan struct{})
-	s.stop = make(chan struct{})
-	s.close = make(chan struct{})
+	// Make our intercom channels
+	ready := make(chan struct{})  // Avorion is fully up
+	s.close = make(chan struct{}) // Close all goroutines
 
 	go superviseAvorionOut(s, ready, s.close)
 	go updateAvorionStatus(s, s.close)
@@ -292,19 +293,18 @@ func (s *Server) Start(sendchat bool) error {
 				ctx, downcancel := context.WithTimeout(context.Background(), time.Minute)
 				defer downcancel()
 
-				postdown := exec.CommandContext(ctx, c[0], c[1:]...)
-
 				// Set the environment
-				postdown.Env = append(os.Environ(),
-					"SAVEPATH="+s.datapath+"/"+s.name)
+				postdown := exec.CommandContext(ctx, c[0], c[1:]...)
+				postdown.Env = append(os.Environ(), "SAVEPATH="+s.datapath+"/"+s.name)
 
+				// Get the output of the PostDown command
 				ret, err := postdown.CombinedOutput()
 				if err != nil {
 					logger.LogError(s, "PostDown: "+err.Error())
 				}
 
+				// Log the output
 				out := string(ret)
-
 				if out != "" {
 					for _, line := range strings.Split(strings.TrimSuffix(out, "\n"), "\n") {
 						logger.LogInfo(s, "PostDown: "+line)
@@ -316,26 +316,18 @@ func (s *Server) Start(sendchat bool) error {
 		logger.LogInit(s, "Starting Server and waiting till ready")
 		if err := s.Cmd.Start(); err != nil {
 			logger.LogError(s, err.Error())
-			close(s.close)
 		}
 
-		for {
-			select {
-			case <-s.stop:
-				s.Cmd.Wait()
-				close(s.close)
-				return
-			case <-s.close:
-				s.Cmd.Wait()
-				close(s.stop)
-				return
-			}
-		}
+		s.Cmd.Wait()
+		logger.LogInfo(s, sprintf("Avorion has exited with status (%d)",
+			s.Cmd.ProcessState.ExitCode()))
+		close(s.close)
 	}()
 
 	for {
 		select {
 		case <-ready:
+			s.iscrashed = false
 			logger.LogInit(s, "Server is online")
 			s.config.LoadGameConfig()
 			s.UpdatePlayerDatabase(false)
@@ -405,8 +397,6 @@ func (s *Server) Start(sendchat bool) error {
 
 					// Stop the script when we stop the game
 					select {
-					case <-s.stop:
-						return
 					case <-s.close:
 						return
 					case <-s.exit:
@@ -431,6 +421,13 @@ func (s *Server) Start(sendchat bool) error {
 
 // Stop gracefully stops the Avorion process
 func (s *Server) Stop(sendchat bool) error {
+	logger.LogDebug(s, "Stop() was called")
+
+	// Dont bother issuing another stop if its already being stopped
+	if s.isstopping {
+		return nil
+	}
+
 	defer func() { s.isstopping = false }()
 	s.isstopping = true
 
@@ -439,34 +436,44 @@ func (s *Server) Stop(sendchat bool) error {
 		return nil
 	}
 
-	logger.LogOutput(s, "Stopping Avorion server and waiting for it to exit")
-
+	logger.LogInfo(s, "Stopping Avorion server and waiting for it to exit")
 	go func() {
-		s.stop <- struct{}{}
 		_, err := s.RunCommand("save")
 		if err == nil {
 			s.RunCommand("stop")
 			return
 		}
-
 		logger.LogError(s, err.Error())
 	}()
 
 	s.players = nil
+	s.onlineplayercount = 0
+	stopt := time.After(5 * time.Minute)
 
-	select {
-	case <-time.After(60 * time.Second):
-		s.Cmd.Process.Kill()
-		return errors.New("Avorion took too long to exit (killed)")
+	// If the process still exists after 5 minutes have passed kill the server
+	for {
+		select {
+		case <-stopt:
+			s.iscrashed = true
+			s.Cmd.Process.Kill()
 
-	case <-s.close:
-		logger.LogInfo(s, "Avorion server has been stopped")
-		return nil
+			// We've SIGKILL'ed the game so it *will* close, now we block
+			// until its stopped and writes have completed
+			<-s.close
+			return errors.New("Avorion took too long to exit (killed)")
+		default:
+			if !s.IsUp() {
+				logger.LogInfo(s, "Avorion server has been stopped")
+				return nil
+			}
+			time.Sleep(time.Second)
+		}
 	}
 }
 
 // Restart restarts the Avorion server
 func (s *Server) Restart() error {
+	logger.LogDebug(s, "Restart() was called")
 	if err := s.Stop(false); err != nil {
 		logger.LogError(s, err.Error())
 	}
@@ -475,6 +482,7 @@ func (s *Server) Restart() error {
 	s.isrestarting = true
 
 	if err := s.Start(false); err != nil {
+		logger.LogError(s, err.Error())
 		return err
 	}
 
@@ -484,6 +492,7 @@ func (s *Server) Restart() error {
 
 // IsUp checks whether or not the game process is running
 func (s *Server) IsUp() bool {
+	logger.LogDebug(s, "IsUp() was called")
 	if s.Cmd == nil {
 		return false
 	}
@@ -509,6 +518,7 @@ func (s *Server) Config() ifaces.IConfigurator {
 //
 // FIXME: Fix this absolute mess of a method
 func (s *Server) UpdatePlayerDatabase(notify bool) error {
+	logger.LogDebug(s, "UpdatePlayerDatabase() was called")
 	var (
 		out string
 		err error
@@ -577,6 +587,7 @@ func (s *Server) UpdatePlayerDatabase(notify bool) error {
 
 // Status returns a struct containing the current status of the server
 func (s *Server) Status() ifaces.ServerStatus {
+	logger.LogDebug(s, "Status() was called")
 	var status = ifaces.ServerOffline
 
 	switch {
@@ -616,6 +627,7 @@ func (s *Server) Status() ifaces.ServerStatus {
 // CompareStatus takes two ifaces.ServerStatus arguments and compares
 //	them. If they are equivalent, then return true. Else, false.
 func (s *Server) CompareStatus(a, b ifaces.ServerStatus) bool {
+	logger.LogDebug(s, "CompareStatus() was called")
 	if a.Name == b.Name &&
 		a.Status == b.Status &&
 		a.Players == b.Players &&
@@ -627,6 +639,16 @@ func (s *Server) CompareStatus(a, b ifaces.ServerStatus) bool {
 		return true
 	}
 	return false
+}
+
+// IsCrashed returns the current crash status of the server
+func (s *Server) IsCrashed() bool {
+	return s.iscrashed
+}
+
+// Crashed sets the server status to crashed
+func (s *Server) Crashed() {
+	s.iscrashed = true
 }
 
 /************************/
@@ -656,8 +678,8 @@ func (s *Server) SetLoglevel(l int) {
 //	TODO 1: Modify this to use the games rcon websocket interface or an rcon lib
 //	TODO 2: Modify this function to make use of permitted command levels
 func (s *Server) RunCommand(c string) (string, error) {
+	logger.LogDebug(s, sprintf(`RunCommand("%s") was called`, c))
 	if s.IsUp() {
-		logger.LogDebug(s, "Running: "+c)
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
 
@@ -1032,144 +1054,6 @@ func (s *Server) addIntegration(index, discordID string) {
 	s.RunCommand(sprintf(rconPlayerDiscord, index, discordID))
 }
 
-/**************/
-/* Goroutines */
-/**************/
-
-// updateAvorionStatus is the goroutine responsible for making sure that the
-// server is still accessible, and restarting it when needed. In addition, this
-// goroutine also updates various server related data values at set intervals
-func updateAvorionStatus(s *Server, closech chan struct{}) {
-	defer s.wg.Done()
-	s.wg.Add(1)
-
-	logger.LogInit(s, "Starting status supervisor")
-	for {
-		// Close the routine gracefully
-		select {
-		case <-s.exit:
-			if err := s.Stop(false); err != nil {
-				logger.LogError(s, err.Error())
-			}
-			return
-		case <-closech:
-			return
-
-		// Check the server status after the configured duration of time has passed
-		case <-time.After(s.config.HangTimeDuration()):
-			if s.isrestarting || s.isstopping || s.isstarting {
-				continue
-			}
-
-			if _, err := s.RunCommand("status"); err != nil {
-				s.iscrashed = true
-				logger.LogError(s, err.Error())
-				if err := s.Restart(); err != nil {
-					logger.LogError(s, err.Error())
-				} else {
-					s.iscrashed = false
-				}
-			}
-
-		// Update our playerinfo db after the configured duration of time has passed
-		case <-time.After(s.config.DBUpdateTimeDuration()):
-			s.UpdatePlayerDatabase(true)
-		}
-	}
-}
-
-// superviseAvorionOut watches the output provided by the Avorion process and
-// applies the applicable eventHandler for the output recieved. This routine is
-// also responsible for sending the stdout of Avorion to the output channel
-// to be processed by our websocket handler.
-func superviseAvorionOut(s *Server, ready chan struct{},
-	closech chan struct{}) {
-
-	logger.LogInit(s, "Started Avorion stdout supervisor")
-	scanner := bufio.NewScanner(s.stdout)
-	pch := make(chan string, 0) // Player Login
-
-	// TODO: Move the scanner.Scan() loop into a goroutine.
-	for scanner.Scan() {
-		out := scanner.Text()
-
-		select {
-		// Exit gracefully
-		case <-closech:
-			return
-
-		// Once we're ready, start processing logs.
-		case <-ready:
-			e := events.GetFromString(out)
-
-			if e == nil {
-				logger.LogOutput(s, out)
-				continue
-			}
-
-			switch e.Name() {
-			case "EventPlayerInfo":
-				e.Handler(s, e, out, pch)
-			default:
-				e.Handler(s, e, out, nil)
-			}
-
-		// Output as INIT until the server is ready
-		default:
-			switch out {
-			case "Server startup complete.":
-				logger.LogInit(s, "Avorion server initialization completed")
-				close(ready)
-
-			case "Server startup FAILED.":
-				s.iscrashed = true
-
-			case "Server shutdown successful.":
-				logger.LogError(s, "Avorion server failed to initialize")
-				close(closech)
-
-			default:
-				e := events.GetFromString(out)
-				if e == nil {
-					continue
-				}
-				e.Handler(s, e, out, nil)
-			}
-		}
-	}
-}
-
-// TODO: Make this less godawful
-func (s *Server) loadSectors() {
-	for _, x := range s.sectors {
-		for _, sec := range x {
-			for _, j := range sec.Jumphistory {
-				for _, p := range s.players {
-					if p.Index() == strconv.FormatInt(int64(j.FID), 10) {
-						p.jumphistory = append(p.jumphistory, ifaces.ShipCoordData{
-							X: j.X, Y: j.Y, Name: j.Name, Time: j.Time})
-					}
-				}
-
-				for _, a := range s.alliances {
-					if a.Index() == strconv.FormatInt(int64(j.FID), 10) {
-						a.jumphistory = append(a.jumphistory, ifaces.ShipCoordData{
-							X: j.X, Y: j.Y, Name: j.Name, Time: j.Time})
-					}
-				}
-			}
-		}
-	}
-
-	for _, p := range s.players {
-		sort.Sort(jumpsByTime(p.jumphistory))
-	}
-
-	for _, a := range s.alliances {
-		sort.Sort(jumpsByTime(a.jumphistory))
-	}
-}
-
 // InitializeEvents runs the event initializer
 func (s *Server) InitializeEvents() {
 	// Re-init our events and apply custom logged events
@@ -1236,11 +1120,33 @@ func (s *Server) InitializeEvents() {
 	logger.LogInit(s, "Completed event registration")
 }
 
-// Check if a file exists or is a directory.
-func exists(filename string) bool {
-	info, err := os.Stat(filename)
-	if os.IsNotExist(err) {
-		return false
+// TODO: Make this less godawful
+func (s *Server) loadSectors() {
+	for _, x := range s.sectors {
+		for _, sec := range x {
+			for _, j := range sec.Jumphistory {
+				for _, p := range s.players {
+					if p.Index() == strconv.FormatInt(int64(j.FID), 10) {
+						p.jumphistory = append(p.jumphistory, ifaces.ShipCoordData{
+							X: j.X, Y: j.Y, Name: j.Name, Time: j.Time})
+					}
+				}
+
+				for _, a := range s.alliances {
+					if a.Index() == strconv.FormatInt(int64(j.FID), 10) {
+						a.jumphistory = append(a.jumphistory, ifaces.ShipCoordData{
+							X: j.X, Y: j.Y, Name: j.Name, Time: j.Time})
+					}
+				}
+			}
+		}
 	}
-	return !info.IsDir()
+
+	for _, p := range s.players {
+		sort.Sort(jumpsByTime(p.jumphistory))
+	}
+
+	for _, a := range s.alliances {
+		sort.Sort(jumpsByTime(a.jumphistory))
+	}
 }

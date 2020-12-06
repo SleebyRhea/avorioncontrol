@@ -54,6 +54,7 @@ func checkHangCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 		_, err := srv.RunCommand(`echo Testing server state`)
 		if err != nil {
 			go func() { srv.Restart(); checkingState = false }()
+			srv.Crashed()
 			out.AddLine("Server is hanging or is down, starting restart process")
 		} else {
 			out.AddLine("Server is online")
