@@ -46,30 +46,6 @@ func init() {
 	}
 }
 
-// Core only exists for logging purposes, and contains no other state
-type Core struct {
-	loglevel int
-}
-
-/************************/
-/* IFace logger.ILogger */
-/************************/
-
-// UUID returns the UUID of an alliance
-func (c *Core) UUID() string {
-	return fmt.Sprintf("Core")
-}
-
-// Loglevel returns the loglevel of an alliance
-func (c *Core) Loglevel() int {
-	return config.Loglevel()
-}
-
-// SetLoglevel sets the loglevel of an alliance
-func (c *Core) SetLoglevel(l int) {
-	config.SetLoglevel(l)
-}
-
 func main() {
 	var wg sync.WaitGroup
 
@@ -91,16 +67,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := config.Validate(); err != nil {
+		log.Fatal(err)
+	}
+
 	sc := make(chan os.Signal, 1)
 	exit := make(chan struct{})
 
 	core = &Core{loglevel: config.Loglevel()}
 	server = avorion.New(config, &wg, exit)
 	disbot = discord.New(config, &wg, exit)
-
-	if err := config.Validate(); err != nil {
-		log.Fatal(err)
-	}
 
 	// We start this early to prevent an errant os.Interrupt from leaving the
 	// AvorionServer process running.
