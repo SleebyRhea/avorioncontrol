@@ -388,6 +388,7 @@ func (s *Server) Start(sendchat bool) error {
 								return
 							case <-time.After(time.Minute):
 								syscall.Kill(-postup.Process.Pid, syscall.SIGKILL)
+								return
 							}
 						}()
 
