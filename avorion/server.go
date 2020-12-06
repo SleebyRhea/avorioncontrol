@@ -346,9 +346,6 @@ func (s *Server) Start(sendchat bool) error {
 			// stay online, it won't block the bot from continuing.
 			if upstring := strings.TrimSpace(s.config.PostUpCommand()); upstring != "" {
 				go func() {
-					s.wg.Add(1)
-					defer s.wg.Done()
-
 					ctx, cancel := context.WithCancel(context.Background())
 					defer cancel()
 
@@ -376,36 +373,43 @@ func (s *Server) Start(sendchat bool) error {
 						logger.LogError(s, "Failed to start configured PostUp command: "+
 							upstring)
 						logger.LogError(s, "PostUp: "+err.Error())
+						postup = nil
 						return
 					}
 
 					defer func() {
-						fin := make(chan struct{})
+						if postup.ProcessState == nil && postup.Process != nil {
+							s.wg.Add(1)
+							defer s.wg.Done()
+							syscall.Kill(-postup.Process.Pid, syscall.SIGTERM)
 
-						go func() {
+							fin := make(chan struct{})
+							logger.LogInfo(s, "Waiting for PostUp to stop")
+
+							go func() {
+								postup.Wait()
+								close(fin)
+							}()
+
 							select {
 							case <-fin:
+								logger.LogInfo(s, "PostUp command stopped")
 								return
 							case <-time.After(time.Minute):
+								logger.LogError(s, "Sending kill to PostUp")
 								syscall.Kill(-postup.Process.Pid, syscall.SIGKILL)
 								return
 							}
-						}()
-
-						postup.Wait()
-						close(fin)
+						}
 					}()
 
 					// Stop the script when we stop the game
 					select {
 					case <-s.stop:
-						logger.LogInfo(s, "Stopping PostUp command")
-						syscall.Kill(-postup.Process.Pid, syscall.SIGTERM)
 						return
-
 					case <-s.close:
-						logger.LogInfo(s, "Stopping PostUp command")
-						syscall.Kill(-postup.Process.Pid, syscall.SIGTERM)
+						return
+					case <-s.exit:
 						return
 					}
 				}()
