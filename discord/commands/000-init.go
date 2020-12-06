@@ -276,4 +276,10 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 		"showonline",
 		make([]CommandArgument, 0),
 		showOnlinePlayersCmnd)
+
+	r.Register("checkhang",
+		"Checks whether or not the server is online and restarts it if it is hanging",
+		"checkhang",
+		make([]CommandArgument, 0),
+		checkHangCmnd)
 }
