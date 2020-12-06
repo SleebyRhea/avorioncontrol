@@ -588,22 +588,6 @@ func (s *Server) UpdatePlayerDatabase(notify bool) error {
 // Status returns a struct containing the current status of the server
 func (s *Server) Status() ifaces.ServerStatus {
 	logger.LogDebug(s, "Status() was called")
-	var status = ifaces.ServerOffline
-
-	switch {
-	case s.isrestarting:
-		status = ifaces.ServerRestarting
-	case s.isstopping:
-		status = ifaces.ServerStopping
-	case s.isstarting:
-		status = ifaces.ServerStarting
-	case s.IsUp():
-		status = ifaces.ServerOnline
-	}
-
-	if s.iscrashed {
-		status = ifaces.ServerCrashedOffline + status
-	}
 
 	name := s.name
 	if name == "" {
@@ -614,7 +598,7 @@ func (s *Server) Status() ifaces.ServerStatus {
 
 	return ifaces.ServerStatus{
 		Name:          name,
-		Status:        status,
+		Status:        s.statusInt(),
 		Players:       s.onlineplayers,
 		TotalPlayers:  s.playercount,
 		PlayersOnline: s.onlineplayercount,
@@ -1149,4 +1133,25 @@ func (s *Server) loadSectors() {
 	for _, a := range s.alliances {
 		sort.Sort(jumpsByTime(a.jumphistory))
 	}
+}
+
+func (s *Server) statusInt() int {
+	var status = ifaces.ServerOffline
+
+	switch {
+	case s.isrestarting:
+		status = ifaces.ServerRestarting
+	case s.isstopping:
+		status = ifaces.ServerStopping
+	case s.isstarting:
+		status = ifaces.ServerStarting
+	case s.IsUp():
+		status = ifaces.ServerOnline
+	}
+
+	if s.iscrashed {
+		status = ifaces.ServerCrashedOffline + status
+	}
+
+	return status
 }
