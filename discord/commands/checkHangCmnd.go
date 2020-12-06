@@ -20,37 +20,28 @@ func checkHangCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 
 	out.Quoted = true
 
-	if checkingState {
+	switch {
+	case checkingState:
 		out.AddLine("Already checking server state")
 		out.Construct()
 		return out, nil
-	}
-
-	if state == ifaces.ServerOffline {
+	case state == ifaces.ServerOffline:
 		out.AddLine("Server is currently offline, and was taken down normally")
 		out.Construct()
 		return out, nil
-	}
-
-	if state >= ifaces.ServerCrashedOffline {
+	case state >= ifaces.ServerCrashedOffline:
 		out.AddLine("Server crash state has already been detected")
 		out.Construct()
 		return out, nil
-	}
-
-	if state == ifaces.ServerStarting {
+	case state == ifaces.ServerStarting:
 		out.AddLine("Server is currently being started")
 		out.Construct()
 		return out, nil
-	}
-
-	if state == ifaces.ServerRestarting {
+	case state == ifaces.ServerRestarting:
 		out.AddLine("Server is currently being restarted")
 		out.Construct()
 		return out, nil
-	}
-
-	if state == ifaces.ServerStopping {
+	case state == ifaces.ServerStopping:
 		out.AddLine("Server is being stopped")
 		out.Construct()
 		return out, nil
