@@ -23,32 +23,6 @@ const (
 )
 
 func init() {
-	// https://www.spycolor.com/web-safe-colors
-	embedStatusColors = make(map[int]int, 0)
-	embedStatusStrings = make(map[int]string, 0)
-
-	embedStatusColors[ifaces.ServerOffline] = 16711680
-	embedStatusColors[ifaces.ServerOnline] = 6749952
-	embedStatusColors[ifaces.ServerStarting] = 3381759
-	embedStatusColors[ifaces.ServerStopping] = 16776960
-	embedStatusColors[ifaces.ServerRestarting] = 3381759
-	embedStatusColors[ifaces.ServerCrashedOffline] = 15158332
-	embedStatusColors[ifaces.ServerCrashedRecovered] = 15158332
-	embedStatusColors[ifaces.ServerCrashedStarting] = 15158332
-	embedStatusColors[ifaces.ServerCrashedStopping] = 15158332
-	embedStatusColors[ifaces.ServerCrashedRestarting] = 15158332
-
-	embedStatusStrings[ifaces.ServerOffline] = "Offline"
-	embedStatusStrings[ifaces.ServerOnline] = "Online"
-	embedStatusStrings[ifaces.ServerStarting] = "Initializing"
-	embedStatusStrings[ifaces.ServerStopping] = "Stopping"
-	embedStatusStrings[ifaces.ServerRestarting] = "Re-Initializing"
-	embedStatusStrings[ifaces.ServerCrashedOffline] = "Crashed (Dead)"
-	embedStatusStrings[ifaces.ServerCrashedRecovered] = "Crashed (Recovered)"
-	embedStatusStrings[ifaces.ServerCrashedStarting] = "Crashed (Recovering)"
-	embedStatusStrings[ifaces.ServerCrashedStopping] = "Crashed (Attempting Graceful Exit)"
-	embedStatusStrings[ifaces.ServerCrashedRestarting] = "Crashed (Restarting)"
-
 	configOneFieldTemplate = "> • **Version**: _%s_\n" +
 		"> • **Seed**: _%s_\n" +
 		"> \n" +
@@ -78,7 +52,6 @@ func init() {
 func generateEmbedStatus(s ifaces.ServerStatus, tz *time.Location) *discordgo.MessageEmbed {
 	var (
 		color          int
-		ok             bool
 		stat           string
 		statusField    *discordgo.MessageEmbedField
 		galaxyField    *discordgo.MessageEmbedField
@@ -102,13 +75,7 @@ func generateEmbedStatus(s ifaces.ServerStatus, tz *time.Location) *discordgo.Me
 		aMaxStations = int64(0)
 	)
 
-	if color, ok = embedStatusColors[s.Status]; !ok {
-		color = embedStatusColors[ifaces.ServerCrashedOffline]
-	}
-
-	if stat, ok = embedStatusStrings[s.Status]; !ok {
-		stat = "Invalid Server Status"
-	}
+	stat, color = ifaces.State(s.Status)
 
 	embed := discordgo.MessageEmbed{
 		Type:      discordgo.EmbedTypeRich,
