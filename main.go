@@ -139,7 +139,9 @@ func main() {
 		case syscall.SIGUSR1:
 			logger.LogInfo(core, "Caught SIGUSR1, performing server reload+restart")
 			config.LoadConfiguration()
-			server.Restart()
+			if err := server.Restart(); err != nil {
+				logger.LogError(server, err.Error())
+			}
 		}
 	}
 }
