@@ -22,7 +22,6 @@ import (
 	"syscall"
 	"time"
 
-	// This import overrides the copy function which is undesirable
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -51,10 +50,18 @@ var (
 	regexpDiscordPin = regexp.MustCompile(regexIntegration)
 )
 
+// RunState describes the current state of commands being run
+type RunState struct {
+	mu    *sync.Mutex
+	state bool
+}
+
 // Server - Avorion server definition
 type Server struct {
 	ifaces.IGameServer
-	mu *sync.Mutex
+
+	startmu  *sync.Mutex
+	runstate *RunState
 
 	// Execution variables
 	Cmd        *exec.Cmd
@@ -145,7 +152,8 @@ func New(c ifaces.IConfigurator, wg *sync.WaitGroup, exit chan struct{},
 
 	s := &Server{
 		wg:         wg,
-		mu:         new(sync.Mutex),
+		startmu:    new(sync.Mutex),
+		runstate:   &RunState{mu: new(sync.Mutex)},
 		exit:       exit,
 		uuid:       logUUID,
 		config:     c,
@@ -182,9 +190,14 @@ func (s *Server) NotifyServer(in string) error {
 // Start starts the Avorion server process
 func (s *Server) Start(sendchat bool) error {
 	logger.LogDebug(s, "Start() was called")
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	
+	s.startmu.Lock()
+	logger.LogDebug(s, "Start() is locking Avorion command state")
+
+	defer func() {
+		s.startmu.Unlock()
+		logger.LogDebug(s, "Unlocked Avorion state from Start()")
+	}()
+
 	var (
 		sectors []*ifaces.Sector
 		err     error
@@ -685,6 +698,17 @@ func (s *Server) SetLoglevel(l int) {
 //	TODO 2: Modify this function to make use of permitted command levels
 func (s *Server) RunCommand(c string) (string, error) {
 	logger.LogDebug(s, sprintf(`RunCommand("%s") was called`, c))
+
+	s.runstate.mu.Lock()
+	s.runstate.state = true
+	logger.LogDebug(s, sprintf("RunCommand(%s) locking", c))
+
+	defer func() {
+		s.runstate.state = false
+		s.runstate.mu.Unlock()
+		logger.LogDebug(s, sprintf("Unlocking RunCommand(%s)", c))
+	}()
+
 	if s.IsUp() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
