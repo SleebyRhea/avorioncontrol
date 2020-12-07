@@ -27,7 +27,7 @@ func GenerateOutputEmbed(out *CommandOutput, page *Page) (*discordgo.MessageEmbe
 		return nil, false, false
 	}
 
-	_, m := out.Index()
+	i, m := out.Index()
 	p, n := false, false
 	output := "Output"
 
@@ -43,8 +43,9 @@ func GenerateOutputEmbed(out *CommandOutput, page *Page) (*discordgo.MessageEmbe
 		n = true
 	}
 
-	if m != 1 {
-		output = sprintf("%s (%d of %d)", output, out.current+1, m)
+	logger.LogDebug(out, sprintf("Generating embed for page %d of %d", i, m))
+	if m > 0 {
+		output = sprintf("%s (%d of %d)", output, i+1, m+1)
 	}
 
 	var embed = &discordgo.MessageEmbed{
@@ -64,6 +65,17 @@ func GenerateOutputEmbed(out *CommandOutput, page *Page) (*discordgo.MessageEmbe
 		Value:  page.Content,
 		Inline: false,
 	})
+
+	// Only process this codepath during debug mode
+	if out.Loglevel() > 2 {
+		logger.LogDebug(out,
+			sprintf("Generated Embed with the following data fields:\n"+
+				"\tF1.Name:\"%s\"\n"+
+				"\tF1.Value:\"%s\"\n"+
+				"\tF2.Name:\"%s\"\n"+
+				"\tF2.Value:\"%s\"\n",
+				out.Title, out.Description, output, page.Content))
+	}
 
 	return embed, p, n
 }
@@ -103,8 +115,15 @@ func CreatePagedEmbed(out *CommandOutput, s *discordgo.Session,
 		m, _ := s.ChannelMessage(cid, uid)
 		if m != nil {
 			embed.Footer = &discordgo.MessageEmbedFooter{Text: "(expired)"}
-			s.ChannelMessageEditEmbed(cid, uid, embed)
-			s.MessageReactionsRemoveAll(cid, uid)
+			_, err := s.ChannelMessageEditEmbed(cid, uid, embed)
+			if err != nil {
+				logger.LogError(out, "discordgo: "+err.Error())
+			}
+
+			if err = s.MessageReactionsRemoveAll(cid, uid); err != nil {
+				logger.LogError(out, "discordgo: "+err.Error())
+			}
+
 			out = nil
 		}
 	}()
@@ -157,8 +176,15 @@ func CreatePagedEmbed(out *CommandOutput, s *discordgo.Session,
 				logger.LogDebug(out, "Found emoji: "+r.Emoji.Name)
 				if r.Emoji.MessageFormat() == nextReact && r.Count > 1 && r.Me {
 					embed, doP, doN = GenerateOutputEmbed(out, out.NextPage())
-					s.ChannelMessageEditEmbed(cid, uid, embed)
-					s.MessageReactionsRemoveAll(cid, uid)
+					_, err := s.ChannelMessageEditEmbed(cid, uid, embed)
+					if err != nil {
+						logger.LogError(out, "discordgo: "+err.Error())
+					}
+
+					err = s.MessageReactionsRemoveAll(cid, uid)
+					if err != nil {
+						logger.LogError(out, "discordgo: "+err.Error())
+					}
 
 					if doP {
 						s.MessageReactionAdd(cid, uid, prevReact)
@@ -171,8 +197,15 @@ func CreatePagedEmbed(out *CommandOutput, s *discordgo.Session,
 					inactive.Reset(time.Minute)
 				} else if r.Emoji.MessageFormat() == prevReact && r.Count > 1 && r.Me {
 					embed, doP, doN = GenerateOutputEmbed(out, out.PreviousPage())
-					s.ChannelMessageEditEmbed(cid, uid, embed)
-					s.MessageReactionsRemoveAll(cid, uid)
+					_, err := s.ChannelMessageEditEmbed(cid, uid, embed)
+					if err != nil {
+						logger.LogError(out, "discordgo: "+err.Error())
+					}
+
+					err = s.MessageReactionsRemoveAll(cid, uid)
+					if err != nil {
+						logger.LogError(out, "discordgo: "+err.Error())
+					}
 
 					if doP {
 						s.MessageReactionAdd(cid, uid, prevReact)

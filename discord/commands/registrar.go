@@ -251,7 +251,7 @@ func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
 		s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
 		if out != nil {
 			// Get the number of pages and use that to determine if we need a pager
-			if _, max := out.Index(); max > 1 {
+			if _, max := out.Index(); max > 0 {
 				if len(reg.embeds) > 4 {
 					close(reg.embeds[0])
 					reg.embeds[0] = nil
@@ -261,8 +261,10 @@ func (reg *CommandRegistrar) ProcessCommand(s *discordgo.Session,
 				expirech := make(chan struct{})
 				reg.embeds = append(reg.embeds, expirech)
 
+				logger.LogDebug(reg, "Starting a multipage embed goroutine")
 				go CreatePagedEmbed(out, s, m, expirech, exitch)
 			} else {
+				logger.LogDebug(reg, "Generating a single page embed")
 				embed, _, _ := GenerateOutputEmbed(out, out.ThisPage())
 				if _, err := s.ChannelMessageSendEmbed(m.ChannelID, embed); err != nil {
 					logger.LogError(cmd, "discordgo: "+err.Error())

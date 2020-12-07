@@ -83,6 +83,7 @@ func (o *CommandOutput) NextPage() *Page {
 		o.next = o.pages[o.current+1]
 	}
 
+	logger.LogDebug(o, sprintf("Returning page %d", o.current))
 	return page
 }
 
@@ -104,6 +105,7 @@ func (o *CommandOutput) PreviousPage() *Page {
 		o.last = o.pages[o.current]
 	}
 
+	logger.LogDebug(o, sprintf("Returning page %d", o.current))
 	return page
 }
 
@@ -125,8 +127,7 @@ func (o *CommandOutput) Construct() {
 		prefix += "> "
 	}
 
-	for _, line := range o.lines {
-		logger.LogDebug(o, sprintf("Adding line to page %d: "+line, i))
+	for lineIndex, line := range o.lines {
 		if o.pages[i].Content == "" && o.Monospace {
 			o.pages[i].Content = prefix + "```\n"
 		}
@@ -139,8 +140,10 @@ func (o *CommandOutput) Construct() {
 			}
 
 			i++
-			o.pages = append(o.pages, &Page{Index: i})
+			o.pages = append(o.pages, &Page{Content: prefix + line + "\n", Index: i})
 		}
+
+		logger.LogDebug(o, sprintf("Added line %d to page %d: "+line, lineIndex, i))
 	}
 
 	logger.LogDebug(o, sprintf("Processed %d lines", len(o.lines)))
@@ -168,9 +171,9 @@ func (o *CommandOutput) RemoveLine() {
 	}
 }
 
-// Index returns the current index, and the max page count
+// Index returns the current index, and the max page index
 func (o *CommandOutput) Index() (int, int) {
-	return o.current + 1, len(o.pages)
+	return o.current, len(o.pages) - 1
 }
 
 func newCommandOutput(cmd *CommandRegistrant, title string) *CommandOutput {
