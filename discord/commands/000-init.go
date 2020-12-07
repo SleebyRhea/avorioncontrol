@@ -86,7 +86,7 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 		getJumpsCmnd)
 
 	r.Register("getcoordhistory",
-		"Get all of the logged jumps made to a sector (IN DEV)",
+		"Get all of the logged jumps made to a sector",
 		"getcoordhistory <x:y> <x:y> ...",
 		[]CommandArgument{
 			arg("x", "x coordinate for a Sector"),
