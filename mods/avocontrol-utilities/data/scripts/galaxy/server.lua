@@ -11,19 +11,15 @@
 ]]
 
 -- Create our own login event output for more reliable tracking
-vanillaOnPlayerLogIn = onPlayerLogIn
-function onPlayerLogIn(playerIndex)
-  vanillaOnPlayerLogIn(playerIndex)
-
+function onPlayerLogIn_AvoControl(playerIndex)
   local p = Player(playerIndex)
   print("playerJoinEvent: ${i} ${n}"%_T % {i=p.index, n=p.name})
 end
 
--- Create our own logoff event output for more reliable tracking
-vanillaOnPlayerLogOff = onPlayerLogOff
-function onPlayerLogOff(playerIndex)
-  vanillaOnPlayerLogOff(playerIndex)
-
+function onPlayerLogOff_AvoControl(playerIndex)
   local p = Player(playerIndex)
   print("playerLeftEvent: ${i} ${n}"%_T % {i=p.index, n=p.name})
 end
+
+Server():registerCallback("onPlayerLogIn", "onPlayerLogIn_AvoControl")
+Server():registerCallback("onPlayerLogOff", "onPlayerLogOff_AvoControl")
