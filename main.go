@@ -102,7 +102,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	logger.LogInit(server, "Completed init, awaiting termination signal.")
+	logger.LogInit(core, "Completed init, awaiting termination signal.")
 	for sig := range sc {
 		switch sig {
 		case os.Interrupt, syscall.SIGTERM:
