@@ -938,11 +938,6 @@ func (s *Server) updateOnlineString() {
 /* IFace ifaces.IDiscordIntegratedServer */
 /*****************************************/
 
-// DCOutput returns the chan that is used to output to Discord
-func (s *Server) DCOutput() chan ifaces.ChatData {
-	return s.chatout
-}
-
 // AddIntegrationRequest registers a request by a player for Discord integration
 // TODO: Move this to our sqlite DB
 func (s *Server) AddIntegrationRequest(index, pin string) {
