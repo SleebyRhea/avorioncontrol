@@ -321,6 +321,9 @@ func (s *Server) Start(sendchat bool) error {
 		s.Cmd.Wait()
 		logger.LogInfo(s, sprintf("Avorion has exited with status (%d)",
 			s.Cmd.ProcessState.ExitCode()))
+		if s.Cmd.ProcessState.ExitCode() != 0 {
+			s.Crashed()
+		}
 		close(s.close)
 	}()
 
@@ -451,23 +454,20 @@ func (s *Server) Stop(sendchat bool) error {
 	stopt := time.After(5 * time.Minute)
 
 	// If the process still exists after 5 minutes have passed kill the server
-	for {
-		select {
-		case <-stopt:
-			s.iscrashed = true
-			s.Cmd.Process.Kill()
+	// We've SIGKILL'ed the game so it *will* close, so we block until its dead
+	// and writes have completed
+	select {
+	case <-stopt:
+		s.iscrashed = true
+		s.Cmd.Process.Kill()
+		<-s.close
+		return errors.New("Avorion took too long to exit and had to be killed")
 
-			// We've SIGKILL'ed the game so it *will* close, now we block
-			// until its stopped and writes have completed
-			<-s.close
-			return errors.New("Avorion took too long to exit (killed)")
-		default:
-			if !s.IsUp() {
-				logger.LogInfo(s, "Avorion server has been stopped")
-				return nil
-			}
-			time.Sleep(time.Second)
-		}
+	// The closer channel will unblock when its closed by Avorions exit, so we can
+	// use that to safely detect when this function has completed
+	case <-s.close:
+		logger.LogInfo(s, "Avorion server has been stopped")
+		return nil
 	}
 }
 

@@ -2,6 +2,7 @@ package commands
 
 import (
 	"avorioncontrol/ifaces"
+	"strings"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -29,8 +30,8 @@ func checkHangCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 		out.AddLine("Server is currently offline, and was taken down normally")
 		out.Construct()
 		return out, nil
-	case state >= ifaces.ServerCrashedOffline:
-		out.AddLine("Server crash state has already been detected")
+	case state > ifaces.ServerCrashedOffline:
+		out.AddLine("Server crash state has already been detected, and is recovering")
 		out.Construct()
 		return out, nil
 	case state == ifaces.ServerStarting:
@@ -47,18 +48,28 @@ func checkHangCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 		return out, nil
 	}
 
-	if srv.IsUp() && state == ifaces.ServerOnline {
+	if srv.IsUp() || state == ifaces.ServerCrashedOffline {
 		checkingState = true
 		s.ChannelMessageSend(m.ChannelID, "Checking server state "+
 			"(if its hanging this will take some time)")
-		_, err := srv.RunCommand(`echo Testing server state`)
+
+		// players should always return output, so we use that as a secondary check
+		// TODO: Might not be a bad idea to add a (very) simple syn/ack command to
+		// the game for this purpose
+		output, err := srv.RunCommand(`players`)
 		if err != nil {
 			go func() { srv.Restart(); checkingState = false }()
 			srv.Crashed()
 			out.AddLine("Server is hanging or is down, starting restart process")
 		} else {
-			out.AddLine("Server is online")
-			checkingState = false
+			if strings.TrimSpace(output) == `` {
+				go func() { srv.Restart(); checkingState = false }()
+				srv.Crashed()
+				out.AddLine("Server is hanging or is down, starting restart process")
+			} else {
+				out.AddLine("Server is online")
+				checkingState = false
+			}
 		}
 	} else {
 		out.AddLine("Server is currently offline")
