@@ -1,7 +1,5 @@
 package main
 
-import "fmt"
-
 // Core only exists for logging purposes, and contains no other state
 type Core struct {
 	loglevel int
@@ -13,7 +11,7 @@ type Core struct {
 
 // UUID returns the UUID of an alliance
 func (c *Core) UUID() string {
-	return fmt.Sprintf("Core")
+	return "Core"
 }
 
 // Loglevel returns the loglevel of an alliance
