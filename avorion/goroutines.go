@@ -28,6 +28,14 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 			return
 
 		case <-closech:
+			if !s.isstopping && !s.isrestarting && !s.isstarting {
+				s.Crashed()
+				s.isrestarting = true
+				for !s.IsUp() {
+					logger.LogWarning(s, "Avorion server exitted abnormally, restarting")
+					s.Start(false)
+				}
+			}
 			return
 
 		// Check the server status after the configured duration of time has passed

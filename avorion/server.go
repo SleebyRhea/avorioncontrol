@@ -319,10 +319,14 @@ func (s *Server) Start(sendchat bool) error {
 		}
 
 		s.Cmd.Wait()
-		logger.LogInfo(s, sprintf("Avorion has exited with status (%d)",
+		logger.LogInfo(s, sprintf("Avorion exited with status code (%d)",
 			s.Cmd.ProcessState.ExitCode()))
-		if s.Cmd.ProcessState.ExitCode() != 0 {
+		code := s.Cmd.ProcessState.ExitCode()
+		if code != 0 {
 			s.Crashed()
+			s.SendLog(ifaces.ChatData{Msg: sprintf(
+				"**Server Error**: Avorion has exitted with non-zero status code: `%d`",
+				code)})
 		}
 		close(s.close)
 	}()
