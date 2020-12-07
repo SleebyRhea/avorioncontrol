@@ -23,6 +23,7 @@ func init() {
 func GenerateOutputEmbed(out *CommandOutput, page *Page) (*discordgo.MessageEmbed, bool, bool) {
 	if out == nil || page == nil {
 		log.Output(0, "Attempt to use GenerateOutputEmbed without out or page")
+		log.Output(0, "Please check channel permissions")
 		return nil, false, false
 	}
 
@@ -87,6 +88,10 @@ func CreatePagedEmbed(out *CommandOutput, s *discordgo.Session,
 	// Initial embed, and reactions
 	embed, doP, doN := GenerateOutputEmbed(out, out.ThisPage())
 	u, err := s.ChannelMessageSendEmbed(m.ChannelID, embed)
+	if err != nil {
+		logger.LogError(out, "discordgo: "+err.Error())
+		return
+	}
 
 	cid := u.ChannelID
 	uid := u.ID
