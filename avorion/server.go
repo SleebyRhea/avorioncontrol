@@ -54,6 +54,7 @@ var (
 // Server - Avorion server definition
 type Server struct {
 	ifaces.IGameServer
+	mu *sync.Mutex
 
 	// Execution variables
 	Cmd        *exec.Cmd
@@ -144,6 +145,7 @@ func New(c ifaces.IConfigurator, wg *sync.WaitGroup, exit chan struct{},
 
 	s := &Server{
 		wg:         wg,
+		mu:         new(sync.Mutex),
 		exit:       exit,
 		uuid:       logUUID,
 		config:     c,
@@ -180,6 +182,9 @@ func (s *Server) NotifyServer(in string) error {
 // Start starts the Avorion server process
 func (s *Server) Start(sendchat bool) error {
 	logger.LogDebug(s, "Start() was called")
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	
 	var (
 		sectors []*ifaces.Sector
 		err     error
@@ -325,7 +330,7 @@ func (s *Server) Start(sendchat bool) error {
 		if code != 0 {
 			s.Crashed()
 			s.SendLog(ifaces.ChatData{Msg: sprintf(
-				"**Server Error**: Avorion has exitted with non-zero status code: `%d`",
+				"**Server Error**: Avorion has exited with non-zero status code: `%d`",
 				code)})
 		}
 		close(s.close)
@@ -478,6 +483,11 @@ func (s *Server) Stop(sendchat bool) error {
 // Restart restarts the Avorion server
 func (s *Server) Restart() error {
 	logger.LogDebug(s, "Restart() was called")
+
+	if s.isrestarting || s.isstarting {
+		return nil
+	}
+
 	if err := s.Stop(false); err != nil {
 		logger.LogError(s, err.Error())
 	}
@@ -631,12 +641,20 @@ func (s *Server) CompareStatus(a, b ifaces.ServerStatus) bool {
 
 // IsCrashed returns the current crash status of the server
 func (s *Server) IsCrashed() bool {
+	logger.LogDebug(s, "IsCrashed() was called")
 	return s.iscrashed
 }
 
 // Crashed sets the server status to crashed
 func (s *Server) Crashed() {
+	logger.LogDebug(s, "Crashed() was called")
 	s.iscrashed = true
+}
+
+// Recovered sets the server status to be normal (from crashed)
+func (s *Server) Recovered() {
+	logger.LogDebug(s, "Crashed() was called")
+	s.iscrashed = false
 }
 
 /************************/

@@ -57,7 +57,7 @@ func checkHangCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 		// TODO: Might not be a bad idea to add a (very) simple syn/ack command to
 		// the game for this purpose
 		output, err := srv.RunCommand(`players`)
-		if err != nil {
+		if err != nil && err.Error() != "Server is not online" {
 			go func() { srv.Restart(); checkingState = false }()
 			srv.Crashed()
 			out.AddLine("Server is hanging or is down, starting restart process")

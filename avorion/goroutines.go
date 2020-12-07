@@ -29,11 +29,11 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 
 		case <-closech:
 			if !s.isstopping && !s.isrestarting && !s.isstarting {
+				logger.LogWarning(s, "Avorion server exited abnormally, restarting")
 				s.Crashed()
-				s.isrestarting = true
-				for !s.IsUp() {
-					logger.LogWarning(s, "Avorion server exitted abnormally, restarting")
-					s.Start(false)
+				if err := s.Restart(); err == nil {
+					s.iscrashed = false
+					s.isrestarting = false
 				}
 			}
 			return
@@ -44,7 +44,8 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 				continue
 			}
 
-			if _, err := s.RunCommand("status"); err != nil {
+			_, err := s.RunCommand("status")
+			if err != nil {
 				s.Crashed()
 				logger.LogError(s, err.Error())
 				if err := s.Restart(); err != nil {
@@ -52,6 +53,10 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 				} else {
 					s.iscrashed = false
 				}
+			}
+
+			if s.IsCrashed() && err == nil {
+				s.Recovered()
 			}
 
 		// Update our playerinfo db after the configured duration of time has passed
