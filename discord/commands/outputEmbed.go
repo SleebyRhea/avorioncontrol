@@ -138,9 +138,8 @@ func CreatePagedEmbed(out *CommandOutput, s *discordgo.Session,
 	}
 
 	for {
-		select {
-
 		// 10 minute timeout, no matter what.
+		select {
 		case <-time.After(time.Minute * 10):
 			return
 
