@@ -9,6 +9,7 @@ User=steam
 Group=steam
 ConditionPathExists=/srv/avorion/config.yaml
 ExecStart=/usr/local/bin/avorionbot -c /srv/avorion/config.yaml
+ExecReload=/bin/kill -s SIGUSR1 $MAINPID
 TimeoutStopSec=300
 
 PrivateTmp=yes
