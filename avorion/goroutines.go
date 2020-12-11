@@ -28,19 +28,19 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 			return
 
 		case <-closech:
-			if !s.isstopping && !s.isrestarting && !s.isstarting {
+			if !state.isstopping && !state.isrestarting && !state.isstarting {
 				logger.LogWarning(s, "Avorion server exited abnormally, restarting")
 				s.Crashed()
 				if err := s.Restart(); err == nil {
-					s.iscrashed = false
-					s.isrestarting = false
+					state.iscrashed = false
+					state.isrestarting = false
 				}
 			}
 			return
 
 		// Check the server status after the configured duration of time has passed
 		case <-time.After(s.config.HangTimeDuration()):
-			if s.isrestarting || s.isstopping || s.isstarting {
+			if state.isrestarting || state.isstopping || state.isstarting {
 				continue
 			}
 
@@ -51,7 +51,7 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 				if err := s.Restart(); err != nil {
 					logger.LogError(s, err.Error())
 				} else {
-					s.iscrashed = false
+					state.iscrashed = false
 				}
 			}
 
@@ -103,7 +103,7 @@ func superviseAvorionOut(s *Server, ready chan struct{},
 				close(ready)
 
 			case "Server startup FAILED.":
-				s.iscrashed = true
+				state.iscrashed = true
 				return
 
 			default:

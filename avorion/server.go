@@ -48,20 +48,36 @@ const (
 var (
 	sprintf          = fmt.Sprintf
 	regexpDiscordPin = regexp.MustCompile(regexIntegration)
+
+	state    RunState
+	cmdmutex *sync.Mutex
 )
+
+func init() {
+	state = RunState{
+		mutex: new(sync.Mutex),
+		last:  time.Now()}
+	cmdmutex = new(sync.Mutex)
+}
 
 // RunState describes the current state of commands being run
 type RunState struct {
-	mu    *sync.Mutex
+	mutex *sync.Mutex
 	state bool
+
+	//TODO: Migrate all of these into a singular int at
+	isrestarting bool
+	isstopping   bool
+	isstarting   bool
+	iscrashed    bool
+
+	// Track the last time the server was started
+	last time.Time
 }
 
 // Server - Avorion server definition
 type Server struct {
 	ifaces.IGameServer
-
-	startmu  *sync.Mutex
-	runstate *RunState
 
 	// Execution variables
 	Cmd        *exec.Cmd
@@ -104,16 +120,12 @@ type Server struct {
 	configfile string
 	config     ifaces.IConfigurator
 
-	// Game State
-	isrestarting bool
-	isstopping   bool
-	isstarting   bool
-	iscrashed    bool
-	password     string
-	version      string
-	seed         string
-	motd         string
-	time         string
+	// Game information
+	password string
+	version  string
+	seed     string
+	motd     string
+	time     string
 
 	// Discord
 	bot      *discord.Bot
@@ -152,8 +164,6 @@ func New(c ifaces.IConfigurator, wg *sync.WaitGroup, exit chan struct{},
 
 	s := &Server{
 		wg:         wg,
-		startmu:    new(sync.Mutex),
-		runstate:   &RunState{mu: new(sync.Mutex)},
 		exit:       exit,
 		uuid:       logUUID,
 		config:     c,
@@ -165,12 +175,7 @@ func New(c ifaces.IConfigurator, wg *sync.WaitGroup, exit chan struct{},
 		rconaddr: c.RCONAddr(),
 		rconport: c.RCONPort(),
 		requests: make(map[string]string),
-		sectors:  make(map[int]map[int]*ifaces.Sector), // =0~0=
-
-		// State tracking
-		isstarting:   false,
-		isstopping:   false,
-		isrestarting: false}
+		sectors:  make(map[int]map[int]*ifaces.Sector)}
 
 	s.SetLoglevel(s.config.Loglevel())
 	return s
@@ -190,11 +195,13 @@ func (s *Server) NotifyServer(in string) error {
 // Start starts the Avorion server process
 func (s *Server) Start(sendchat bool) error {
 	logger.LogDebug(s, "Start() was called")
-	s.startmu.Lock()
+	state.mutex.Lock()
+	state.isstarting = true
 	logger.LogDebug(s, "Start() is locking Avorion command state")
 
 	defer func() {
-		s.startmu.Unlock()
+		state.isstarting = false
+		state.mutex.Unlock()
 		logger.LogDebug(s, "Unlocked Avorion state from Start()")
 	}()
 
@@ -209,9 +216,6 @@ func (s *Server) Start(sendchat bool) error {
 	}
 
 	s.InitializeEvents()
-
-	defer func() { s.isstarting = false }()
-	s.isstarting = true
 
 	logger.LogInit(s, "Beginning Avorion startup sequence")
 
@@ -349,98 +353,97 @@ func (s *Server) Start(sendchat bool) error {
 		close(s.close)
 	}()
 
-	for {
-		select {
-		case <-ready:
-			s.iscrashed = false
-			logger.LogInit(s, "Server is online")
-			s.config.LoadGameConfig()
-			s.UpdatePlayerDatabase(false)
-			s.loadSectors()
+	select {
+	case <-ready:
+		state.iscrashed = false
+		logger.LogInit(s, "Server is online")
+		s.config.LoadGameConfig()
+		s.UpdatePlayerDatabase(false)
+		s.loadSectors()
 
-			// If we have a Post-Up command configured, start that script in a goroutine.
-			// We start it there, so that in the event that the script is intende to
-			// stay online, it won't block the bot from continuing.
-			if upstring := strings.TrimSpace(s.config.PostUpCommand()); upstring != "" {
-				go func() {
-					ctx, cancel := context.WithCancel(context.Background())
-					defer cancel()
+		// If we have a Post-Up command configured, start that script in a goroutine.
+		// We start it there, so that in the event that the script is intende to
+		// stay online, it won't block the bot from continuing.
+		if upstring := strings.TrimSpace(s.config.PostUpCommand()); upstring != "" {
+			go func() {
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
 
-					c := make([]string, 0)
-					// Split our arguments and add them to the args slice
-					for _, m := range regexp.MustCompile(`[^\s]+`).
-						FindAllStringSubmatch(upstring, -1) {
-						c = append(c, m[0])
-					}
+				c := make([]string, 0)
+				// Split our arguments and add them to the args slice
+				for _, m := range regexp.MustCompile(`[^\s]+`).
+					FindAllStringSubmatch(upstring, -1) {
+					c = append(c, m[0])
+				}
 
-					postup := exec.CommandContext(ctx, c[0], c[1:]...)
-					postup.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-					postup.Env = append(os.Environ(),
-						"SAVEPATH="+s.datapath+"/"+s.name,
-						"RCONADDR="+s.rconaddr,
-						"RCONPASS="+s.rconpass,
-						sprintf("RCONPORT=%d", s.rconport))
+				postup := exec.CommandContext(ctx, c[0], c[1:]...)
+				postup.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+				postup.Env = append(os.Environ(),
+					"SAVEPATH="+s.datapath+"/"+s.name,
+					"RCONADDR="+s.rconaddr,
+					"RCONPASS="+s.rconpass,
+					sprintf("RCONPORT=%d", s.rconport))
 
-					// Merge output with AvorionServer. This allows the bot to filter this
-					// output along with Avorions without any extra code
-					postup.Stdout = outw
+				// Merge output with AvorionServer. This allows the bot to filter this
+				// output along with Avorions without any extra code
+				postup.Stdout = outw
 
-					logger.LogInit(s, "Starting PostUp: "+upstring)
-					if err := postup.Start(); err != nil {
-						logger.LogError(s, "Failed to start configured PostUp command: "+
-							upstring)
-						logger.LogError(s, "PostUp: "+err.Error())
-						postup = nil
-						return
-					}
+				logger.LogInit(s, "Starting PostUp: "+upstring)
+				if err := postup.Start(); err != nil {
+					logger.LogError(s, "Failed to start configured PostUp command: "+
+						upstring)
+					logger.LogError(s, "PostUp: "+err.Error())
+					postup = nil
+					return
+				}
 
-					defer func() {
-						if postup.ProcessState == nil && postup.Process != nil {
-							s.wg.Add(1)
-							defer s.wg.Done()
-							syscall.Kill(-postup.Process.Pid, syscall.SIGTERM)
+				defer func() {
+					if postup.ProcessState == nil && postup.Process != nil {
+						s.wg.Add(1)
+						defer s.wg.Done()
+						syscall.Kill(-postup.Process.Pid, syscall.SIGTERM)
 
-							fin := make(chan struct{})
-							logger.LogInfo(s, "Waiting for PostUp to stop")
+						fin := make(chan struct{})
+						logger.LogInfo(s, "Waiting for PostUp to stop")
 
-							go func() {
-								postup.Wait()
-								close(fin)
-							}()
+						go func() {
+							postup.Wait()
+							close(fin)
+						}()
 
-							select {
-							case <-fin:
-								logger.LogInfo(s, "PostUp command stopped")
-								return
-							case <-time.After(time.Minute):
-								logger.LogError(s, "Sending kill to PostUp")
-								syscall.Kill(-postup.Process.Pid, syscall.SIGKILL)
-								return
-							}
+						select {
+						case <-fin:
+							logger.LogInfo(s, "PostUp command stopped")
+							return
+						case <-time.After(time.Minute):
+							logger.LogError(s, "Sending kill to PostUp")
+							syscall.Kill(-postup.Process.Pid, syscall.SIGKILL)
+							return
 						}
-					}()
-
-					// Stop the script when we stop the game
-					select {
-					case <-s.close:
-						return
-					case <-s.exit:
-						return
 					}
 				}()
-			}
 
-			return nil
-
-		case <-s.close:
-			close(ready)
-			return errors.New("avorion initialization failed")
-
-		case <-time.After(5 * time.Minute):
-			close(ready)
-			s.Cmd.Process.Kill()
-			return errors.New("avorion took over 5 minutes to start")
+				// Stop the script when we stop the game
+				select {
+				case <-s.close:
+					return
+				case <-s.exit:
+					return
+				}
+			}()
 		}
+
+		state.last = time.Now()
+		return nil
+
+	case <-s.close:
+		close(ready)
+		return errors.New("avorion initialization failed")
+
+	case <-time.After(5 * time.Minute):
+		close(ready)
+		s.Cmd.Process.Kill()
+		return errors.New("avorion took over 5 minutes to start")
 	}
 }
 
@@ -448,13 +451,13 @@ func (s *Server) Start(sendchat bool) error {
 func (s *Server) Stop(sendchat bool) error {
 	logger.LogDebug(s, "Stop() was called")
 
-	// Dont bother issuing another stop if its already being stopped
-	if s.isstopping {
-		return nil
-	}
-
-	defer func() { s.isstopping = false }()
-	s.isstopping = true
+	// Lock until any previous state operations are completed
+	state.mutex.Lock()
+	defer func() {
+		state.isstopping = false
+		state.mutex.Unlock()
+	}()
+	state.isstopping = true
 
 	if s.IsUp() != true {
 		logger.LogOutput(s, "Server is already offline")
@@ -480,7 +483,7 @@ func (s *Server) Stop(sendchat bool) error {
 	// and writes have completed
 	select {
 	case <-stopt:
-		s.iscrashed = true
+		state.iscrashed = true
 		s.Cmd.Process.Kill()
 		<-s.close
 		return errors.New("Avorion took too long to exit and had to be killed")
@@ -497,24 +500,30 @@ func (s *Server) Stop(sendchat bool) error {
 func (s *Server) Restart() error {
 	logger.LogDebug(s, "Restart() was called")
 
-	if s.isrestarting || s.isstarting {
+	// We don't want to restart if the server was started in the last 10 seconds
+	if time.Now().Sub(state.last) > 10 {
+		if state.isrestarting || state.isstarting {
+			return nil
+		}
+
+		if err := s.Stop(false); err != nil {
+			logger.LogError(s, err.Error())
+		}
+
+		defer func() { state.isrestarting = false }()
+		state.isrestarting = true
+
+		if err := s.Start(false); err != nil {
+			logger.LogError(s, err.Error())
+			return err
+		}
+
+		logger.LogInfo(s, "Restarted Avorion")
 		return nil
 	}
 
-	if err := s.Stop(false); err != nil {
-		logger.LogError(s, err.Error())
-	}
-
-	defer func() { s.isrestarting = false }()
-	s.isrestarting = true
-
-	if err := s.Start(false); err != nil {
-		logger.LogError(s, err.Error())
-		return err
-	}
-
-	logger.LogInfo(s, "Restarted Avorion")
-	return nil
+	logger.LogInfo(s, "Server was just started, skipping reboot attempt")
+	return errors.New("Server was just restarted")
 }
 
 // IsUp checks whether or not the game process is running
@@ -655,19 +664,19 @@ func (s *Server) CompareStatus(a, b ifaces.ServerStatus) bool {
 // IsCrashed returns the current crash status of the server
 func (s *Server) IsCrashed() bool {
 	logger.LogDebug(s, "IsCrashed() was called")
-	return s.iscrashed
+	return state.iscrashed
 }
 
 // Crashed sets the server status to crashed
 func (s *Server) Crashed() {
 	logger.LogDebug(s, "Crashed() was called")
-	s.iscrashed = true
+	state.iscrashed = true
 }
 
 // Recovered sets the server status to be normal (from crashed)
 func (s *Server) Recovered() {
 	logger.LogDebug(s, "Crashed() was called")
-	s.iscrashed = false
+	state.iscrashed = false
 }
 
 /************************/
@@ -699,13 +708,11 @@ func (s *Server) SetLoglevel(l int) {
 func (s *Server) RunCommand(c string) (string, error) {
 	logger.LogDebug(s, sprintf(`RunCommand("%s") was called`, c))
 
-	s.runstate.mu.Lock()
-	s.runstate.state = true
+	cmdmutex.Lock()
 	logger.LogDebug(s, sprintf("RunCommand(%s) locking", c))
 
 	defer func() {
-		s.runstate.state = false
-		s.runstate.mu.Unlock()
+		cmdmutex.Unlock()
 		logger.LogDebug(s, sprintf("Unlocking RunCommand(%s)", c))
 	}()
 
@@ -1177,22 +1184,22 @@ func (s *Server) loadSectors() {
 }
 
 func (s *Server) statusInt() int {
-	var status = ifaces.ServerOffline
+	var sint = ifaces.ServerOffline
 
 	switch {
-	case s.isrestarting:
-		status = ifaces.ServerRestarting
-	case s.isstopping:
-		status = ifaces.ServerStopping
-	case s.isstarting:
-		status = ifaces.ServerStarting
+	case state.isrestarting:
+		sint = ifaces.ServerRestarting
+	case state.isstopping:
+		sint = ifaces.ServerStopping
+	case state.isstarting:
+		sint = ifaces.ServerStarting
 	case s.IsUp():
-		status = ifaces.ServerOnline
+		sint = ifaces.ServerOnline
 	}
 
-	if s.iscrashed {
-		status = ifaces.ServerCrashedOffline + status
+	if state.iscrashed {
+		sint = ifaces.ServerCrashedOffline + sint
 	}
 
-	return status
+	return sint
 }
