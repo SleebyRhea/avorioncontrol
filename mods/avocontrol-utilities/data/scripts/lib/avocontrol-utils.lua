@@ -171,30 +171,46 @@ function FindPlayerByName(request_name, index)
   return nil
 end
 
-do
-  local restypes = {}
-  restypes.Iron     = 1
-  restypes.Titanium = 2
-  restypes.Naonite  = 3
-  restypes.Trinium  = 4
-  restypes.Xanian   = 5
-  restypes.Ogonite  = 6
-  restypes.Avorion  = 7
+local materials = {
+  iron     = MaterialType.Iron,
+  titanium = MaterialType.Titanium,
+  naonite  = MaterialType.Naonite,
+  trinium  = MaterialType.Trinium,
+  xanion   = MaterialType.Xanion,
+  ogonite  = MaterialType.Ogonite,
+  avorion  = MaterialType.Avorion}
 
-  for k, v in ipairs(restypes) do
-    restypes[string.lower(k)] = v
-  end
+local rarities = {
+  petty       = RarityType.Petty,
+  common      = RarityType.Common,
+  uncommon    = RarityType.Uncommon,
+  rare        = RarityType.Rare,
+  exceptional = RarityType.Exceptional,
+  exotic      = RarityType.Exotic,
+  legendary   = RarityType.Legendary}
 
-  function restypes.__index(s)
-    return false
-  end
+-- IsValidMaterialString returns either the enum for the given 
+--  material string (ie: iron) or false. This is for easy Material
+--  checking since there isn't actually a way to do this natively
+--  in the game (that I could find) outside of indexing MaterialType
+--  directly, which throws an error if it fails. This also allows you
+--  to use lowercase material strings as well.
+--
+-- Returns:
+--  @1    Boolean or Number
+function IsValidMaterialString(s)
+  return materials[string.lower(tostring(s))]
+end
 
-  -- IsValidMaterialString returns either the enum for the given 
-  --  material string (ie: iron) or false
-  --
-  -- Returns:
-  --  @1    Boolean or Number
-  function IsValidMaterialString(s)
-    return restypes[tostring(s)]
-  end
+-- IsValidRarityString returns either the enum for the given 
+--  rarity string (ie: common) or false. This is for easy Rarity
+--  checking since there isn't actually a way to do this natively
+--  in the game (that I could find) outside of indexing RarityType
+--  directly, which throws an error if it fails. This also allows you
+--  to index lowercase rarity strings as well.
+--
+-- Returns:
+--  @1    Boolean or Number
+function IsValidRarityString(s)
+  return rarities[string.lower(tostring(s))]
 end
