@@ -723,10 +723,12 @@ func (s *Server) RunCommand(c string) (string, error) {
 		// TODO: Make this use an rcon lib
 		ret, err := exec.CommandContext(ctx, s.config.RCONBin(), "-H",
 			s.rconaddr, "-p", sprintf("%d", s.rconport),
-			"-P", s.rconpass, c).Output()
+			"-P", s.rconpass, c).CombinedOutput()
 		out := string(ret)
 
 		if err != nil {
+			logger.LogError(s, "rcon: "+err.Error())
+			logger.LogError(s, "rcon: "+out)
 			return "", errors.New("Failed to run the following command: " + c)
 		}
 
