@@ -83,6 +83,7 @@ func main() {
 	signal.Notify(sc)
 	disbot.Start(server)
 
+	// FIXME: This needs to be handled on the object level
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Printf("Panic Caught: %v", r)
@@ -118,6 +119,13 @@ func main() {
 			if err := server.Restart(); err != nil {
 				logger.LogError(server, err.Error())
 			}
+
+		case syscall.SIGUSR2:
+			logger.LogInfo(core, "Caught SIGUSR2, performing stopping Avorion")
+			if err := server.Stop(true); err != nil {
+				logger.LogError(server, err.Error())
+			}
+			config.LoadConfiguration()
 		}
 	}
 }
