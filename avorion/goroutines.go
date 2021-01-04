@@ -40,6 +40,15 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 
 		// Check the server status after the configured duration of time has passed
 		case <-time.After(s.config.HangTimeDuration()):
+			online := 0
+			for _, p := range s.players {
+				if p.Online() {
+					online++
+				}
+			}
+
+			s.onlineplayercount = online
+
 			if state.isrestarting || state.isstopping || state.isstarting {
 				continue
 			}
