@@ -99,6 +99,12 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 		make([]CommandArgument, 0),
 		getPlayersCmnd)
 
+	r.Register("getalliances",
+		"List the tracked alliances",
+		"getalliances",
+		make([]CommandArgument, 0),
+		getAlliancesCmnd)
+
 	r.Register("reload",
 		"Reloads the active configuration from our config file",
 		"reload",
