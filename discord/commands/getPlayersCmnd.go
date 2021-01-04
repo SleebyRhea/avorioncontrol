@@ -27,7 +27,7 @@ func getPlayersCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 	}
 
 	for _, p := range players {
-		out.AddLine(sprintf("%s", p.Name()))
+		out.AddLine(sprintf("**%s**: `%s`", p.Index(), p.Name()))
 	}
 
 	out.Quoted = true

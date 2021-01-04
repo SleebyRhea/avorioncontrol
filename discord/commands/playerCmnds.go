@@ -109,7 +109,7 @@ func showOnlinePlayersCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a B
 	for _, p := range srv.Players() {
 		if p.Online() {
 			cnt++
-			out.AddLine(p.Name())
+			out.AddLine(sprintf("**%s**: `%s`", p.Index(), p.Name()))
 		}
 	}
 
