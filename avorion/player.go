@@ -3,6 +3,7 @@ package avorion
 import (
 	"avorioncontrol/ifaces"
 	"avorioncontrol/logger"
+	"fmt"
 	"net"
 	"regexp"
 	"strconv"
@@ -118,11 +119,17 @@ func (p *Player) Name() string {
 func (p *Player) Kick(r string) {
 	logger.LogWarning(p, "Kicked: "+r)
 	p.server.RunCommand(sprintf(`kick %s "%s"`, p.Index(), r))
+	p.server.SendLog(ifaces.ChatData{
+		Msg: fmt.Sprintf("**Kicked Player:** `%s`\n**Reason:** _%s_",
+			p.Name(), r)})
 }
 
 // Ban bans the player
 func (p *Player) Ban(r string) {
 	p.server.RunCommand(sprintf(`ban %s "%s"`, p.Index(), r))
+	p.server.SendLog(ifaces.ChatData{
+		Msg: fmt.Sprintf("**Banned Player:** `%s`\n**Reason:** _%s_",
+			p.Name(), r)})
 }
 
 // Online returns the current online status of the player
