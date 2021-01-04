@@ -266,15 +266,15 @@ func InitializeCommandRegistry(r *CommandRegistrar) {
 		proxySubCmnd)
 	r.Register("kick",
 		"Kick the given player",
-		"kick <reference>",
+		"kick <player index>",
 		[]CommandArgument{
-			arg("reference", "Valid player name, index, or integrated discord user")},
+			arg("player index", "Valid player index")},
 		playerKickCmnd, "player")
 	r.Register("ban",
 		"Ban the given player",
-		"ban <reference>",
+		"ban <player index>",
 		[]CommandArgument{
-			arg("reference", "Valid player name, index, or integrated discord user")},
+			arg("player index", "Valid player index")},
 		playerBanCmnd, "player")
 
 	r.Register("showonline",

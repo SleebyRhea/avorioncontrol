@@ -24,26 +24,26 @@ func playerKickCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 
 	if !HasNumArgs(a[1:], 1, -1) {
 		return nil, &ErrInvalidArgument{
-			message: "Please provide a player to kick",
+			message: "Please provide a player index to kick",
 			cmd:     cmd}
 	}
 
-	ref := strings.Join(a[2:], " ")
+	ref := a[2]
+
+	if len(a) > 2 {
+		reason = strings.Join(a[3:], " ")
+	}
 
 	if p := srv.Player(ref); p != nil {
-		obj = p
-	} else if p := srv.PlayerFromName(ref); p != nil {
-		obj = p
-	} else if p := srv.PlayerFromDiscord(ref); p != nil {
 		obj = p
 	}
 
 	if obj != nil {
 		obj.Kick(reason)
-		out.AddLine(sprintf("Kicked player %s", obj.Name()))
-		out.Construct()
 		logger.LogInfo(cmd, sprintf("[%s] kicked [%s]", m.Author.String(),
 			obj.Name()))
+		out.AddLine(sprintf("Kicked player %s", obj.Name()))
+		out.Construct()
 		return out, nil
 	}
 
@@ -67,26 +67,26 @@ func playerBanCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 
 	if !HasNumArgs(a, 1, -1) {
 		return nil, &ErrInvalidArgument{
-			message: "Please provide a player to kick",
+			message: "Please provide a player index to kick",
 			cmd:     cmd}
 	}
 
-	ref := strings.Join(a, " ")
+	ref := a[2]
+
+	if len(a) > 2 {
+		reason = strings.Join(a[3:], " ")
+	}
 
 	if p := srv.Player(ref); p != nil {
-		obj = p
-	} else if p := srv.PlayerFromName(ref); p != nil {
-		obj = p
-	} else if p := srv.PlayerFromDiscord(ref); p != nil {
 		obj = p
 	}
 
 	if obj != nil {
 		obj.Ban(reason)
-		out.AddLine(sprintf("Banned player %s", obj.Name()))
-		out.Construct()
 		logger.LogInfo(cmd, sprintf("[%s] banned [%s]", m.Author.String(),
 			obj.Name()))
+		out.AddLine(sprintf("Banned player %s", obj.Name()))
+		out.Construct()
 		return out, nil
 	}
 
