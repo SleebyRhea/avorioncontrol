@@ -293,7 +293,8 @@ func listModsSubCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs
 		clientmods = c.ListClientMods()
 	)
 
-	out.Header = "Mods Installed"
+	out.Header = "Current Mod Configuration"
+	out.AddLine("**Mods Installed**")
 	if len(servermods) < 1 {
 		out.AddLine("No mods currently configured")
 	} else {
