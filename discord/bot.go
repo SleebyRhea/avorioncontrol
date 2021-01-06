@@ -113,9 +113,38 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 		}
 	}
 
+	logger.LogInfo(b, "Initializing Discord data cache")
+	cache := &DataCache{
+		mutex: struct {
+			guilds *sync.Mutex
+			color  *sync.Mutex
+			name   *sync.Mutex
+		}{
+			guilds: new(sync.Mutex),
+			color:  new(sync.Mutex),
+			name:   new(sync.Mutex)},
+		loglevel:   b.Loglevel(),
+		namecache:  make(map[string]map[string]string, 0),
+		guildcache: make(map[string]bool, 0),
+		colorcache: make(map[string]map[string]CachedColor, 0)}
+
 	for _, g := range dg.State.Guilds {
-		onGuildJoin(g.ID, dg, b, gs)
+		onGuildJoin(g.ID, dg, b, gs, cache)
 	}
+
+	cache.UpdateCache(dg, gs)
+
+	go func() {
+		for {
+			select {
+			case <-time.After(5 * time.Minute):
+				logger.LogDebug(b, "Starting cache update")
+				cache.UpdateCache(dg, gs)
+			case <-b.exit:
+				return
+			}
+		}
+	}()
 
 	b.processDirectMsg = func(s *discordgo.Session, m *discordgo.MessageCreate) {
 		v := regexp.MustCompile("^[0-9]+:[0-9]{10}$")
@@ -144,7 +173,7 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 		}
 
 		if reg, err = commands.Registrar(m.GuildID); err != nil {
-			onGuildJoin(m.GuildID, dg, b, gs)
+			onGuildJoin(m.GuildID, dg, b, gs, cache)
 			if reg, err = commands.Registrar(m.GuildID); err != nil {
 				log.Fatal(err)
 			}
@@ -217,13 +246,23 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 
 		// Send messages from Discord to the ifaces as the user if its available
 		if gs.IsUp() && b.config.ChatChannel() == m.ChannelID {
+			colorInt, _, colorShort := cache.GetColor(s, m.GuildID, m.Author.ID)
+			if colorInt == 0 {
+				colorShort = "default"
+			}
+
+			author, ok := cache.GetName(s, m.GuildID, m.Author.ID)
+			if !ok {
+				author = m.Author.Username
+			}
+
 			// Make sure that doublequotes don't break Avorion command processing
-			author := strings.ReplaceAll(m.Author.String(), `"`, `“`)
+			author = strings.ReplaceAll(author, `"`, `“`)
 			content := strings.ReplaceAll(m.Content, `"`, `“`)
 			logger.LogDebug(reg, "Processing: "+content)
 
-			_, err = gs.RunCommand(fmt.Sprintf("discordsay \"%s\" \"%s\"",
-				author, content))
+			_, err = gs.RunCommand(fmt.Sprintf(`discordsay "%s" "%s" "%s"`,
+				colorShort, author, content))
 			if err != nil {
 				s.MessageReactionAdd(m.ChannelID, m.ID, "🚫")
 			} else {
@@ -383,12 +422,12 @@ func (b *Bot) updateServerStatus(guild string, s *discordgo.Session,
 /*********/
 
 // onGuildJoin handler
-func onGuildJoin(gid string, s *discordgo.Session, b *Bot,
-	gs ifaces.IGameServer) {
-
+func onGuildJoin(gid string, s *discordgo.Session, b *Bot, gs ifaces.IGameServer,
+	cache *DataCache) {
 	reg := commands.NewRegistrar(gid, gs)
 	reg.SetLoglevel(b.Loglevel())
 	commands.InitializeCommandRegistry(reg)
+	cache.AddGuild(gid)
 
 	go func() {
 		logger.LogInit(b, "Started bot chat supervisor")

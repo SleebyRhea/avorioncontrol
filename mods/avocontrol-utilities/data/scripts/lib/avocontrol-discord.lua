@@ -34,10 +34,14 @@ do
     return (tonumber(l) and l or "")
   end
 
-  function __discordSay(user, message)
+  function __discordSay(color, user, message)
     local server = Server()
-    server:broadcastChatMessage("D", ChatMessageType.Normal,
-      "\\c(77c)<"..user.."> \\c(ddd)"..message)
+    if color == "default" then
+      color = '77c'
+    end
+    
+    server:broadcastChatMessage("Discord", ChatMessageType.Normal,
+      "\\c("..color..")@"..user.."\\c(ddd): "..message)
   end
 
   return {
