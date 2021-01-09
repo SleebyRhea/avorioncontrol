@@ -190,7 +190,7 @@ func (t *TrackingDB) Init() ([]*ifaces.Sector, error) {
 			return nil, err
 		}
 
-		logger.LogInit(t, fmt.Sprintf("Loaded sector %d (%d_%d), which had %d jumps",
+		logger.LogDebug(t, fmt.Sprintf("Loaded sector %d (%d_%d), which had %d jumps",
 			sec.Index, sec.X, sec.Y, count))
 	}
 
@@ -309,7 +309,7 @@ func (t *TrackingDB) TrackPlayer(p ifaces.IPlayer) error {
 	}
 
 	if rid > 0 {
-		logger.LogInfo(t, fmt.Sprintf("Found player in DB: %d|%s", fid, p.Name()))
+		logger.LogDebug(t, fmt.Sprintf("Found player in DB: %d|%s", fid, p.Name()))
 		return nil
 	}
 
@@ -360,7 +360,7 @@ func (t *TrackingDB) TrackAlliance(a ifaces.IAlliance) error {
 	}
 
 	if rid > 0 {
-		logger.LogInfo(t, fmt.Sprintf("Found alliance in DB: %d|%s", fid, a.Name()))
+		logger.LogDebug(t, fmt.Sprintf("Found alliance in DB: %d|%s", fid, a.Name()))
 		return nil
 	}
 
@@ -455,7 +455,7 @@ func (t *TrackingDB) SetDiscordToPlayer(p ifaces.IPlayer) error {
 	}
 
 	p.SetDiscordUID(did)
-	logger.LogInfo(t, fmt.Sprintf("Processed integration for [%s] (%s)", p.Name(),
+	logger.LogDebug(t, fmt.Sprintf("Processed integration for [%s] (%s)", p.Name(),
 		did))
 	return nil
 }
