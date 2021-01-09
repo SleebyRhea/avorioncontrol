@@ -174,8 +174,7 @@ func New(c ifaces.IConfigurator, wg *sync.WaitGroup, exit chan struct{},
 		rconpass: c.RCONPass(),
 		rconaddr: c.RCONAddr(),
 		rconport: c.RCONPort(),
-		requests: make(map[string]string),
-		sectors:  make(map[int]map[int]*ifaces.Sector)}
+		requests: make(map[string]string)}
 
 	s.SetLoglevel(s.config.Loglevel())
 	return s
@@ -214,6 +213,20 @@ func (s *Server) Start(sendchat bool) error {
 	if s.IsUp() {
 		return errors.New("Cannot start server thats already running")
 	}
+
+	if s.players != nil {
+		s.players = nil
+	}
+
+	if s.sectors != nil {
+		s.sectors = nil
+	}
+
+	// Make sure we are on a fresh server
+	s.players = make([]*Player, 0)
+	s.sectors = make(map[int]map[int]*ifaces.Sector, 0)
+	s.onlineplayercount = 0
+	s.statusoutput = ""
 
 	s.InitializeEvents()
 
@@ -474,7 +487,6 @@ func (s *Server) Stop(sendchat bool) error {
 		logger.LogError(s, err.Error())
 	}()
 
-	s.players = nil
 	s.onlineplayercount = 0
 	stopt := time.After(5 * time.Minute)
 
