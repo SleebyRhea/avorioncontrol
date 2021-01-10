@@ -30,8 +30,8 @@ import (
 **/
 var rePlayerData = regexp.MustCompile(
 	`^\s*player: ([0-9]+) (-?[0-9]{1,3}):(-?[0-9]{1,3}) ([0-9]+) ([0-9]+) ` +
-		`credits:([0-9]+) iron:([0-9]+) titanium:([0-9]+) naonite:([0-9]+) ` +
-		`trinium:([0-9]+) xanian:([0-9]+) ogonite:([0-9]+) avorion:([0-9]+) (.*)$`)
+		`credits:(-?[0-9]+) iron:(-?[0-9]+) titanium:(-?[0-9]+) naonite:(-?[0-9]+) ` +
+		`trinium:(-?[0-9]+) xanian:(-?[0-9]+) ogonite:(-?[0-9]+) avorion:(-?[0-9]+) (.*)$`)
 
 /**
  * Substring Match Indexes:
@@ -50,8 +50,8 @@ var rePlayerData = regexp.MustCompile(
  * 12 Alliance Name
 **/
 var reAllianceData = regexp.MustCompile(`^\s*alliance: ([0-9]+) ([0-9]+) ([0-9]+) ` +
-	`credits:([0-9]+) iron:([0-9]+) titanium:([0-9]+) naonite:([0-9]+) ` +
-	`trinium:([0-9]+) xanian:([0-9]+) ogonite:([0-9]+) avorion:([0-9]+) (.*)$`)
+	`credits:(-?[0-9]+) iron:(-?[0-9]+) titanium:(-?[0-9]+) naonite:(-?[0-9]+) ` +
+	`trinium:(-?[0-9]+) xanian:(-?[0-9]+) ogonite:(-?[0-9]+) avorion:(-?[0-9]+) (.*)$`)
 
 type jumpsByTime []ifaces.ShipCoordData
 
