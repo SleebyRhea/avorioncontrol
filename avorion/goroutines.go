@@ -53,15 +53,12 @@ func updateAvorionStatus(s *Server, closech chan struct{}) {
 				continue
 			}
 
-			_, err := s.RunCommand("status")
+			// TODO: Make this command configura
+			_, err := s.RunCommand("echo Server status check")
 			if err != nil {
 				s.Crashed()
 				logger.LogError(s, err.Error())
-				if err := s.Restart(); err != nil {
-					logger.LogError(s, err.Error())
-				} else {
-					state.iscrashed = false
-				}
+				s.Cmd.Process.Kill()
 			}
 
 			if s.IsCrashed() && err == nil {
