@@ -972,8 +972,8 @@ func (s *Server) NewAlliance(index string, d []string) ifaces.IAlliance {
 		jumphistory: make([]ifaces.ShipCoordData, 0),
 		loglevel:    s.Loglevel()}
 
-	s.alliances = append(s.alliances, a)
 	s.tracking.TrackAlliance(a)
+	s.alliances = append(s.alliances, a)
 	logger.LogInfo(a, "Registered alliance")
 	return a
 }

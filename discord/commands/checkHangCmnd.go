@@ -56,7 +56,7 @@ func checkHangCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 		// players should always return output, so we use that as a secondary check
 		// TODO: Might not be a bad idea to add a (very) simple syn/ack command to
 		// the game for this purpose
-		output, err := srv.RunCommand(`players`)
+		output, err := srv.RunCommand(`echo Server status check`)
 		if err != nil && err.Error() != "Server is not online" {
 			go func() { srv.Restart(); checkingState = false }()
 			srv.Crashed()
