@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strconv"
+	"sync"
 	"time"
 
 	// Load sqlite3 driver
@@ -137,16 +138,20 @@ func (t *TrackingDB) Init() ([]*ifaces.Sector, error) {
 	frows.Close()
 
 	var (
-		jumpid    int64
-		sectorid  int
-		factionid int
-		jumptime  float64
-		kind      int
-		name      string
-		count     int64
+		jumpid      int64
+		sectorid    int
+		factionid   int
+		jumptime    float64
+		kind        int
+		name        string
+		sectorcount int64
 	)
 
+	logger.LogInit(t, "Loading sectors into memory. This *will* take a while on larger DBs")
+	twg := &sync.WaitGroup{}
 	for _, sec := range sectors {
+		sectorcount++
+
 		// Pull the last 100 jumps from the db for that sector
 		jrows, err := db.Query(`SELECT * FROM jumps WHERE SECTOR=?
 			ORDER BY rowid ASC LIMIT 100;`, sec.Index)
@@ -155,45 +160,44 @@ func (t *TrackingDB) Init() ([]*ifaces.Sector, error) {
 			return nil, err
 		}
 
-		count = 0
+		go func(sector *ifaces.Sector) {
+			twg.Add(1)
+			defer twg.Done()
+			for jrows.Next() {
+				jrows.Scan(&jumpid, &sectorid, &factionid, &name, &jumptime, &kind)
 
-		for jrows.Next() {
-			jrows.Scan(&jumpid, &sectorid, &factionid, &name, &jumptime, &kind)
+				if err = jrows.Err(); err != nil {
+					jrows.Close()
+					logger.LogError(t, err.Error())
+					return
+				}
 
-			if err = jrows.Err(); err != nil {
-				jrows.Close()
+				if kind > len(factionKind) || kind < 0 {
+					kind = 3
+				}
+
+				j := &ifaces.JumpInfo{
+					Time: time.Unix(int64(jumptime), 0),
+					Name: name,
+					FID:  factionid,
+					X:    sector.X,
+					Y:    sector.Y,
+					Kind: factionKind[kind]}
+
+				sector.Jumphistory = append(sector.Jumphistory, j)
+			}
+
+			if err := jrows.Close(); err != nil {
 				logger.LogError(t, err.Error())
-				return nil, err
 			}
 
-			if kind > len(factionKind) || kind < 0 {
-				kind = 3
+			if err := jrows.Err(); err != nil {
+				return
 			}
-
-			j := &ifaces.JumpInfo{
-				Time: time.Unix(int64(jumptime), 0),
-				Name: name,
-				FID:  factionid,
-				X:    sec.X,
-				Y:    sec.Y,
-				Kind: factionKind[kind]}
-
-			sec.Jumphistory = append(sec.Jumphistory, j)
-			count++
-		}
-
-		if err := jrows.Close(); err != nil {
-			logger.LogError(t, err.Error())
-		}
-
-		if err := jrows.Err(); err != nil {
-			return nil, err
-		}
-
-		logger.LogDebug(t, fmt.Sprintf("Loaded sector %d (%d_%d), which had %d jumps",
-			sec.Index, sec.X, sec.Y, count))
+		}(sec)
 	}
 
+	twg.Wait()
 	return sectors, nil
 }
 
@@ -455,8 +459,10 @@ func (t *TrackingDB) SetDiscordToPlayer(p ifaces.IPlayer) error {
 	}
 
 	p.SetDiscordUID(did)
-	logger.LogDebug(t, fmt.Sprintf("Processed integration for [%s] (%s)", p.Name(),
-		did))
+	if t.Loglevel() > 2 {
+		logger.LogDebug(t, fmt.Sprintf("Processed integration for [%s] (%s)", p.Name(),
+			did))
+	}
 	return nil
 }
 
