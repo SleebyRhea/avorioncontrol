@@ -269,7 +269,6 @@ func (s *Server) Start(sendchat bool) error {
 	}
 
 	s.tracking.SetLoglevel(s.loglevel)
-	logger.LogInfo(s, "Syncing mods to data directory")
 
 	s.Cmd = exec.Command(
 		s.serverpath+"/bin/"+s.executable,
@@ -348,13 +347,13 @@ func (s *Server) Start(sendchat bool) error {
 			}
 		}()
 
-		logger.LogInit(s, "Starting Server and waiting till ready")
 		if err := s.Cmd.Start(); err != nil {
 			logger.LogError(s, err.Error())
 		}
 
+		logger.LogInit(s, "Started Server and waiting till ready")
 		s.Cmd.Wait()
-		logger.LogInfo(s, sprintf("Avorion exited with status code (%d)",
+		logger.LogWarning(s, sprintf("Avorion exited with status code (%d)",
 			s.Cmd.ProcessState.ExitCode()))
 		code := s.Cmd.ProcessState.ExitCode()
 		if code != 0 {
@@ -451,6 +450,7 @@ func (s *Server) Start(sendchat bool) error {
 
 	case <-s.close:
 		close(ready)
+		state.isstarting = false
 		return errors.New("avorion initialization failed")
 
 	case <-time.After(5 * time.Minute):

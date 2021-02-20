@@ -109,8 +109,8 @@ func superviseAvorionOut(s *Server, ready chan struct{},
 				close(ready)
 
 			case "Server startup FAILED.":
-				state.iscrashed = true
-				return
+				logger.LogError(s, "Server startup FAILED.")
+				s.Crashed()
 
 			default:
 				e := events.GetFromString(out)
