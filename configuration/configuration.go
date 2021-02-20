@@ -101,7 +101,7 @@ type Conf struct {
 	aliasedCommands  map[string][]string
 	disabledCommands []string
 
-	SteamID         string
+	steamID         string
 	enforceMods     bool
 	sentreact       bool
 	enabledMods     []int64
@@ -139,7 +139,7 @@ func New() *Conf {
 
 		statuschannelclear: defaultStatusClear,
 
-		SteamID:         defaultModID,
+		steamID:         defaultModID,
 		enforceMods:     defaultEnforceMods,
 		sentreact:       defaultSentReact,
 		enabledMods:     make([]int64, 0),
@@ -466,7 +466,7 @@ func (c *Conf) LoadConfiguration() error {
 	}
 
 	if out.Mods.SteamID != "" {
-		c.SteamID = out.Mods.SteamID
+		c.steamID = out.Mods.SteamID
 	}
 
 	c.enforceMods = out.Mods.Enforce
@@ -535,6 +535,7 @@ func (c *Conf) SaveConfiguration() error {
 			DisabledCommands:   c.disabledCommands},
 
 		Mods: yamlDataMods{
+			SteamID:  c.steamID,
 			Enforce:  c.enforceMods,
 			Enabled:  c.enabledMods,
 			Allowed:  c.allowedMods,
@@ -826,7 +827,7 @@ func (c *Conf) BuildModConfig() error {
 		"local prefix  = \"%s\"\n"+
 		"\nmods = {\n", c.enforceMods, c.datadir+"mods/")
 
-	modconfig += sprintf("  {workshopid = \"%s\"},\n", c.SteamID)
+	modconfig += sprintf("  {workshopid = \"%s\"},\n", c.steamID)
 
 	for _, modid := range c.enabledMods {
 		modconfig += sprintf("  {workshopid = \"%d\"},\n", modid)
