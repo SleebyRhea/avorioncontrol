@@ -91,7 +91,7 @@ func getCoordHistoryCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 		switch j.Kind {
 		case "player":
 			if obj = reg.server.Player(fid); obj == nil {
-				logger.LogError(cmd, "Got an invalid ifaces.IHaveShips object")
+				logger.LogError(cmd, "(player) Got an invalid ifaces.IHaveShips object")
 				return nil, &ErrCommandError{
 					message: "Error, bad data type encountered. Please review the logs.",
 					cmd:     cmd}
@@ -99,14 +99,14 @@ func getCoordHistoryCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a Bot
 
 		case "alliance":
 			if obj = reg.server.Alliance(fid); obj == nil {
-				logger.LogError(cmd, "Got an invalid ifaces.IHaveShips object")
+				logger.LogError(cmd, "(alliance) Got an invalid ifaces.IHaveShips object")
 				return nil, &ErrCommandError{
 					message: "Error, bad data type encountered. Please review the logs.",
 					cmd:     cmd}
 			}
 
 		default:
-			logger.LogError(cmd, "Got an invalid ifaces.IHaveShips object")
+			logger.LogError(cmd, "Invalid jumps object (neither player nor alliance jump)")
 			return nil, &ErrCommandError{
 				message: "Error, bad data type encountered. Please review the logs.",
 				cmd:     cmd}
