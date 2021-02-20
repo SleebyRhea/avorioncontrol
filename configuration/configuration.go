@@ -982,7 +982,7 @@ func (c *Conf) SetLogChannel(id string) chan ifaces.ChatData {
 		}
 	}
 
-	logger.LogInfo(c, sprintf("Setting chat channel to: %s", id))
+	logger.LogInfo(c, sprintf("Setting log channel to: %s", id))
 
 	c.logpipe = make(chan ifaces.ChatData, 100)
 	return c.logpipe
