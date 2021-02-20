@@ -47,6 +47,7 @@ type yamlDataRCON struct {
 }
 
 type yamlDataMods struct {
+	SteamID  string   `yaeml:"steamid"`
 	Enforce  bool     `yaml:"enforce"`
 	Allowed  []int64  `yaml:"allowed"`
 	Enabled  []int64  `yaml:"enabled"`
