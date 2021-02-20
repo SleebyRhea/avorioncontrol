@@ -687,7 +687,7 @@ func (s *Server) Crashed() {
 
 // Recovered sets the server status to be normal (from crashed)
 func (s *Server) Recovered() {
-	logger.LogDebug(s, "Crashed() was called")
+	logger.LogDebug(s, "Recovered() was called")
 	state.iscrashed = false
 }
 
