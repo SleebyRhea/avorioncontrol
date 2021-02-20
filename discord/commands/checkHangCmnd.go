@@ -2,7 +2,6 @@ package commands
 
 import (
 	"avorioncontrol/ifaces"
-	"strings"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -56,20 +55,13 @@ func checkHangCmnd(s *discordgo.Session, m *discordgo.MessageCreate, a BotArgs,
 		// players should always return output, so we use that as a secondary check
 		// TODO: Might not be a bad idea to add a (very) simple syn/ack command to
 		// the game for this purpose
-		output, err := srv.RunCommand(`echo Server status check`)
+		_, err := srv.RunCommand(`echo Server status check`)
 		if err != nil && err.Error() != "Server is not online" {
 			go func() { srv.Restart(); checkingState = false }()
 			srv.Crashed()
 			out.AddLine("Server is hanging or is down, starting restart process")
 		} else {
-			if strings.TrimSpace(output) == `` {
-				go func() { srv.Restart(); checkingState = false }()
-				srv.Crashed()
-				out.AddLine("Server is hanging or is down, starting restart process")
-			} else {
-				out.AddLine("Server is online")
-				checkingState = false
-			}
+			out.AddLine("Server is online")
 		}
 	} else {
 		out.AddLine("Server is currently offline")
