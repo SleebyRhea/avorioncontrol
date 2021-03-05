@@ -370,7 +370,14 @@ func (s *Server) Start(sendchat bool) error {
 		state.iscrashed = false
 		logger.LogInit(s, "Server is online")
 		s.config.LoadGameConfig()
-		s.UpdatePlayerDatabase(false)
+
+		// Temporary hack to address a case wherein the playerdata loading occurs too
+		// quickly in the games initial startup.
+		go func() {
+			<-time.After(time.Second * 90)
+			s.UpdatePlayerDatabase(false)
+		}()
+
 		s.loadSectors()
 
 		// If we have a Post-Up command configured, start that script in a goroutine.
