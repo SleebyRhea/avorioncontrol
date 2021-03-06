@@ -300,7 +300,7 @@ func (t *TrackingDB) TrackPlayer(p ifaces.IPlayer) error {
 		addQ = `INSERT INTO factions ("NAME","KIND","GAMEID") VALUES (?,?,?);`
 	)
 
-	fid, err = strconv.ParseInt(p.Index(), 10, 64)
+	fid, err = strconv.ParseInt(p.FactionID(), 10, 64)
 	if err != nil {
 		return err
 	}
@@ -397,7 +397,7 @@ func (t *TrackingDB) AddIntegration(discordid string, p ifaces.IPlayer) error {
 		addQ = `INSERT INTO integrations ("FACTION", "DISCORD") VALUES (?,?);`
 	)
 
-	fid, err = strconv.ParseInt(p.Index(), 10, 64)
+	fid, err = strconv.ParseInt(p.FactionID(), 10, 64)
 	if err != nil {
 		return err
 	}
@@ -425,8 +425,8 @@ func (t *TrackingDB) RemoveIntegration(p ifaces.IPlayer) error {
 		delQ = `DELETE FROM integrations WHERE DISCORD=? AND FACTION=?;`
 	)
 
-	fid, err = strconv.ParseInt(p.Index(), 10, 64)
-	_, err = db.Exec(delQ, fid, p.DiscordUID())
+	fid, err = strconv.ParseInt(p.FactionID(), 10, 64)
+	_, err = db.Exec(delQ, fid, p.DiscordID())
 	if err != nil {
 		return err
 	}
@@ -451,14 +451,14 @@ func (t *TrackingDB) SetDiscordToPlayer(p ifaces.IPlayer) error {
 		selQ = `SELECT DISCORD FROM integrations WHERE FACTION=? LIMIT 1;`
 	)
 
-	fid, err = strconv.ParseInt(p.Index(), 10, 64)
+	fid, err = strconv.ParseInt(p.FactionID(), 10, 64)
 	row := db.QueryRow(selQ, fid)
 	row.Scan(&did)
 	if err := row.Err(); err != nil {
 		return err
 	}
 
-	p.SetDiscordUID(did)
+	// p.SetDiscordID(did)
 	if t.Loglevel() > 2 {
 		logger.LogDebug(t, fmt.Sprintf("Processed integration for [%s] (%s)", p.Name(),
 			did))
