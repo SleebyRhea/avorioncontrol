@@ -3,12 +3,13 @@ package events
 import (
 	"avorioncontrol/ifaces"
 	"avorioncontrol/logger"
+	"avorioncontrol/pubsub"
 	"fmt"
 	"regexp"
 	"strconv"
 )
 
-var discChatRe = regexp.MustCompile(`^\s*<D> <.*?#[0-9]{4}> (.*)$`)
+var discChatRe = regexp.MustCompile(`^\s*<Discord> <.*?#[0-9]{4}> (.*)$`)
 var modURLBase = `https://steamcommunity.com/sharedfiles/filedetails/?id=`
 
 func initB() {
@@ -147,7 +148,8 @@ func handleEventPlayerKick(e *Event, in string,
 	// run the ban and output an error
 	if p == nil {
 		logger.LogError(srv, fmt.Sprintf("Failed to locate player index: %s", m[1]))
-		srv.RunCommand(fmt.Sprintf(`kick %s %s`, m[1], m[2]))
+		sendServ(pubsub.NewRconCommand(`kick`, m[1], m[2]).Close())
+		sendLog(pubsub.NewChatData(``, ``, "**Kicked Player:** `%s`\n**Reason:** _%s_"))
 		return
 	}
 
@@ -165,16 +167,12 @@ func handleEventPlayerBan(e *Event, in string,
 	// run the ban and output an error
 	if p == nil {
 		logger.LogError(e, fmt.Sprintf("Failed to locate player index: %s", m[1]))
-		sendServ <- ifaces.RconCommand{
-			Command:   `ban`,
-			Arguments: []string{m[1], m[2]}}
+		sendLog(pubsub.NewChatData(``, ``, "**Banned Player:** `%s`\n**Reason:** _%s_"))
+		sendServ(pubsub.NewRconCommand(`ban`, m[1], m[2]).Close())
+		return
 	}
 
-	// p.Ban(m[2])
-
-	sendLog(ifaces.ChatData{
-		Msg: fmt.Sprintf("**Kicked Player:** `%s`\n**Reason:** _%s_",
-			p.Name(), m[2])})
+	p.Ban(m[2])
 }
 
 func handleModUpdate(e *Event, in string,
@@ -183,15 +181,11 @@ func handleModUpdate(e *Event, in string,
 
 	m := e.Capture.FindStringSubmatch(in)
 	out := fmt.Sprintf("Updated %s%s", modURLBase, m[1])
-
-	output := ifaces.ChatData{
-		Name: `Startup`,
-		Msg:  out}
-
-	sendLog <- output
+	sendLog(pubsub.NewChatData(`Startup`, ``, out))
 }
 
-func defaultEventHandler(cfg ifaces.IConfigurator, sendServ, sendChat, sendLog chan interface{},
-	gc ifaces.IGalaxyCache, e *Event, in string, oc chan string) {
+func defaultEventHandler(e *Event, in string,
+	gc ifaces.IGalaxyCache, cfg ifaces.IConfigurator,
+	sendServ, sendChat, sendLog chan interface{}) {
 	logger.LogOutput(srv, in)
 }
