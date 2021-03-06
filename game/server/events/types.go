@@ -6,7 +6,8 @@ import (
 )
 
 // EventHandler is a function that parses a logfile and performs an action
-type EventHandler func(ifaces.IGameServer, *Event, string, chan string)
+type EventHandler func(ifaces.IGameServer, ifaces.IConfigurator,
+	ifaces.IGalaxyCache, ifaces.IPlayerCache, *Event, string, chan string)
 
 // Event describes logged output that the ifaces.Server has output that can
 // be acted upon in some fashion
