@@ -4,6 +4,7 @@ import (
 	"avorioncontrol/game/server/events"
 	"avorioncontrol/ifaces"
 	"avorioncontrol/logger"
+	"avorioncontrol/pubsub"
 	"context"
 	"errors"
 	"fmt"
@@ -73,7 +74,7 @@ type server struct {
 
 // New starts a new server in a goroutine, and provides a function to stop it
 // gracefully, and a function to issue it commands.
-func New(ctx context.Context, cfg ifaces.IConfigurator,
+func New(ctx context.Context, bus pubsub.MessageBus, cfg ifaces.IConfigurator,
 	wg *sync.WaitGroup, exit chan struct{}, gc ifaces.IGalaxyCache,
 	pc ifaces.IPlayerCache) (ifaces.IGameServer, error) {
 
@@ -116,17 +117,18 @@ func New(ctx context.Context, cfg ifaces.IConfigurator,
 			state:   &sync.Mutex{},
 		}}
 
-	go s.start(ctx, cfg, gc, pc)
+	go s.start(ctx, cfg, gc, pc, bus)
 
 	return s, nil
 }
 
 // start runs the Avorion server process
 func (s *server) start(ctx context.Context, cfg ifaces.IConfigurator,
-	gc ifaces.IGalaxyCache, pc ifaces.IPlayerCache) error {
+	gc ifaces.IGalaxyCache, pc ifaces.IPlayerCache, bus pubsub.MessageBus) error {
 
 	var err error
-	logger.LogInit(s, "Beginning Avorion startup sequence")
+	logger.LogInit(s, "Initializing Avorion startup sequence")
+	bus.Listen(pubsub.RCONBUSID)
 
 	s.InitializeEvents(cfg)
 
@@ -168,6 +170,49 @@ func (s *server) start(ctx context.Context, cfg ifaces.IConfigurator,
 
 	// go superviseAvorionOut(s, ready, s.close)
 	// go updateAvorionStatus(s, s.close)
+	go func() {
+		recv, end := bus.Listen(pubsub.RCONBUSID)
+		defer end()
+
+		for {
+			select {
+			case <-s.exit:
+				return
+
+			case in := <-recv:
+				if obj, ok := in.(ifaces.RconCommand); ok {
+					cmd := strings.TrimSpace(obj.Command)
+
+					// If we get an empty command, don't send it. Instead, return an error
+					// if possible. This catches the old bug wherein Avorion will crash
+					// immediately upon receiving such a command (in case it returns)
+					if regexp.MustCompile(`^\s*.*`).MatchString(cmd) {
+						if obj.Return.Err != nil {
+							obj.Return.Err <- &ErrCommandInvalid{Cmd: cmd}
+							continue
+						}
+					}
+
+					if len(obj.Arguments) > 0 {
+						for _, arg := range obj.Arguments {
+							cmd += ` "` + strings.ReplaceAll(arg, `"`, `“`) + `"`
+						}
+					}
+
+					out, err := s.SendCommand(ctx, cmd)
+					if obj.Return.Err != nil {
+						obj.Return.Err <- err
+						continue
+					}
+
+					if obj.Return.Out != nil {
+						obj.Return.Out <- out
+						continue
+					}
+				}
+			}
+		}
+	}()
 
 	go func() {
 		defer func() {
