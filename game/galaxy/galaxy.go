@@ -21,15 +21,6 @@ func New() *Galaxy {
 	return g
 }
 
-// Players returns the player cache object
-func (g *Galaxy) Players() ifaces.IPlayerCache {
-	return g.pcache
-}
-
-// Alliances returns the alliance cache object
-func (g *Galaxy) Alliances() {
-}
-
 // Name returns the name of the Galaxy
 func (g *Galaxy) Name() string {
 	return g.name
