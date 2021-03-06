@@ -35,8 +35,8 @@ type INetPlayer interface {
 type IModeratablePlayer interface {
 	// DirectMessage(string)
 	// Mail(string)
-	Kick(string)
-	Ban(string)
+	Kick(string, func(interface{}) error, func(interface{}) error) error
+	Ban(string, func(interface{}) error, func(interface{}) error) error
 }
 
 // IDiscordIntegratedPlayer describes an interface to a player that has
