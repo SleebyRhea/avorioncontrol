@@ -3,7 +3,6 @@ package player
 import (
 	"avorioncontrol/ifaces"
 	"avorioncontrol/logger"
-	"context"
 	"fmt"
 	"strconv"
 	"sync"
@@ -42,7 +41,7 @@ func (c *Cache) unlockAll() {
 }
 
 // NewPlayer initializes and returns a new player
-func (c *Cache) NewPlayer(sid, fid, name, did string, gs ifaces.IGameServer) (
+func (c *Cache) NewPlayer(sid, fid, name, did string) (
 	ifaces.IPlayer, error) {
 	if fid == "" {
 		return nil, &ErrEmptyFactionID{}
@@ -177,44 +176,44 @@ func (c *Cache) SetPlayerDiscord(did string, player *Player) error {
 	return nil
 }
 
-// KickPlayer kicks a given player
-func (c *Cache) KickPlayer(ctx context.Context, gs ifaces.ICommandableServer,
-	ref, reason string) error {
-	var p ifaces.IPlayer
+// // KickPlayer kicks a given player
+// func (c *Cache) KickPlayer(ctx context.Context, gs ifaces.ICommandableServer,
+// 	ref, reason string) error {
+// 	var p ifaces.IPlayer
 
-	if p = c.FromFactionID(ref); p == nil {
-		if p = c.FromSteam64ID(ref); p == nil {
-			if p = c.FromDiscordID(ref); p == nil {
-				return &ErrPlayerNotFound{Ref: ref}
-			}
-		}
-	}
+// 	if p = c.FromFactionID(ref); p == nil {
+// 		if p = c.FromSteam64ID(ref); p == nil {
+// 			if p = c.FromDiscordID(ref); p == nil {
+// 				return &ErrPlayerNotFound{Ref: ref}
+// 			}
+// 		}
+// 	}
 
-	_, err := gs.SendCommand(ctx, fmt.Sprintf(`kick %s "%s"`, p.Name(), reason))
-	if err != nil {
-		return err
-	}
+// 	_, err := gs.SendCommand(ctx, fmt.Sprintf(`kick %s "%s"`, p.Name(), reason))
+// 	if err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-// BanPlayer bans a given player
-func (c *Cache) BanPlayer(ctx context.Context, gs ifaces.ICommandableServer,
-	ref, reason string) error {
-	var p ifaces.IPlayer
+// // BanPlayer bans a given player
+// func (c *Cache) BanPlayer(ctx context.Context, gs ifaces.ICommandableServer,
+// 	ref, reason string) error {
+// 	var p ifaces.IPlayer
 
-	if p = c.FromFactionID(ref); p == nil {
-		if p = c.FromSteam64ID(ref); p == nil {
-			if p = c.FromDiscordID(ref); p == nil {
-				return &ErrPlayerNotFound{Ref: ref}
-			}
-		}
-	}
+// 	if p = c.FromFactionID(ref); p == nil {
+// 		if p = c.FromSteam64ID(ref); p == nil {
+// 			if p = c.FromDiscordID(ref); p == nil {
+// 				return &ErrPlayerNotFound{Ref: ref}
+// 			}
+// 		}
+// 	}
 
-	_, err := gs.SendCommand(ctx, fmt.Sprintf(`ban "%s" "%s"`, p.Name(), reason))
-	if err != nil {
-		return err
-	}
+// 	_, err := gs.SendCommand(ctx, fmt.Sprintf(`ban "%s" "%s"`, p.Name(), reason))
+// 	if err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
