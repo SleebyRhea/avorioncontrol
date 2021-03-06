@@ -3,6 +3,7 @@ package player
 import (
 	"avorioncontrol/ifaces"
 	"avorioncontrol/logger"
+	"avorioncontrol/pubsub"
 	"fmt"
 	"net"
 	"strconv"
@@ -104,16 +105,55 @@ func (p *Player) SetName(_ string) {
 }
 
 // Kick kicks a player from the server and sends a notification
-// 	Deprecated: This is a stub, and will be removed
-func (p *Player) Kick(reason string) {
-	logger.LogWarning(p, "Kick() is a stub, please use IGameServer.KickPlayer")
-	return
+func (p *Player) Kick(reason string, sendServ, sendLog func(interface{}) error) error {
+	cmd := pubsub.NewRconCommand(`kick`, p.Steam64ID(), reason)
+
+	sendServ(cmd)
+
+	select {
+	case err := <-cmd.Return.Err:
+		if err != nil {
+			err = &ErrFailedKick{Err: err}
+			logger.LogError(p, err.Error())
+			sendLog(pubsub.NewChatData(`Server`, ``, fmt.Sprintf(
+				"**Failed to Kick Player:** `%s`\n**Error:** _%s_", p.Name(),
+				err.Error()+": "+err.Error())))
+			return err
+		}
+		logger.LogWarning(p, "(*Player).Kick return a nil error before output")
+		return nil
+
+	case <-cmd.Return.Out:
+		sendLog(pubsub.NewChatData(`Server`, ``, fmt.Sprintf(
+			"**Kicked Player:** `%s`\n**Reason:** _%s_", p.Name(), reason)))
+		return nil
+	}
 }
 
 // Ban bans a player from the server and sends a notification
-// 	Deprecated: This is a stub, and will be removed
-func (p *Player) Ban(reason string) {
-	logger.LogWarning(p, "Kick() is a stub, please use IGameServer.BanPlayer")
+func (p *Player) Ban(reason string, sendServ, sendLog func(interface{}) error) error {
+	cmd := pubsub.NewRconCommand(`ban`, p.Steam64ID(), reason)
+
+	sendServ(cmd)
+
+	select {
+	case err := <-cmd.Return.Err:
+		if err != nil {
+			err = &ErrFailedBan{Err: err}
+			logger.LogError(p, err.Error())
+			sendLog(pubsub.NewChatData(`Server`, ``, fmt.Sprintf(
+				"**Failed to Ban Player:** `%s`\n**Error:** _%s_", p.Name(),
+				err.Error()+": "+err.Error())))
+			return err
+		}
+		logger.LogWarning(p, "(*Player).Ban return a nil error before output")
+		return nil
+
+	case <-cmd.Return.Out:
+		sendLog(pubsub.NewChatData(`Server`, ``, fmt.Sprintf(
+			"**Banned Player:** `%s`\n**Reason:** _%s_", p.Name(), reason)))
+		return nil
+	}
 }
 
 // Message sends a private message to a player
