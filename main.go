@@ -5,6 +5,7 @@ import (
 	"avorioncontrol/discord"
 	"avorioncontrol/ifaces"
 	"avorioncontrol/logger"
+	"avorioncontrol/pubsub"
 	"flag"
 	"fmt"
 	"log"
@@ -73,13 +74,14 @@ func main() {
 	sc := make(chan os.Signal, 1)
 	exit := make(chan struct{})
 
+	bus := pubsub.New(exit)
 	core = &Core{loglevel: config.Loglevel()}
 	disbot = discord.New(config, &wg, exit)
 
 	// We start this early to prevent an errant os.Interrupt from leaving the
 	// AvorionServer process running.
 	signal.Notify(sc)
-	disbot.Start(server)
+	disbot.Start(server, bus)
 
 	logger.LogInit(core, "Completed init, awaiting termination signal.")
 	for sig := range sc {
