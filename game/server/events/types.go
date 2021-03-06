@@ -9,9 +9,9 @@ import (
 type EventHandler func(*Event, string,
 	ifaces.IGalaxyCache,
 	ifaces.IConfigurator,
-	chan interface{}, // RCON publisher
-	chan interface{}, // Discord chat publisher
-	chan interface{}) // Discord log publisher
+	func(interface{}) error, // RCON publisher
+	func(interface{}) error, // Discord chat publisher
+	func(interface{}) error) // Discord log publisher
 
 // Event describes logged output that the ifaces.Server has output that can
 // be acted upon in some fashion
