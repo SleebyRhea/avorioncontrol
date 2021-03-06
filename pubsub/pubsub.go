@@ -3,6 +3,7 @@ package pubsub
 import (
 	"avorioncontrol/logger"
 	"sync"
+	"time"
 )
 
 // RCONBUSID is the string that describes the MessageBus subscription ID for
@@ -47,37 +48,53 @@ func (bus *MessageBus) SetLoglevel(l int) {
 	bus.loglevel = l
 }
 
-// NewSubscription creates a new subscription and returns a channel with which
-// to publish on, and a function to cancel the subscription
-func (bus *MessageBus) NewSubscription(name string) (chan interface{}, func()) {
+// NewSubscription creates a new subscription and returns generic accepting
+// function with which to publish on, as well as a function to end the subscription
+func (bus *MessageBus) NewSubscription(name string) (func(interface{}) error, func()) {
 	if name == "" {
 		logger.LogError(bus, "invalid subscription name provided (cannot be empty)")
 		return nil, nil
 	}
 
 	w := make(chan interface{}, 10)
+	end := make(chan struct{})
+	cancel := func() {
+		close(end)
+	}
+
 	if _, ok := bus.in[name]; ok {
 		w = bus.in[name]
 	} else {
 		bus.in[name] = w
 	}
 
-	cancel := func() {
+	send := func(in interface{}) error {
+		select {
+		case w <- in:
+			return nil
+		case <-time.After(30 * time.Second):
+			return &ErrMessageTimedOut{name}
+		}
 	}
 
 	// Publish our data to our output channels
 	go func() {
 		for {
-			data := <-w
-			bus.mutex.Lock()
-			for _, out := range bus.out[name] {
-				out <- data
+			select {
+			case data := <-w:
+				bus.mutex.Lock()
+				for _, out := range bus.out[name] {
+					out <- data
+				}
+				bus.mutex.Unlock()
+
+			case <-end:
+				return
 			}
-			bus.mutex.Unlock()
 		}
 	}()
 
-	return w, cancel
+	return send, cancel
 }
 
 // Listen provides an interface to listen for a message, and a function
