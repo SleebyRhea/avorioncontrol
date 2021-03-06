@@ -3,6 +3,8 @@ package main
 import (
 	"avorioncontrol/configuration"
 	"avorioncontrol/discord"
+	"avorioncontrol/game/galaxy"
+	"avorioncontrol/game/server/events"
 	"avorioncontrol/ifaces"
 	"avorioncontrol/logger"
 	"avorioncontrol/pubsub"
@@ -11,6 +13,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"regexp"
 	"sync"
 	"syscall"
 )
@@ -74,6 +77,7 @@ func main() {
 	sc := make(chan os.Signal, 1)
 	exit := make(chan struct{})
 
+	gcache := galaxy.New()
 	bus := pubsub.New(exit)
 	core = &Core{loglevel: config.Loglevel()}
 	disbot = discord.New(config, &wg, exit)
@@ -81,8 +85,8 @@ func main() {
 	// We start this early to prevent an errant os.Interrupt from leaving the
 	// AvorionServer process running.
 	signal.Notify(sc)
-	disbot.Start(server, bus)
 
+	disbot.Start(server, bus, gcache)
 	logger.LogInit(core, "Completed init, awaiting termination signal.")
 	for sig := range sc {
 		switch sig {
@@ -100,6 +104,65 @@ func main() {
 		case syscall.SIGUSR2:
 			logger.LogInfo(core, "Caught SIGUSR2, stopping Avorion")
 			config.LoadConfiguration()
+		}
+	}
+}
+
+// InitializeEvents runs the event initializer
+func InitializeEvents(cfg ifaces.IConfigurator, bus pubsub.MessageBus) {
+	var (
+		regexPlayerFID   = regexp.MustCompile(`^player:(\d+)$`)
+		regexAllianceFID = regexp.MustCompile(`^alliance:(\d+)$`)
+		regexSectorXY    = regexp.MustCompile(`^sector:(-?\d+:-?\d+)$`)
+	)
+
+	events.Initialize()
+
+	for _, ed := range cfg.GetEvents() {
+		ge := &events.Event{
+			FString: ed.FString,
+			Capture: ed.Regex,
+			Handler: func(e *events.Event, in string, gc ifaces.IGalaxyCache,
+				cfg ifaces.IConfigurator, sendServ, sendChat, sendLog chan interface{}) {
+
+				logger.LogDebug(e, "Got event: "+e.FString)
+				m := e.Capture.FindStringSubmatch(in)
+				strings := make([]interface{}, 0)
+
+				// Attempt to match against our player/alliance database and set that
+				// string to be the name of said object
+				for _, v := range m {
+					switch {
+					case regexPlayerFID.MatchString(v):
+						v = regexPlayerFID.FindStringSubmatch(v)[1]
+						if p := gc.Players().FromFactionID(v); p != nil {
+							v = p.Name() + "/" + p.Steam64ID()
+						}
+
+					// TODO: Reimplement alliances
+					case regexAllianceFID.MatchString(v):
+						v = regexAllianceFID.FindStringSubmatch(v)[1]
+						// a := s.Alliance(v)
+						// if a != nil {
+						// 	v = a.Name()
+						// }
+
+					// TODO: Reimplement sectors and finish this feature
+					case regexSectorXY.MatchString(v):
+						v = regexSectorXY.FindStringSubmatch(v)[1]
+					}
+
+					strings = append(strings, v)
+				}
+
+				sendChat <- ifaces.ChatData{Msg: fmt.Sprintf(e.FString, strings[1:]...)}
+			}}
+
+		ge.SetLoglevel(cfg.Loglevel())
+
+		if err := events.Add(ed.Name, ge); err != nil {
+			logger.LogWarning(core, "Failed to register event: "+err.Error())
+			continue
 		}
 	}
 }
