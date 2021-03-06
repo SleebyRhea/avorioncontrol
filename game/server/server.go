@@ -41,10 +41,8 @@ type server struct {
 	serverpath string
 
 	// IO
-	stdin   io.Writer
-	stdout  io.Reader
-	output  chan []byte
-	chatout chan ifaces.ChatData
+	stdin  io.Writer
+	stdout io.Reader
 
 	// Logger
 	loglevel int
@@ -261,9 +259,9 @@ func (s *server) start(ctx context.Context, cfg ifaces.IConfigurator,
 			s.Cmd.ProcessState.ExitCode()))
 		code := s.Cmd.ProcessState.ExitCode()
 		if code != 0 {
-			sendLog(ifaces.ChatData{Msg: sprintf(
-				"**server Error**: Avorion has exited with non-zero status code: `%d`",
-				code)})
+			sendLog(pubsub.NewChatData(``, ``,
+				sprintf("**Server Error**: Avorion has exited with non-zero status code: `%d`",
+					code)))
 		}
 
 		close(s.close)
