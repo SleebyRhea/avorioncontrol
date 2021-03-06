@@ -40,6 +40,15 @@ func (g *Galaxy) Path() string {
 	return g.path
 }
 
+// Players returns the player cache object
+func (g *Galaxy) Players() ifaces.IPlayerCache {
+	return g.pcache
+}
+
+// Alliances returns the alliance cache object
+func (g *Galaxy) Alliances() {
+}
+
 // Do this on startup
 // if _, err := os.Stat(galaxydir); os.IsNotExist(err) {
 // 	err := os.Mkdir(galaxydir, 0700)
