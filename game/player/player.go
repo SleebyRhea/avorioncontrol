@@ -13,6 +13,10 @@ const (
 	banString  = "**Banned Player:** `%s`\n**Steam64:** `%s`\n**Reason:** _%s_"
 )
 
+func init() {
+	var _ ifaces.IPlayer = (*Player)(nil)
+}
+
 // Player is a player in Avorion that is being tracked
 type Player struct {
 	name      string
