@@ -2,6 +2,7 @@ package ifaces
 
 import (
 	"avorioncontrol/logger"
+	"avorioncontrol/pubsub"
 	"time"
 )
 
@@ -78,8 +79,7 @@ type ICommandConfigurator interface {
 
 // IChatConfigurator describes an interface to an object that can configure chats
 type IChatConfigurator interface {
-	ChatPipe() chan ChatData
-	SetChatChannel(string) chan ChatData
+	SetChatChannel(string) chan pubsub.ChatData
 	ChatChannel() string
 	ReactConfirm() bool
 }
@@ -127,7 +127,6 @@ type IModConfigurator interface {
 // IEventConfigurator describes a configuration object that has LoggedServerEvents
 type IEventConfigurator interface {
 	GetEvents() []*LoggedServerEvent
-	LogPipe() chan ChatData
-	SetLogChannel(string) chan ChatData
+	SetLogChannel(string) chan pubsub.ChatData
 	LogChannel() string
 }
