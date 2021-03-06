@@ -15,7 +15,7 @@ type RconCommand struct {
 // object, and then returns itself. This is primarily used for cases where having
 // channels is undesired.
 //
-// TODO: This is ineffiecient. Consider reworking this object to instead not
+// TODO: This is inefficient. Consider reworking this object to instead not
 // create the channels at all.
 func (r *RconCommand) Close() *RconCommand {
 	close(r.Return.Out)
