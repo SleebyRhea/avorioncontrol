@@ -82,3 +82,11 @@ type LoggedServerEvent struct {
 	FString string
 	Regex   *regexp.Regexp
 }
+
+// RconCommand describes an RCON command to be passed to the server, with a
+// return channel for errors
+type RconCommand struct {
+	Command   string
+	Arguments []string
+	Return    chan error
+}
