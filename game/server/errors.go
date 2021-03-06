@@ -34,10 +34,16 @@ func (e *ErrRconFailedToStart) Error() string {
 
 // ErrCommandFailedToRun describes an error in which a command failed to run
 type ErrCommandFailedToRun struct {
+	cmd string
+	err error
 }
 
 func (e *ErrCommandFailedToRun) Error() string {
-	return "failed to run command"
+	if e.cmd != "" && e.err != nil {
+		return sprintf(`failed to run command: "%s": %s`, e.cmd, e.err.Error())
+	}
+
+	return `failed to run command`
 }
 
 // ErrCommandTimedOut describes an error in which a command timed out
