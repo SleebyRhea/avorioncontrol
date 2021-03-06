@@ -48,3 +48,27 @@ type ErrDiscordMapped struct {
 func (e *ErrDiscordMapped) Error() string {
 	return "Discord user is already mapped to a player"
 }
+
+// ErrFailedKick is an error in which the server failed to kick a user
+type ErrFailedKick struct {
+	Err error
+}
+
+func (e *ErrFailedKick) Error() string {
+	if e.Err == nil {
+		return "failed to kick player due to an internal error"
+	}
+	return "failed to kick player due to an internal error: " + e.Err.Error()
+}
+
+// ErrFailedBan is an error in which the server failed to ban a user
+type ErrFailedBan struct {
+	Err error
+}
+
+func (e *ErrFailedBan) Error() string {
+	if e.Err == nil {
+		return "failed to ban player due to an internal error"
+	}
+	return "failed to ban player due to an internal error: " + e.Err.Error()
+}
