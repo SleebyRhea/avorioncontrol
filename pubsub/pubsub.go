@@ -7,7 +7,11 @@ import (
 
 // RCONBUSID is the string that describes the MessageBus subscription ID for
 // messaging the Avorion server
-const RCONBUSID = "ServerRCON"
+const (
+	RCONBUSID     = `ServerRCON`
+	DISCCHATBUSID = `DiscordChat`
+	DISCLOGBUSID  = `DiscordLog`
+)
 
 // New returns a new MessageBus
 func New(exit chan struct{}) *MessageBus {
