@@ -87,8 +87,11 @@ func New(c ifaces.IConfigurator, wg *sync.WaitGroup, exit chan struct{}) *Bot {
 /****************************/
 
 // Start initializes the discordgo backend
-func (b *Bot) Start(gs ifaces.IGameServer) {
-	logger.LogInit(b, "Initialized Discord bot")
+func (b *Bot) Start(gs ifaces.IGameServer, bus ifaces.IMessageBus) {
+	logger.LogInit(b, "Initializing Discord bot")
+	sendRcon, endRcon := bus.NewSubscription("ServerRCON")
+	go func() { <-b.exit; endRcon() }()
+
 	dg, err := discordgo.New("Bot " + b.config.Token())
 	if err != nil {
 		log.Fatal("error creating Discord session,", err)
@@ -146,16 +149,16 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 		}
 	}()
 
-	b.processDirectMsg = func(s *discordgo.Session, m *discordgo.MessageCreate) {
-		v := regexp.MustCompile("^[0-9]+:[0-9]{10}$")
-		in := strings.TrimSpace(m.Content)
-		if v.MatchString(in) {
-			if gs.ValidateIntegrationPin(in, m.Author.ID) {
-				s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
-				s.ChannelMessageSend(m.ID, "Thanks for validating!")
-			}
-		}
-	}
+	// b.processDirectMsg = func(s *discordgo.Session, m *discordgo.MessageCreate) {
+	// 	v := regexp.MustCompile("^[0-9]+:[0-9]{10}$")
+	// 	in := strings.TrimSpace(m.Content)
+	// 	if v.MatchString(in) {
+	// 		if gs.ValidateIntegrationPin(in, m.Author.ID) {
+	// 			s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
+	// 			s.ChannelMessageSend(m.ID, "Thanks for validating!")
+	// 		}
+	// 	}
+	// }
 
 	// Setup our message handler for processing commands
 	dg.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -167,10 +170,10 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 		)
 
 		// Stop DMs, and handle Discord integrations with Avorion
-		if m.GuildID == "" {
-			b.processDirectMsg(s, m)
-			return
-		}
+		// if m.GuildID == "" {
+		// 	b.processDirectMsg(s, m)
+		// 	return
+		// }
 
 		if reg, err = commands.Registrar(m.GuildID); err != nil {
 			onGuildJoin(m.GuildID, dg, b, gs, cache)
@@ -216,13 +219,9 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 					logger.LogError(reg, cmderr.Error())
 
 				case *commands.ErrInvalidCommand:
-
 				case *commands.ErrCommandDisabled:
-
 				case *commands.ErrInvalidAlias:
-
 				case *commands.ErrCommandError:
-
 				case *commands.ErrInvalidSubcommand:
 					if cmderr.Subcommand() != nil {
 						cmdhlp = cmderr.Subcommand().Help()
@@ -260,16 +259,8 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 			author = strings.ReplaceAll(author, `"`, `“`)
 			content := strings.ReplaceAll(m.Content, `"`, `“`)
 			logger.LogDebug(reg, "Processing: "+content)
-
-			_, err = gs.RunCommand(fmt.Sprintf(`discordsay "%s" "%s" "%s"`,
-				colorShort, author, content))
-			if err != nil {
-				s.MessageReactionAdd(m.ChannelID, m.ID, "🚫")
-			} else {
-				if b.config.ReactConfirm() {
-					s.MessageReactionAdd(m.ChannelID, m.ID, "✅")
-				}
-			}
+			sendRcon <- fmt.Sprintf(`discordsay "%s" "%s" "%s"`,
+				colorShort, author, content)
 			return
 		}
 	})
@@ -277,8 +268,8 @@ func (b *Bot) Start(gs ifaces.IGameServer) {
 	go func() {
 		for {
 			time.Sleep(30 * time.Minute)
-			gs.RunCommand(fmt.Sprintf("setdiscorddata \"%s\" \"%s\"",
-				dg.State.User.String(), b.config.DiscordLink()))
+			sendRcon <- fmt.Sprintf("setdiscorddata \"%s\" \"%s\"",
+				dg.State.User.String(), b.config.DiscordLink())
 		}
 	}()
 
