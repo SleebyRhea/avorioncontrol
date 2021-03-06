@@ -1,7 +1,6 @@
 package server
 
 import (
-	"avorioncontrol/game/server/events"
 	"avorioncontrol/ifaces"
 	"avorioncontrol/logger"
 	"avorioncontrol/pubsub"
@@ -75,8 +74,8 @@ type server struct {
 // New starts a new server in a goroutine, and provides a function to stop it
 // gracefully, and a function to issue it commands.
 func New(ctx context.Context, bus pubsub.MessageBus, cfg ifaces.IConfigurator,
-	wg *sync.WaitGroup, exit chan struct{}, gc ifaces.IGalaxyCache,
-	pc ifaces.IPlayerCache) (ifaces.IGameServer, error) {
+	wg *sync.WaitGroup, exit chan struct{}, gc ifaces.IGalaxyCache) (
+	ifaces.IGameServer, error) {
 
 	path := strings.TrimSuffix(cfg.InstallPath(), "/") + "/bin/"
 	if exec, ok := binname[runtime.GOOS]; ok {
@@ -117,20 +116,20 @@ func New(ctx context.Context, bus pubsub.MessageBus, cfg ifaces.IConfigurator,
 			state:   &sync.Mutex{},
 		}}
 
-	go s.start(ctx, cfg, gc, pc, bus)
+	go s.start(ctx, cfg, gc, bus)
 
 	return s, nil
 }
 
 // start runs the Avorion server process
 func (s *server) start(ctx context.Context, cfg ifaces.IConfigurator,
-	gc ifaces.IGalaxyCache, pc ifaces.IPlayerCache, bus pubsub.MessageBus) error {
+	gc ifaces.IGalaxyCache, bus pubsub.MessageBus) error {
 
 	var err error
 	logger.LogInit(s, "Initializing Avorion startup sequence")
-	bus.Listen(pubsub.RCONBUSID)
 
-	s.InitializeEvents(cfg)
+	_, endChatSub := bus.NewSubscription(pubsub.DISCCHATBUSID)     // Chat pubsub
+	sendLog, endLogSub := bus.NewSubscription(pubsub.DISCLOGBUSID) // Logs pubsub
 
 	s.Cmd = exec.Command(s.executable,
 		`--galaxy-name`, s.dataname,
@@ -215,6 +214,8 @@ func (s *server) start(ctx context.Context, cfg ifaces.IConfigurator,
 	}()
 
 	go func() {
+		defer endLogSub()
+		defer endChatSub()
 		defer func() {
 			downstring := strings.TrimSpace(cfg.PostDownCommand())
 
@@ -260,11 +261,11 @@ func (s *server) start(ctx context.Context, cfg ifaces.IConfigurator,
 			s.Cmd.ProcessState.ExitCode()))
 		code := s.Cmd.ProcessState.ExitCode()
 		if code != 0 {
-			// TODO: Reimplement this using PubSub
-			// s.SendLog(ifaces.ChatData{Msg: sprintf(
-			// 	"**server Error**: Avorion has exited with non-zero status code: `%d`",
-			// 	code)})
+			sendLog <- ifaces.ChatData{Msg: sprintf(
+				"**server Error**: Avorion has exited with non-zero status code: `%d`",
+				code)}
 		}
+
 		close(s.close)
 	}()
 
@@ -379,7 +380,7 @@ func (s *server) Version() string {
 
 // Stop gracefully stops the Avorion process
 func (s *server) Stop(ctx context.Context, cfg ifaces.IConfigurator,
-	gc ifaces.IGalaxyCache, pc ifaces.IPlayerCache) error {
+	gc ifaces.IGalaxyCache) error {
 	logger.LogDebug(s, "Stop() was called")
 	if s.Online() != true {
 		logger.LogOutput(s, "Server is already offline")
@@ -457,68 +458,6 @@ func (s *server) sendcommand(ctx context.Context, cmd string) (string, error) {
 	}
 
 	return out, nil
-}
-
-// InitializeEvents runs the event initializer
-func (s *server) InitializeEvents(cfg ifaces.IConfigurator) {
-
-	var (
-		regexPlayerFID   = regexp.MustCompile(`^player:(\d+)$`)
-		regexAllianceFID = regexp.MustCompile(`^alliance:(\d+)$`)
-		regexSectorXY    = regexp.MustCompile(`^sector:(-?\d+:-?\d+)$`)
-	)
-
-	events.Initialize()
-
-	for _, ed := range cfg.GetEvents() {
-		ge := &events.Event{
-			FString: ed.FString,
-			Capture: ed.Regex,
-			Handler: func(srv ifaces.IGameServer, cfg ifaces.IConfigurator,
-				gc ifaces.IGalaxyCache, pc ifaces.IPlayerCache, e *events.Event,
-				in string, oc chan string) {
-
-				logger.LogOutput(s, in)
-				logger.LogDebug(e, "Got event: "+e.FString)
-				m := e.Capture.FindStringSubmatch(in)
-				strings := make([]interface{}, 0)
-
-				// Attempt to match against our player/alliance database and set that
-				// string to be the name of said object
-				for _, v := range m {
-					switch {
-					case regexPlayerFID.MatchString(v):
-						v = regexPlayerFID.FindStringSubmatch(v)[1]
-						if p := pc.FromFactionID(v); p != nil {
-							v = p.Name() + "/" + p.Steam64ID()
-						}
-
-					// TODO: Reimplement alliances
-					case regexAllianceFID.MatchString(v):
-						v = regexAllianceFID.FindStringSubmatch(v)[1]
-						// a := s.Alliance(v)
-						// if a != nil {
-						// 	v = a.Name()
-						// }
-
-					// TODO: Reimplement sectors and finish this feature
-					case regexSectorXY.MatchString(v):
-						v = regexSectorXY.FindStringSubmatch(v)[1]
-					}
-
-					strings = append(strings, v)
-				}
-
-				// srv.SendLog(ifaces.ChatData{Msg: sprintf(e.FString, strings[1:]...)})
-			}}
-
-		ge.SetLoglevel(s.Loglevel())
-
-		if err := events.Add(ed.Name, ge); err != nil {
-			logger.LogWarning(s, "Failed to register event: "+err.Error())
-			continue
-		}
-	}
 }
 
 // IsUp checks whether or not the game process is running
