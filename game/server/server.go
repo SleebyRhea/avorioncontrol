@@ -1,7 +1,6 @@
 package server
 
 import (
-	"avorioncontrol/game/player"
 	"avorioncontrol/game/server/events"
 	"avorioncontrol/ifaces"
 	"avorioncontrol/logger"
@@ -21,20 +20,17 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-const (
-	warnChatDiscarded   = `discarded chat message (time: >5 seconds)`
-	noticeDBUpate       = `Updating player data DB. Potential lag incoming.`
-	regexIntegration    = `^([0-9]+):([0-9]{10})$`
-	rconPlayerDiscord   = `linkdiscordacct %s %s`
-	rconGetPlayerData   = `getplayerdata -p %s`
-	rconGetAllianceData = `getplayerdata -a %s`
-	rconGetAllData      = `getplayerdata`
+var (
+	sprintf = fmt.Sprintf
+	binname = make(map[string]string, 0)
 )
 
-var (
-	sprintf          = fmt.Sprintf
-	regexpDiscordPin = regexp.MustCompile(regexIntegration)
-)
+func init() {
+	var _ ifaces.IGameServer = (*server)(nil)
+	binname["windows"] = "AvorionServer.exe"
+	binname["linux"] = "AvorionServer"
+	binname["other"] = "AvorionServer"
+}
 
 type server struct {
 	// Execution variables
@@ -54,6 +50,7 @@ type server struct {
 	loglevel int
 
 	//RCON support
+	rconexec string
 	rconpass string
 	rconaddr string
 	rconport string
@@ -74,19 +71,17 @@ type server struct {
 	}
 }
 
-// ExtFunc is a function that can be called by a non-Server object
-type ExtFunc func(...interface{}) error
-
 // New starts a new server in a goroutine, and provides a function to stop it
 // gracefully, and a function to issue it commands.
-func New(cfg ifaces.IConfigurator, wg *sync.WaitGroup, exit chan struct{},
-	gc ifaces.IGalaxyCache, pc ifaces.IPlayerCache) (ifaces.IGameServer, error) {
+func New(ctx context.Context, cfg ifaces.IConfigurator,
+	wg *sync.WaitGroup, exit chan struct{}, gc ifaces.IGalaxyCache,
+	pc ifaces.IPlayerCache) (ifaces.IGameServer, error) {
 
 	path := strings.TrimSuffix(cfg.InstallPath(), "/") + "/bin/"
-	if runtime.GOOS == "windows" {
-		path += "AvorionServer.exe"
+	if exec, ok := binname[runtime.GOOS]; ok {
+		path = path + exec
 	} else {
-		path += "AvorionServer"
+		path = binname["other"] + exec
 	}
 
 	// Make sure that Avorion will execute
@@ -121,38 +116,19 @@ func New(cfg ifaces.IConfigurator, wg *sync.WaitGroup, exit chan struct{},
 			state:   &sync.Mutex{},
 		}}
 
-	go s.start(cfg, gc, pc)
+	go s.start(ctx, cfg, gc, pc)
 
 	return s, nil
 }
 
-// UUID returns the UUID of an avorion.Server
-func (s *server) UUID() string {
-	return "AvorionServer"
-}
-
-// Loglevel returns the loglevel of an avorion.Server
-func (s *server) Loglevel() int {
-	return s.loglevel
-}
-
-// SetLoglevel sets the loglevel of an avorion.Server
-func (s *server) SetLoglevel(l int) {
-	s.loglevel = l
-}
-
-// start starts the Avorion server process
-func (s *server) start(cfg ifaces.IConfigurator, gc ifaces.IGalaxyCache,
-	pc ifaces.IPlayerCache) error {
-	if s.Online() {
-		return &ErrServerOnline{}
-	}
+// start runs the Avorion server process
+func (s *server) start(ctx context.Context, cfg ifaces.IConfigurator,
+	gc ifaces.IGalaxyCache, pc ifaces.IPlayerCache) error {
 
 	var err error
-
 	logger.LogInit(s, "Beginning Avorion startup sequence")
 
-	s.InitializeEvents()
+	s.InitializeEvents(cfg)
 
 	s.Cmd = exec.Command(s.executable,
 		`--galaxy-name`, s.dataname,
@@ -239,9 +215,10 @@ func (s *server) start(cfg ifaces.IConfigurator, gc ifaces.IGalaxyCache,
 			s.Cmd.ProcessState.ExitCode()))
 		code := s.Cmd.ProcessState.ExitCode()
 		if code != 0 {
-			s.SendLog(ifaces.ChatData{Msg: sprintf(
-				"**server Error**: Avorion has exited with non-zero status code: `%d`",
-				code)})
+			// TODO: Reimplement this using PubSub
+			// s.SendLog(ifaces.ChatData{Msg: sprintf(
+			// 	"**server Error**: Avorion has exited with non-zero status code: `%d`",
+			// 	code)})
 		}
 		close(s.close)
 	}()
@@ -335,8 +312,29 @@ func (s *server) start(cfg ifaces.IConfigurator, gc ifaces.IGalaxyCache,
 	}
 }
 
+// UUID returns the UUID of an avorion.Server
+func (s *server) UUID() string {
+	return "AvorionServer"
+}
+
+// Loglevel returns the loglevel of an avorion.Server
+func (s *server) Loglevel() int {
+	return s.loglevel
+}
+
+// SetLoglevel sets the loglevel of an avorion.Server
+func (s *server) SetLoglevel(l int) {
+	s.loglevel = l
+}
+
+// Version - Return the version of the Avorion server
+func (s *server) Version() string {
+	return s.version
+}
+
 // Stop gracefully stops the Avorion process
-func (s *server) Stop() error {
+func (s *server) Stop(ctx context.Context, cfg ifaces.IConfigurator,
+	gc ifaces.IGalaxyCache, pc ifaces.IPlayerCache) error {
 	logger.LogDebug(s, "Stop() was called")
 	if s.Online() != true {
 		logger.LogOutput(s, "Server is already offline")
@@ -345,9 +343,9 @@ func (s *server) Stop() error {
 
 	logger.LogInfo(s, "Stopping Avorion server and waiting for it to exit")
 	go func() {
-		_, err := s.RunCommand("save")
+		_, err := s.SendCommand(ctx, `save`)
 		if err == nil {
-			s.RunCommand("stop")
+			s.SendCommand(ctx, `stop`)
 			return
 		}
 		logger.LogError(s, err.Error())
@@ -389,31 +387,35 @@ func (s *server) Online() bool {
 	return false
 }
 
-// Status returns a struct containing the current status of the server
-func (s *server) Status() ifaces.ServerStatus {
-	logger.LogDebug(s, "Status() was called")
-
-	name := s.name
-	if name == "" {
-		name = s.config.Galaxy()
+// SendCommand issues a command to the Avorion server process
+// 	TODO: Refactor this to use an rcon library
+func (s *server) SendCommand(ctx context.Context, cmd string) (string, error) {
+	if !s.Online() {
+		return "", &ErrServerOffline{}
 	}
 
-	config, _ := s.config.GameConfig()
+	ret, err := exec.CommandContext(ctx,
+		s.rconexec, "-H",
+		s.rconaddr, "-p",
+		s.rconport,
+		"-P", s.rconpass, cmd).CombinedOutput()
+	out := strings.TrimSuffix(string(ret), "\n")
 
-	return ifaces.ServerStatus{
-		Name:          name,
-		Status:        s.statusInt(),
-		Players:       s.onlineplayers,
-		TotalPlayers:  s.playercount,
-		PlayersOnline: s.onlineplayercount,
-		Alliances:     s.alliancecount,
-		Output:        s.statusoutput,
-		Sectors:       s.sectorcount,
-		INI:           config}
+	if err != nil {
+		logger.LogError(s, "rcon: "+err.Error())
+		logger.LogError(s, "rcon: "+out)
+		return "", &ErrCommandFailedToRun{cmd: cmd, err: err}
+	}
+
+	if strings.HasPrefix(out, "Unknown command: ") {
+		return out, &ErrCommandInvalid{Cmd: cmd}
+	}
+
+	return out, nil
 }
 
 // InitializeEvents runs the event initializer
-func (s *server) InitializeEvents() {
+func (s *server) InitializeEvents(cfg ifaces.IConfigurator) {
 
 	var (
 		regexPlayerFID   = regexp.MustCompile(`^player:(\d+)$`)
@@ -423,7 +425,7 @@ func (s *server) InitializeEvents() {
 
 	events.Initialize()
 
-	for _, ed := range s.config.GetEvents() {
+	for _, ed := range cfg.GetEvents() {
 		ge := &events.Event{
 			FString: ed.FString,
 			Capture: ed.Regex,
@@ -462,7 +464,7 @@ func (s *server) InitializeEvents() {
 					strings = append(strings, v)
 				}
 
-				srv.SendLog(ifaces.ChatData{Msg: sprintf(e.FString, strings[1:]...)})
+				// srv.SendLog(ifaces.ChatData{Msg: sprintf(e.FString, strings[1:]...)})
 			}}
 
 		ge.SetLoglevel(s.Loglevel())
@@ -474,81 +476,25 @@ func (s *server) InitializeEvents() {
 	}
 }
 
-// KickPlayer kicks a given player
-func (s *server) KickPlayer(ctx context.Context, pc *player.Cache,
-	ref, reason string) error {
-	var p ifaces.IPlayer
-
-	if p = pc.FromFactionID(ref); p == nil {
-		if p = pc.FromSteam64ID(ref); p == nil {
-			if p = pc.FromDiscordID(ref); p == nil {
-				return &player.ErrPlayerNotFound{Ref: ref}
-			}
-		}
+// IsUp checks whether or not the game process is running
+func (s *server) IsUp() bool {
+	logger.LogDebug(s, "IsUp() was called")
+	if s.Cmd == nil {
+		return false
 	}
 
-	_, err := s.SendCommand(ctx, fmt.Sprintf(`kick %s "%s"`, p.Name(), reason))
-	if err != nil {
-		return "", err
+	if s.Cmd.ProcessState != nil {
+		return false
 	}
 
-	return out, nil
+	if s.Cmd.Process != nil {
+		return true
+	}
+
+	return false
 }
 
-// BanPlayer bans a given player
-func (s *server) BanPlayer(ctx context.Context, pc *player.Cache,
-	ref, reason string) error {
-	var p ifaces.IPlayer
-
-	if p = pc.FromFactionID(ref); p == nil {
-		if p = pc.FromSteam64ID(ref); p == nil {
-			if p = pc.FromDiscordID(ref); p == nil {
-				return &player.ErrPlayerNotFound{Ref: ref}
-			}
-		}
-	}
-
-	_, err := s.SendCommand(ctx, fmt.Sprintf(`ban %s "%s"`, p.Name(), reason))
-	if err != nil {
-		return "", err
-	}
-
-	return out, nil
-}
-
-// SendCommand issues a command to the Avorion server process
-// 	TODO: Refactor this to use an rcon library
-func (s *server) SendCommand(ctx context.Context, cmd string) (
-	string, error) {
-
-	if !s.Online() {
-		return "", &ErrServerOffline{}
-	}
-
-	ret, err := exec.CommandContext(ctx,
-		s.config.RCONBin(), "-H",
-		s.rconaddr, "-p",
-		fmt.Sprintf("%d", s.rconport),
-		"-P", s.rconpass, c).CombinedOutput()
-	out := strings.TrimSuffix(string(ret), "\n")
-
-	if err != nil {
-		logger.LogError(s, "rcon: "+err.Error())
-		logger.LogError(s, "rcon: "+out)
-		return "", &ErrCommandFailedToRun{}
-	}
-
-	if strings.HasPrefix(out, "Unknown command: ") {
-		return out, &ErrCommandInvalid{Cmd: cmd}
-	}
-
-	return out, nil
-}
-
-// RunCommand runs a command via rcon and returns the output
-// 	Deprecated: Please use SendCommand instead
-func (s *server) RunCommand(c string) (string, error) {
-	logger.LogWarning(s, `RunCommand() is deprecated, please use SendCommand()`)
-	ctx := context.WithTimeout(context.Background(), time.Second*30)
-	return s.SendCommand(ctx, c)
+// Password returns the servers password
+func (s *server) Password() string {
+	return s.password
 }
