@@ -199,7 +199,7 @@ func (s *server) start(ctx context.Context, cfg ifaces.IConfigurator,
 						}
 					}
 
-					out, err := s.SendCommand(ctx, cmd)
+					out, err := s.sendcommand(ctx, cmd)
 					if obj.Return.Err != nil {
 						obj.Return.Err <- err
 						continue
@@ -388,9 +388,9 @@ func (s *server) Stop(ctx context.Context, cfg ifaces.IConfigurator,
 
 	logger.LogInfo(s, "Stopping Avorion server and waiting for it to exit")
 	go func() {
-		_, err := s.SendCommand(ctx, `save`)
+		_, err := s.sendcommand(ctx, `save`)
 		if err == nil {
-			s.SendCommand(ctx, `stop`)
+			s.sendcommand(ctx, `stop`)
 			return
 		}
 		logger.LogError(s, err.Error())
@@ -432,9 +432,9 @@ func (s *server) Online() bool {
 	return false
 }
 
-// SendCommand issues a command to the Avorion server process
+// sendcommand issues a command to the Avorion server process
 // 	TODO: Refactor this to use an rcon library
-func (s *server) SendCommand(ctx context.Context, cmd string) (string, error) {
+func (s *server) sendcommand(ctx context.Context, cmd string) (string, error) {
 	if !s.Online() {
 		return "", &ErrServerOffline{}
 	}
