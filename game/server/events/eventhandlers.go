@@ -40,57 +40,51 @@ func initB() {
 		`^\s*doPlayerBanEvent: ([0-9]+) (.*?)\s*$`,
 		handleEventPlayerBan)
 
-	New("EventDiscordIntegrationRequest",
-		`^\s*discordIntegrationRequestEvent: ([0-9]+) ([0-9]+)`,
-		handleDiscordIntegrationRequest)
+	// New("EventDiscordIntegrationRequest",
+	// 	`^\s*discordIntegrationRequestEvent: ([0-9]+) ([0-9]+)`,
+	// 	handleDiscordIntegrationRequest)
 
 	New("EventModUpdate",
 		`^\s*Downloading ([0-9]+) \[[^\s]+ of [^\s]+ \| 100%\]\s*$`,
 		handleModUpdate)
 }
 
-func handleEventConnection(srv ifaces.IGameServer, e *Event, in string,
-	oc chan string) {
-	m := e.Capture.FindStringSubmatch(in)
-	go func() { oc <- m[1] }()
-}
+func handleEventPlayerJoin(e *Event, in string,
+	gc ifaces.IGalaxyCache, cfg ifaces.IConfigurator,
+	sendServ, sendDisc, sendLog chan interface{}) {
 
-func handleEventPlayerJoin(srv ifaces.IGameServer, e *Event, in string,
-	oc chan string) {
 	m := e.Capture.FindStringSubmatch(in)
-	if p := srv.Player(m[1]); p == nil {
-		p = srv.NewPlayer(m[1], m)
+	if p := gc.Players().FromFactionID(m[1]); p == nil {
+		p, _ := gc.Players().NewPlayer(``, ``, ``, ``)
 		p.SetOnline(true)
 	} else {
-		p.Update()
 		p.SetOnline(true)
 	}
-
-	srv.AddPlayerOnline()
 }
 
-func handleEventPlayerLeft(srv ifaces.IGameServer, e *Event, in string,
-	oc chan string) {
-	m := e.Capture.FindStringSubmatch(in)
+func handleEventPlayerLeft(e *Event, in string,
+	gc ifaces.IGalaxyCache, cfg ifaces.IConfigurator,
+	sendServ, sendDisc, sendLog chan interface{}) {
 
-	if p := srv.Player(m[1]); p != nil {
+	m := e.Capture.FindStringSubmatch(in)
+	if p := gc.Players().FromFactionID(m[1]); p != nil {
 		p.SetOnline(false)
-		srv.SubPlayerOnline()
 		return
 	}
 
-	logger.LogError(srv, "Player logged off, but has no tracking: "+m[2])
+	logger.LogError(e, "Player logged off, but has no tracking: "+m[2])
 }
 
-func handleEventShipTrackInit(srv ifaces.IGameServer, e *Event, in string,
-	oc chan string) {
+func handleEventShipTrackInit(e *Event, in string,
+	gc ifaces.IGalaxyCache, cfg ifaces.IConfigurator,
+	sendServ, sendDisc, sendLog chan interface{}) {
 }
 
-func handleEventShipJump(srv ifaces.IGameServer, e *Event, in string,
-	oc chan string) {
+func handleEventShipJump(e *Event, in string,
+	gc ifaces.IGalaxyCache, cfg ifaces.IConfigurator,
+	sendServ, sendDisc, sendLog chan interface{}) {
+
 	m := e.Capture.FindStringSubmatch(in)
-
-	// We already use a regex to make sure we capture the correct values
 	x, _ := strconv.Atoi(m[2])
 	y, _ := strconv.Atoi(m[3])
 	n := m[4]
@@ -104,8 +98,9 @@ func handleEventShipJump(srv ifaces.IGameServer, e *Event, in string,
 	}
 }
 
-func handlePlayerChat(srv ifaces.IGameServer, e *Event, in string,
-	oc chan string) {
+func handlePlayerChat(e *Event, in string,
+	gc ifaces.IGalaxyCache, cfg ifaces.IConfigurator,
+	sendServ, sendDisc, sendLog chan interface{}) {
 	logger.LogChat(srv, in)
 	// Catch our own discord messages
 	if discChatRe.MatchString(in) {
@@ -129,19 +124,21 @@ func handlePlayerChat(srv ifaces.IGameServer, e *Event, in string,
 	}
 }
 
-func handleNilCommand(srv ifaces.IGameServer, e *Event, in string,
-	oc chan string) {
+func handleNilCommand(e *Event, in string,
+	gc ifaces.IGalaxyCache, cfg ifaces.IConfigurator,
+	sendServ, sendDisc, sendLog chan interface{}) {
 }
 
-func handleDiscordIntegrationRequest(srv ifaces.IGameServer, e *Event, in string,
-	oc chan string) {
-	m := e.Capture.FindStringSubmatch(in)
-	srv.AddIntegrationRequest(m[1], m[2])
-	logger.LogInfo(srv, "Received Discord integration request")
-}
+// func handleDiscordIntegrationRequest(cfg ifaces.IConfigurator, sendServ, sendDisc, sendLog chan interface{}
+//  e *Event, in string, oc chan string) {
+// 	m := e.Capture.FindStringSubmatch(in)
+// 	srv.AddIntegrationRequest(m[1], m[2])
+// 	logger.LogInfo(srv, "Received Discord integration request")
+// }
 
-func handleEventPlayerKick(srv ifaces.IGameServer, e *Event, in string,
-	oc chan string) {
+func handleEventPlayerKick(e *Event, in string,
+	gc ifaces.IGalaxyCache, cfg ifaces.IConfigurator,
+	sendServ, sendDisc, sendLog chan interface{}) {
 
 	m := e.Capture.FindStringSubmatch(in)
 	p := srv.Player(m[1])
@@ -157,8 +154,9 @@ func handleEventPlayerKick(srv ifaces.IGameServer, e *Event, in string,
 	p.Kick(m[2])
 }
 
-func handleEventPlayerBan(srv ifaces.IGameServer, e *Event, in string,
-	oc chan string) {
+func handleEventPlayerBan(e *Event, in string,
+	gc ifaces.IGalaxyCache, cfg ifaces.IConfigurator,
+	sendServ, sendDisc, sendLog chan interface{}) {
 
 	m := e.Capture.FindStringSubmatch(in)
 	p := srv.Player(m[1])
@@ -178,8 +176,10 @@ func handleEventPlayerBan(srv ifaces.IGameServer, e *Event, in string,
 			p.Name(), m[2])})
 }
 
-func handleModUpdate(srv ifaces.IGameServer, e *Event, in string,
-	oc chan string) {
+func handleModUpdate(e *Event, in string,
+	gc ifaces.IGalaxyCache, cfg ifaces.IConfigurator,
+	sendServ, sendDisc, sendLog chan interface{}) {
+
 	logger.LogInit(srv, in)
 	m := e.Capture.FindStringSubmatch(in)
 
@@ -192,7 +192,7 @@ func handleModUpdate(srv ifaces.IGameServer, e *Event, in string,
 	srv.SendChat(output)
 }
 
-func defaultEventHandler(srv ifaces.IGameServer, e *Event, in string,
-	oc chan string) {
+func defaultEventHandler(cfg ifaces.IConfigurator, sendServ, sendDisc, sendLog chan interface{},
+	gc ifaces.IGalaxyCache, e *Event, in string, oc chan string) {
 	logger.LogOutput(srv, in)
 }
