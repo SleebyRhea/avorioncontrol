@@ -10,7 +10,6 @@ type IGameServer interface {
 	IServer
 	ILockableServer
 	IVersionedServer
-	ICommandableServer
 	logger.ILogger
 }
 
@@ -30,10 +29,4 @@ type IVersionedServer interface {
 // ILockableServer describes an interface to lock a server with a password
 type ILockableServer interface {
 	Password() string
-}
-
-// ICommandableServer describes an interface to an IGameServer that can have run
-//	game commands
-type ICommandableServer interface {
-	SendCommand(context.Context, string) (string, error)
 }
