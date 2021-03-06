@@ -261,9 +261,9 @@ func (s *server) start(ctx context.Context, cfg ifaces.IConfigurator,
 			s.Cmd.ProcessState.ExitCode()))
 		code := s.Cmd.ProcessState.ExitCode()
 		if code != 0 {
-			sendLog <- ifaces.ChatData{Msg: sprintf(
+			sendLog(ifaces.ChatData{Msg: sprintf(
 				"**server Error**: Avorion has exited with non-zero status code: `%d`",
-				code)}
+				code)})
 		}
 
 		close(s.close)
