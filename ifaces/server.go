@@ -17,8 +17,7 @@ type IGameServer interface {
 //	of and log
 type IServer interface {
 	IsUp() bool
-	Stop(context.Context, IConfigurator, IGalaxyCache, IPlayerCache) error
-	InitializeEvents(IConfigurator)
+	Stop(context.Context, IConfigurator, IGalaxyCache) error
 }
 
 // IVersionedServer describes an interface to an IGameserver's version information
