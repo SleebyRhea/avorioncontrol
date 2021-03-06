@@ -87,7 +87,9 @@ func New(c ifaces.IConfigurator, wg *sync.WaitGroup, exit chan struct{}) *Bot {
 /****************************/
 
 // Start initializes the discordgo backend
-func (b *Bot) Start(gs ifaces.IGameServer, bus ifaces.IMessageBus) {
+func (b *Bot) Start(gs ifaces.IGameServer, bus ifaces.IMessageBus,
+	gc ifaces.IGalaxyCache) {
+
 	logger.LogInit(b, "Initializing Discord bot")
 	sendRcon, endRcon := bus.NewSubscription("ServerRCON")
 	go func() { <-b.exit; endRcon() }()
@@ -287,6 +289,7 @@ func (b *Bot) Mention() string {
 	return b.session.State.User.String()
 }
 
+/*
 func (b *Bot) updateServerStatus(guild string, s *discordgo.Session,
 	gs ifaces.IGameServer) {
 	b.wg.Add(1)
@@ -407,6 +410,7 @@ func (b *Bot) updateServerStatus(guild string, s *discordgo.Session,
 		}
 	}
 }
+*/
 
 /*********/
 /* OTHER */
@@ -513,7 +517,7 @@ func onGuildJoin(gid string, s *discordgo.Session, b *Bot, gs ifaces.IGameServer
 		}
 	}()
 
-	go b.updateServerStatus(gid, s, gs)
+	// go b.updateServerStatus(gid, s, gs)
 
 	logger.LogDebug(reg, "Initialized new command registrar")
 }
