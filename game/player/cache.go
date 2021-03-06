@@ -3,6 +3,7 @@ package player
 import (
 	"avorioncontrol/ifaces"
 	"avorioncontrol/logger"
+	"context"
 	"fmt"
 	"strconv"
 	"sync"
@@ -104,6 +105,18 @@ func (c *Cache) Loglevel() int {
 	return c.loglevel
 }
 
+// FromName returns a player given a name string
+func (c *Cache) FromName(ref string) ifaces.IPlayer {
+	c.mutex.fmap.Lock()
+	defer c.mutex.nmap.Unlock()
+
+	if p, ok := c.namestr[ref]; ok {
+		return p
+	}
+
+	return nil
+}
+
 // FromFactionID returns a player given a faction ID
 func (c *Cache) FromFactionID(ref string) ifaces.IPlayer {
 	c.mutex.fmap.Lock()
@@ -128,24 +141,12 @@ func (c *Cache) FromDiscordID(ref string) ifaces.IPlayer {
 	return nil
 }
 
-// FromSteamID returns a player given a steam ID
-func (c *Cache) FromSteamID(ref string) ifaces.IPlayer {
+// FromSteam64ID returns a player given a steam ID
+func (c *Cache) FromSteam64ID(ref string) ifaces.IPlayer {
 	c.mutex.fmap.Lock()
 	defer c.mutex.smap.Unlock()
 
 	if p, ok := c.steam64[ref]; ok {
-		return p
-	}
-
-	return nil
-}
-
-// FromName returns a player given a name string
-func (c *Cache) FromName(ref string) ifaces.IPlayer {
-	c.mutex.fmap.Lock()
-	defer c.mutex.nmap.Unlock()
-
-	if p, ok := c.namestr[ref]; ok {
 		return p
 	}
 
@@ -173,5 +174,47 @@ func (c *Cache) SetPlayerDiscord(did string, player *Player) error {
 	c.discord[did] = player
 	logger.LogInfo(player, fmt.Sprintf(`Assigned Discord ID %s to %s`, did,
 		player.steam64id))
+	return nil
+}
+
+// KickPlayer kicks a given player
+func (c *Cache) KickPlayer(ctx context.Context, gs ifaces.ICommandableServer,
+	ref, reason string) error {
+	var p ifaces.IPlayer
+
+	if p = c.FromFactionID(ref); p == nil {
+		if p = c.FromSteam64ID(ref); p == nil {
+			if p = c.FromDiscordID(ref); p == nil {
+				return &ErrPlayerNotFound{Ref: ref}
+			}
+		}
+	}
+
+	_, err := gs.SendCommand(ctx, fmt.Sprintf(`kick %s "%s"`, p.Name(), reason))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// BanPlayer bans a given player
+func (c *Cache) BanPlayer(ctx context.Context, gs ifaces.ICommandableServer,
+	ref, reason string) error {
+	var p ifaces.IPlayer
+
+	if p = c.FromFactionID(ref); p == nil {
+		if p = c.FromSteam64ID(ref); p == nil {
+			if p = c.FromDiscordID(ref); p == nil {
+				return &ErrPlayerNotFound{Ref: ref}
+			}
+		}
+	}
+
+	_, err := gs.SendCommand(ctx, fmt.Sprintf(`ban "%s" "%s"`, p.Name(), reason))
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
