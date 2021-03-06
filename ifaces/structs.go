@@ -88,5 +88,8 @@ type LoggedServerEvent struct {
 type RconCommand struct {
 	Command   string
 	Arguments []string
-	Return    chan error
+	Return    struct {
+		Out chan string
+		Err chan error
+	}
 }
