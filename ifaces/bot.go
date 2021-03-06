@@ -15,7 +15,7 @@ type IBotMentioner interface {
 
 // IBotStarter describes a bot that can start
 type IBotStarter interface {
-	Start(IGameServer, IMessageBus)
+	Start(IGameServer, IMessageBus, IGalaxyCache)
 }
 
 // IBotChatter describes an interface to a bot that can chat
