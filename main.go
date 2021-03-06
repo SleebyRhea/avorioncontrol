@@ -1,7 +1,6 @@
 package main
 
 import (
-	"avorioncontrol/avorion"
 	"avorioncontrol/configuration"
 	"avorioncontrol/discord"
 	"avorioncontrol/ifaces"
@@ -75,33 +74,12 @@ func main() {
 	exit := make(chan struct{})
 
 	core = &Core{loglevel: config.Loglevel()}
-	server = avorion.New(config, &wg, exit)
 	disbot = discord.New(config, &wg, exit)
 
 	// We start this early to prevent an errant os.Interrupt from leaving the
 	// AvorionServer process running.
 	signal.Notify(sc)
 	disbot.Start(server)
-
-	// FIXME: This needs to be handled on the object level
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Printf("Panic Caught: %v", r)
-			if server.IsUp() {
-				fmt.Printf("Attempting to shut down Avorion safely...\n")
-				if err := server.Stop(true); err != nil {
-					logger.LogError(server, err.Error())
-				}
-				fmt.Printf("Avorion stopped gracefully.")
-			}
-			os.Exit(1)
-		}
-	}()
-
-	if err := server.Start(true); err != nil {
-		logger.LogError(core, "Avorion: "+err.Error())
-		os.Exit(1)
-	}
 
 	logger.LogInit(core, "Completed init, awaiting termination signal.")
 	for sig := range sc {
@@ -116,15 +94,9 @@ func main() {
 		case syscall.SIGUSR1:
 			logger.LogInfo(core, "Caught SIGUSR1, performing server reload+restart")
 			config.LoadConfiguration()
-			if err := server.Restart(); err != nil {
-				logger.LogError(server, err.Error())
-			}
 
 		case syscall.SIGUSR2:
-			logger.LogInfo(core, "Caught SIGUSR2, performing stopping Avorion")
-			if err := server.Stop(true); err != nil {
-				logger.LogError(server, err.Error())
-			}
+			logger.LogInfo(core, "Caught SIGUSR2, stopping Avorion")
 			config.LoadConfiguration()
 		}
 	}
